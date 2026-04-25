@@ -1,0 +1,92 @@
+@import "tailwindcss";
+
+.material-symbols-outlined {
+  font-family: 'Material Symbols Outlined', sans-serif;
+  font-weight: normal;
+  font-style: normal;
+  font-size: 24px;
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  display: inline-block;
+  white-space: nowrap;
+  word-wrap: normal;
+  direction: ltr;
+  font-feature-settings: 'liga';
+  -webkit-font-feature-settings: 'liga';
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Custom animations */
+.animate-bounce-slow {
+  animation: bounce-slow 3s infinite;
+}
+
+@keyframes bounce-slow {
+  0%, 100% {
+    transform: translateY(-10%);
+    animation-timing-function: cubic-bezier(0.8, 0, 1, 1);
+  }
+  50% {
+    transform: translateY(0);
+    animation-timing-function: cubic-bezier(0, 0, 0.2, 1);
+  }
+}
+
+@keyframes marquee {
+  0% {
+    transform: translateX(50vw);
+  }
+  100% {
+    transform: translateX(-100%);
+  }
+}
+
+/* Quill Editor & Rich Text Styling */
+.ql-editor {
+  @apply text-lg leading-relaxed text-slate-700 min-h-[300px] p-6;
+  font-family: inherit;
+}
+
+.ql-container.ql-snow {
+  @apply border-none;
+  font-family: inherit;
+}
+
+.ql-toolbar.ql-snow {
+  @apply border-none border-b border-slate-200 bg-slate-50 py-3 px-4 rounded-t-xl;
+  font-family: inherit;
+}
+
+.ql-editor img {
+  @apply rounded-xl max-w-full h-auto my-6 border border-slate-100 shadow-sm mx-auto block;
+}
+
+.ql-editor h1 { @apply text-4xl font-bold mb-6 mt-8 text-slate-900; }
+.ql-editor h2 { @apply text-3xl font-bold mb-5 mt-6 text-slate-800; }
+.ql-editor h3 { @apply text-2xl font-bold mb-4 mt-4 text-slate-800; }
+.ql-editor p { @apply mb-5 text-slate-700 leading-relaxed; }
+.ql-editor ul, .ql-editor ol { @apply mb-5 ml-6; }
+.ql-editor ul { @apply list-disc; }
+.ql-editor ol { @apply list-decimal; }
+
+/* Display version for NewsPage */
+.ql-editor-display {
+  @apply p-0;
+}
+
+.ql-editor-display img {
+  @apply rounded-3xl w-full h-auto my-10 shadow-xl shadow-slate-200/50;
+}
+
+.ql-editor-display p {
+  @apply text-lg md:text-xl text-slate-700 leading-relaxed mb-6 font-normal;
+}
+
+.ql-editor-display h1 { @apply text-3xl md:text-5xl font-bold mb-8 mt-12 text-slate-900 leading-tight; }
+.ql-editor-display h2 { @apply text-2xl md:text-4xl font-bold mb-6 mt-10 text-slate-900; }
+.ql-editor-display h3 { @apply text-xl md:text-3xl font-bold mb-5 mt-8 text-slate-900; }
+
+.ql-editor.ql-blank::before {
+  @apply text-slate-400 not-italic left-6 top-6;
+}

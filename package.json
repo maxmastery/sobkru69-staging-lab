@@ -1,0 +1,38 @@
+{
+  "name": "sobkru-v2.1",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "lint": "tsc --noEmit",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@google/genai": "^1.30.0",
+    "@supabase/supabase-js": "^2.104.1",
+    "@tailwindcss/vite": "^4.2.2",
+    "autoprefixer": "^10.5.0",
+    "katex": "^0.16.45",
+    "lucide-react": "^0.555.0",
+    "motion": "^12.38.0",
+    "postcss": "^8.5.10",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.1",
+    "react-markdown": "^10.1.0",
+    "react-quill-new": "^3.8.3",
+    "rehype-katex": "^7.0.1",
+    "rehype-raw": "^7.0.0",
+    "remark-gfm": "^4.0.1",
+    "remark-math": "^6.0.0",
+    "tailwindcss": "^4.2.2",
+    "tesseract.js": "^7.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.14.0",
+    "@vitejs/plugin-react": "^5.0.0",
+    "typescript": "~5.8.2",
+    "vite": "^6.2.0"
+  }
+}
