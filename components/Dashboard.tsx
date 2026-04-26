@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { BookOpen, GraduationCap, Users, Newspaper, MessageSquare, ShoppingCart, FileText, Trophy } from 'lucide-react';
+import { BookOpen, GraduationCap, Users, Newspaper, MessageSquare, ShoppingCart, FileText, BarChart3 } from 'lucide-react';
 import { EXAM_CURRICULUM } from '../constants';
 import { ExamPart, PartId } from '../types';
 
