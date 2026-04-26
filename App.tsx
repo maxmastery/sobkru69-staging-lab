@@ -20,6 +20,7 @@ import UserStatistics from './components/UserStatistics';
 import { ExamPart, SubTopic } from './types';
 import { authService, User, BellNotification, UserUiState } from './services/authService';
 import { userActivityService } from './services/userActivityService';
+import { presenceService } from './services/presenceService';
 import { LogOut, AlertTriangle, Bell, X, Settings, User as UserIcon, BarChart3, Megaphone, MessageSquare, Loader2 } from 'lucide-react';
 
 type PageState = 'dashboard' | 'news' | 'discussion' | 'shop' | 'mock-exam' | 'contact-support' | 'leaderboard' | 'user-stats';
@@ -228,65 +229,60 @@ const App: React.FC = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Heartbeat & Online Status Loop
+  // ── Online Presence Logic ─────────────────────────────────────────
   useEffect(() => {
-    if (!user) return;
+    // Generate or retrieve session ID for this tab
+    let sid = sessionStorage.getItem('sobkru_sid');
+    if (!sid) {
+      sid = (window.crypto && window.crypto.randomUUID) 
+        ? window.crypto.randomUUID() 
+        : Math.random().toString(36).substring(2) + Date.now().toString(36);
+      sessionStorage.setItem('sobkru_sid', sid);
+    }
 
-    const runHeartbeat = async () => {
-      let pageStatus: string = currentPage;
-      if (currentTopic) {
-        pageStatus = `lesson:${currentTopic.id}`;
-      } else if (currentPage === 'mock-exam') {
-        pageStatus = 'exam';
+    const updatePresence = async () => {
+      try {
+        const token = user ? await authService.getOwnAccessToken(user.id).catch(() => '') : undefined;
+        await presenceService.trackPresence(sid!, user?.id || null, token);
+      } catch (err) {
+        console.error('Update presence error:', err);
       }
-
-      // Pass auth token if available to ensure RLS works correctly
-      const token = await authService.getOwnAccessToken(user.id).catch(() => '');
-
-      userActivityService.sendHeartbeat(user.id, user.name, pageStatus, token).catch(err => console.error('heartbeat send error:', err));
-      
-      userActivityService.getOnlineSessions(token).then(sessions => {
-        // Broad threshold (15 mins) for debugging if timezone issues exist
-        const threshold = new Date(Date.now() - 15 * 60 * 1000);
-        const uniqueUsers = new Set<string>();
-        
-        if (Array.isArray(sessions)) {
-          console.log(`[ONLINE DEBUG] Fetched ${sessions.length} total sessions from DB`);
-          sessions.forEach(s => {
-            const lastActive = new Date(s.last_active_at);
-            const isActive = lastActive >= threshold;
-            if (s && s.last_active_at && isActive) {
-              uniqueUsers.add(s.user_id);
-            }
-          });
-          console.log(`[ONLINE DEBUG] Active in last 15 mins: ${uniqueUsers.size}`);
-        } else {
-          console.error('[ONLINE DEBUG] Sessions is not an array:', sessions);
-        }
-        
-        setOnlineCount(uniqueUsers.size || (user ? 1 : 0)); // Fallback to 1 if we are logged in but count is 0
-      }).catch(err => {
-        console.error('[ONLINE DEBUG] getOnlineSessions failed:', err);
-        setOnlineCount(user ? 1 : 0);
-      });
     };
 
-    runHeartbeat();
-    const interval = setInterval(runHeartbeat, 30000); // Every 30 seconds for better accuracy
+    const fetchOnlineCount = async () => {
+      try {
+        const token = user ? await authService.getOwnAccessToken(user.id).catch(() => '') : undefined;
+        const count = await presenceService.getOnlineCount(token);
+        // Ensure at least 1 if we are logged in
+        setOnlineCount(Math.max(count, user ? 1 : 0));
+      } catch (err) {
+        console.error('Fetch online count error:', err);
+      }
+    };
 
-    // Send heartbeat when user returns to the tab
-    const handleVisibilityChange = () => {
+    // Initial execution
+    updatePresence();
+    fetchOnlineCount();
+
+    // Intervals: Track every 20s, Poll every 10s (for real-time feel)
+    const trackTimer = setInterval(updatePresence, 20000);
+    const pollTimer = setInterval(fetchOnlineCount, 10000);
+
+    // Visibility change handler
+    const handleVisibility = () => {
       if (document.visibilityState === 'visible') {
-        runHeartbeat();
+        updatePresence();
+        fetchOnlineCount();
       }
     };
-    document.addEventListener('visibilitychange', handleVisibilityChange);
+    document.addEventListener('visibilitychange', handleVisibility);
 
     return () => {
-      clearInterval(interval);
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      clearInterval(trackTimer);
+      clearInterval(pollTimer);
+      document.removeEventListener('visibilitychange', handleVisibility);
     };
-  }, [user, currentPage, currentTopic]);
+  }, [user]);
 
   // Scroll to top when page changes
   useEffect(() => {
@@ -767,7 +763,7 @@ const App: React.FC = () => {
           <style>{`
             @media (max-width: 640px) {
               .sobkru-donate-container {
-                transform: scale(0.5);
+                transform: scale(0.65);
                 transform-origin: bottom right;
               }
             }

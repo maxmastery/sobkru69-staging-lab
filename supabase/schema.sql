@@ -906,3 +906,34 @@ alter table public.mock_exam_attempts enable row level security;
 create policy "mock_exam_attempts_anon_all" on public.mock_exam_attempts
   for all to anon, authenticated
   using (true) with check (true);
+-- ---------------------------------------------------------------------------
+-- Online Presence System
+-- ---------------------------------------------------------------------------
+
+create table if not exists public.online_users (
+  id uuid primary key default gen_random_uuid(),
+  session_id uuid not null unique,
+  user_id text,
+  last_seen timestamptz not null default now(),
+  created_at timestamptz not null default now()
+);
+
+alter table public.online_users enable row level security;
+
+drop policy if exists online_users_all_access on public.online_users;
+create policy online_users_all_access on public.online_users 
+  for all to anon, authenticated 
+  using (true) with check (true);
+
+create or replace function public.get_online_count()
+returns integer
+language sql
+security definer
+as $$
+  select count(distinct session_id)::integer
+  from public.online_users
+  where last_seen > (now() - interval '60 seconds');
+$$;
+
+grant execute on function public.get_online_count() to anon, authenticated;
+grant select, insert, update, delete on public.online_users to anon, authenticated;
