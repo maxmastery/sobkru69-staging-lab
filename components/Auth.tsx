@@ -207,13 +207,13 @@ const Auth: React.FC<AuthProps> = ({ onLogin, initialError = '' }) => {
 
           <form onSubmit={handleLoginSubmit} className="space-y-5 pb-8">
             <div className="space-y-1.5">
-              <label className="text-sm font-semibold text-slate-700">อีเมล หรือ ชื่อผู้ใช้งาน</label>
+              <label className="text-sm font-semibold text-slate-700">อีเมล</label>
               <div className="relative group">
                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                  <User className="h-5 w-5 text-slate-400 group-focus-within:text-slate-900 transition-colors" />
+                  <Mail className="h-5 w-5 text-slate-400 group-focus-within:text-slate-900 transition-colors" />
                 </div>
                 <input
-                  type="text"
+                  type="email"
                   name="email"
                   required
                   value={formData.email}

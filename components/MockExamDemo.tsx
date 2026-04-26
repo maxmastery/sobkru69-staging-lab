@@ -32,7 +32,7 @@ export const MockExamDemo: React.FC<MockExamDemoProps> = ({ onBack }) => {
     setView('exam');
   };
 
-  const handleExamComplete = async (data: { score: number; total: number; durationSeconds: number; isCompleted: boolean; examKey: string }) => {
+  const handleExamComplete = async (data: { score: number; total: number; answeredCount: number; durationSeconds: number; isCompleted: boolean; examKey: string }) => {
     const user = getStoredUser();
     if (!user) return;
     try {
@@ -42,6 +42,7 @@ export const MockExamDemo: React.FC<MockExamDemoProps> = ({ onBack }) => {
         examKey: data.examKey,
         score: data.score,
         total: data.total,
+        answeredCount: data.answeredCount,
         durationSeconds: data.durationSeconds,
         isCompleted: data.isCompleted,
       });

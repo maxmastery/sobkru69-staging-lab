@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Clock, Send, ChevronLeft, ChevronRight, Flag, CheckCircle, AlertCircle, StopCircle } from 'lucide-react';
+import { Clock, Send, ChevronLeft, ChevronRight, Flag, CheckCircle, AlertCircle, StopCircle, ChevronUp, ChevronDown } from 'lucide-react';
 
 export interface Question {
   id: number;
@@ -16,7 +16,7 @@ interface StandardExamProps {
   questions: Question[];
   onBack: () => void;
   examKey?: string;
-  onExamComplete?: (data: { score: number; total: number; durationSeconds: number; isCompleted: boolean; examKey: string }) => void;
+  onExamComplete?: (data: { score: number; total: number; answeredCount: number; durationSeconds: number; isCompleted: boolean; examKey: string }) => void;
 }
 
 const OPTION_LABELS = ['ก', 'ข', 'ค', 'ง'];
@@ -57,6 +57,7 @@ export const StandardExam: React.FC<StandardExamProps> = ({ title, durationSecon
   const [flagged, setFlagged] = useState<Record<number, boolean>>({});
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [showStopModal, setShowStopModal] = useState(false);
+  const [showMobileNav, setShowMobileNav] = useState(false);
   const hasReportedRef = useRef(false);
 
   useEffect(() => {
@@ -108,7 +109,8 @@ export const StandardExam: React.FC<StandardExamProps> = ({ title, durationSecon
       hasReportedRef.current = true;
       const score = calculateScore();
       const elapsed = durationSeconds - timeLeft;
-      onExamComplete({ score, total: questions.length, durationSeconds: elapsed, isCompleted: false, examKey });
+      const answeredCount = Object.keys(answers).length;
+      onExamComplete({ score, total: questions.length, answeredCount, durationSeconds: elapsed, isCompleted: false, examKey });
     }
     onBack();
   };
@@ -129,11 +131,12 @@ export const StandardExam: React.FC<StandardExamProps> = ({ title, durationSecon
     const isPassed = percentage >= 60;
     const unansweredCount = questions.length - Object.keys(answers).length;
     const elapsed = durationSeconds - timeLeft;
+    const answeredCount = Object.keys(answers).length;
 
     // Report completed exam
     if (!hasReportedRef.current && onExamComplete) {
       hasReportedRef.current = true;
-      onExamComplete({ score, total: questions.length, durationSeconds: elapsed, isCompleted: true, examKey });
+      onExamComplete({ score, total: questions.length, answeredCount, durationSeconds: elapsed, isCompleted: true, examKey });
     }
 
     return (
@@ -371,8 +374,8 @@ export const StandardExam: React.FC<StandardExamProps> = ({ title, durationSecon
       {/* Main Content */}
       <div className="flex flex-1 overflow-hidden flex-col md:flex-row">
         
-        {/* Sidebar (Question Navigator) */}
-        <aside className="w-full md:w-72 bg-white border-r border-slate-200 flex flex-col shrink-0 md:h-full h-48 order-2 md:order-1">
+        {/* Sidebar (Question Navigator) — Always visible on Desktop */}
+        <aside className="w-72 bg-white border-r border-slate-200 flex-col shrink-0 h-full hidden md:flex">
           <div className="p-4 border-b border-slate-100">
             <h3 className="font-bold text-slate-800 mb-2">สถานะการทำข้อสอบ</h3>
             <div className="flex justify-between text-sm mb-2">
@@ -388,7 +391,7 @@ export const StandardExam: React.FC<StandardExamProps> = ({ title, durationSecon
           </div>
           
           <div className="flex-1 overflow-y-auto p-4">
-            <div className="grid grid-cols-5 md:grid-cols-4 gap-2">
+            <div className="grid grid-cols-4 gap-2">
               {questions.map((_, index) => {
                 const isAnswered = answers[index] !== undefined;
                 const isCurrent = currentQuestionIndex === index;
@@ -419,7 +422,7 @@ export const StandardExam: React.FC<StandardExamProps> = ({ title, durationSecon
             </div>
           </div>
 
-          <div className="p-4 border-t border-slate-100 bg-slate-50 text-xs space-y-2 hidden md:block">
+          <div className="p-4 border-t border-slate-100 bg-slate-50 text-xs space-y-2">
             <div className="flex items-center gap-2"><div className="w-3 h-3 rounded bg-green-100 border border-green-200"></div> <span className="text-slate-600">ทำแล้ว</span></div>
             <div className="flex items-center gap-2"><div className="w-3 h-3 rounded bg-white border border-slate-200"></div> <span className="text-slate-600">ยังไม่ได้ทำ</span></div>
             <div className="flex items-center gap-2"><div className="w-3 h-3 rounded bg-amber-50 border border-amber-400"></div> <span className="text-slate-600">ทำเครื่องหมายไว้ทบทวน</span></div>
@@ -427,7 +430,7 @@ export const StandardExam: React.FC<StandardExamProps> = ({ title, durationSecon
         </aside>
 
         {/* Question Area */}
-        <main className="flex-1 flex flex-col bg-slate-50 overflow-hidden order-1 md:order-2">
+        <main className="flex-1 flex flex-col bg-slate-50 overflow-hidden">
           <div className="flex-1 overflow-y-auto p-4 md:p-8">
             <div className="max-w-3xl mx-auto">
               
@@ -483,25 +486,81 @@ export const StandardExam: React.FC<StandardExamProps> = ({ title, durationSecon
           </div>
 
           {/* Bottom Navigation */}
-          <div className="bg-white border-t border-slate-200 p-4 shrink-0">
-            <div className="max-w-3xl mx-auto flex items-center justify-between">
-              <button 
-                onClick={() => setCurrentQuestionIndex(prev => Math.max(0, prev - 1))}
-                disabled={currentQuestionIndex === 0}
-                className="flex items-center gap-2 px-4 md:px-6 py-2.5 rounded-xl font-medium text-slate-600 hover:bg-slate-100 disabled:opacity-50 disabled:hover:bg-transparent transition-colors"
-              >
-                <ChevronLeft className="w-5 h-5" />
-                <span className="hidden md:inline">ข้อก่อนหน้า</span>
-              </button>
-              
-              <button 
-                onClick={() => setCurrentQuestionIndex(prev => Math.min(questions.length - 1, prev + 1))}
-                disabled={currentQuestionIndex === questions.length - 1}
-                className="flex items-center gap-2 px-4 md:px-6 py-2.5 rounded-xl font-medium text-slate-600 hover:bg-slate-100 disabled:opacity-50 disabled:hover:bg-transparent transition-colors"
-              >
-                <span className="hidden md:inline">ข้อถัดไป</span>
-                <ChevronRight className="w-5 h-5" />
-              </button>
+          <div className="bg-white border-t border-slate-200 shrink-0">
+            {/* Mobile: Toggleable question navigator */}
+            {showMobileNav && (
+              <div className="md:hidden border-b border-slate-100 p-4 bg-slate-50 animate-in slide-in-from-bottom-2 duration-200">
+                <div className="flex justify-between text-sm mb-3">
+                  <span className="text-slate-500 font-medium">ทำแล้ว: <strong className="text-green-600">{answeredCount}</strong></span>
+                  <span className="text-slate-500 font-medium">เหลือ: <strong>{questions.length - answeredCount}</strong></span>
+                </div>
+                <div className="w-full bg-slate-100 rounded-full h-2 mb-3">
+                  <div 
+                    className="bg-green-500 h-2 rounded-full transition-all duration-300" 
+                    style={{ width: `${(answeredCount / questions.length) * 100}%` }}
+                  ></div>
+                </div>
+                <div className="grid grid-cols-10 gap-1.5 max-h-48 overflow-y-auto">
+                  {questions.map((_, index) => {
+                    const isAnswered = answers[index] !== undefined;
+                    const isCurrent = currentQuestionIndex === index;
+                    const isFlagged = flagged[index];
+                    
+                    let btnClass = "h-8 rounded text-xs font-medium transition-all flex items-center justify-center border ";
+                    
+                    if (isCurrent) {
+                      btnClass += "border-blue-500 ring-2 ring-blue-200 text-blue-700 bg-blue-50 ";
+                    } else if (isFlagged) {
+                      btnClass += "border-amber-400 bg-amber-50 text-amber-700 ";
+                    } else if (isAnswered) {
+                      btnClass += "border-green-200 bg-green-50 text-green-700 ";
+                    } else {
+                      btnClass += "border-slate-200 bg-white text-slate-600 ";
+                    }
+
+                    return (
+                      <button
+                        key={index}
+                        onClick={() => { setCurrentQuestionIndex(index); setShowMobileNav(false); }}
+                        className={btnClass}
+                      >
+                        {index + 1}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            <div className="p-4">
+              <div className="max-w-3xl mx-auto flex items-center justify-between">
+                <button 
+                  onClick={() => setCurrentQuestionIndex(prev => Math.max(0, prev - 1))}
+                  disabled={currentQuestionIndex === 0}
+                  className="flex items-center gap-2 px-4 md:px-6 py-2.5 rounded-xl font-medium text-slate-600 hover:bg-slate-100 disabled:opacity-50 disabled:hover:bg-transparent transition-colors"
+                >
+                  <ChevronLeft className="w-5 h-5" />
+                  <span className="hidden md:inline">ข้อก่อนหน้า</span>
+                </button>
+
+                {/* Mobile toggle button for question navigator */}
+                <button
+                  onClick={() => setShowMobileNav(!showMobileNav)}
+                  className="md:hidden flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-100 text-slate-600 text-sm font-medium hover:bg-slate-200 transition-colors"
+                >
+                  {showMobileNav ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />}
+                  {answeredCount}/{questions.length}
+                </button>
+                
+                <button 
+                  onClick={() => setCurrentQuestionIndex(prev => Math.min(questions.length - 1, prev + 1))}
+                  disabled={currentQuestionIndex === questions.length - 1}
+                  className="flex items-center gap-2 px-4 md:px-6 py-2.5 rounded-xl font-medium text-slate-600 hover:bg-slate-100 disabled:opacity-50 disabled:hover:bg-transparent transition-colors"
+                >
+                  <span className="hidden md:inline">ข้อถัดไป</span>
+                  <ChevronRight className="w-5 h-5" />
+                </button>
+              </div>
             </div>
           </div>
         </main>

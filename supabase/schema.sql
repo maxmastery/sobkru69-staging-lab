@@ -879,10 +879,24 @@ create table if not exists public.mock_exam_attempts (
   exam_key text not null default '',
   score integer not null default 0,
   total integer not null default 0,
+  answered_count integer not null default 0,
   duration_seconds integer not null default 0,
   is_completed boolean not null default true,
   created_at timestamptz not null default now()
 );
+
+-- Add answered_count column if it doesn't exist (for existing installations)
+do $$
+begin
+  if not exists (
+    select 1 from information_schema.columns
+    where table_schema = 'public'
+      and table_name = 'mock_exam_attempts'
+      and column_name = 'answered_count'
+  ) then
+    alter table public.mock_exam_attempts add column answered_count integer not null default 0;
+  end if;
+end $$;
 
 alter table public.mock_exam_attempts enable row level security;
 

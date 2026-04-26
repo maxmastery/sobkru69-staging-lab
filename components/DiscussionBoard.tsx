@@ -405,7 +405,7 @@ const DiscussionBoard: React.FC<DiscussionBoardProps> = ({ onBack, currentUser }
                     <div className="flex items-center gap-4 text-sm text-slate-500 shrink-0">
                       <div className="flex items-center gap-1.5">
                         <Clock className="w-4 h-4" />
-                        {thread.date}
+                        {new Date(thread.date).toLocaleDateString('th-TH', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                       </div>
                       <div className="flex items-center gap-1.5 bg-slate-50 px-2.5 py-1 rounded-lg">
                         <MessageSquare className="w-4 h-4 text-indigo-500" />
@@ -583,7 +583,7 @@ const DiscussionBoard: React.FC<DiscussionBoardProps> = ({ onBack, currentUser }
               </span>
               <span className="text-sm text-slate-500 flex items-center gap-1.5">
                 <Clock className="w-4 h-4" />
-                {activeThread.date}
+                {new Date(activeThread.date).toLocaleDateString('th-TH', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
               </span>
             </div>
             <h2 className="text-2xl font-bold text-slate-800 mb-6">{activeThread.title}</h2>

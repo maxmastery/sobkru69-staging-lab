@@ -184,6 +184,7 @@ export const userActivityService = {
     examKey: string;
     score: number;
     total: number;
+    answeredCount: number;
     durationSeconds: number;
     isCompleted: boolean;
   }) {
@@ -195,22 +196,27 @@ export const userActivityService = {
       exam_key: data.examKey,
       score: data.score,
       total: data.total,
+      answered_count: data.answeredCount,
       duration_seconds: data.durationSeconds,
       is_completed: data.isCompleted,
       created_at: new Date().toISOString(),
     });
   },
 
-  async getMockExamStats(userId: string): Promise<{ attemptCount: number; totalCorrect: number; totalQuestions: number }> {
+  async getMockExamStats(userId: string): Promise<{ attemptCount: number; totalCorrect: number; totalAnswered: number; totalQuestions: number }> {
     ensureSupabase();
-    const rows = await supabaseRest.select<any[]>('mock_exam_attempts', `select=score,total&user_id=eq.${encodeValue(userId)}`);
+    const rows = await supabaseRest.select<any[]>('mock_exam_attempts', `select=score,total,answered_count,is_completed&user_id=eq.${encodeValue(userId)}`);
     let totalCorrect = 0;
+    let totalAnswered = 0;
     let totalQuestions = 0;
     rows.forEach((r: any) => {
       totalCorrect += Number(r.score || 0);
+      // Use answered_count if available, otherwise fall back to total
+      const answered = Number(r.answered_count || r.total || 0);
+      totalAnswered += answered;
       totalQuestions += Number(r.total || 0);
     });
-    return { attemptCount: rows.length, totalCorrect, totalQuestions };
+    return { attemptCount: rows.length, totalCorrect, totalAnswered, totalQuestions };
   },
 
   async getLeaderboard(): Promise<any[]> {

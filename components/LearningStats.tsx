@@ -10,7 +10,7 @@ interface LearningStatsProps {
 const LearningStats: React.FC<LearningStatsProps> = ({ onClose }) => {
   const [stats, setStats] = useState<{ [chapterId: string]: number }>({});
   const [totalQuizzes, setTotalQuizzes] = useState(0);
-  const [mockExamStats, setMockExamStats] = useState<{ attemptCount: number; totalCorrect: number; totalQuestions: number }>({ attemptCount: 0, totalCorrect: 0, totalQuestions: 0 });
+  const [mockExamStats, setMockExamStats] = useState<{ attemptCount: number; totalCorrect: number; totalAnswered: number; totalQuestions: number }>({ attemptCount: 0, totalCorrect: 0, totalAnswered: 0, totalQuestions: 0 });
 
   useEffect(() => {
     const loadStats = async () => {
@@ -128,10 +128,10 @@ const LearningStats: React.FC<LearningStatsProps> = ({ onClose }) => {
           <div>
             <p className="text-sm text-slate-500 font-medium">Win Rate (อัตราตอบถูก)</p>
             <p className="text-2xl font-bold text-amber-600">
-              {mockExamStats.totalQuestions > 0 ? Math.round((mockExamStats.totalCorrect / mockExamStats.totalQuestions) * 100) : 0}%
+              {mockExamStats.totalAnswered > 0 ? Math.round((mockExamStats.totalCorrect / mockExamStats.totalAnswered) * 100) : 0}%
             </p>
             <p className="text-xs text-slate-400 mt-0.5">
-              {mockExamStats.totalCorrect}/{mockExamStats.totalQuestions} ข้อ (รวมทุกครั้ง)
+              {mockExamStats.totalCorrect}/{mockExamStats.totalAnswered} ข้อที่กา (รวมทุกครั้ง)
             </p>
           </div>
         </div>

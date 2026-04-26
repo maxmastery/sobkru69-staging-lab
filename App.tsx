@@ -110,9 +110,14 @@ const App: React.FC = () => {
     
     // Fetch online count
     userActivityService.getOnlineSessions().then(sessions => {
-      const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
-      const count = sessions.filter(s => new Date(s.last_active_at) >= fiveMinutesAgo).length;
-      setOnlineCount(count);
+      const threeMinutesAgo = new Date(Date.now() - 3 * 60 * 1000);
+      const uniqueUsers = new Set<string>();
+      sessions.forEach(s => {
+        if (new Date(s.last_active_at) >= threeMinutesAgo) {
+          uniqueUsers.add(s.user_id);
+        }
+      });
+      setOnlineCount(Math.max(uniqueUsers.size, 1));
     }).catch(() => {});
   };
 
@@ -232,19 +237,41 @@ const App: React.FC = () => {
       userActivityService.sendHeartbeat(user.id, user.name, pageStatus).catch(() => {});
       
       userActivityService.getOnlineSessions().then(sessions => {
-        // ขยายเป็น 10 นาทีเพื่อความยืดหยุ่น
-        const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000);
-        const count = sessions.filter(s => new Date(s.last_active_at) >= tenMinutesAgo).length;
-        setOnlineCount(count || 1); // อย่างน้อยต้องมีตัวเอง (Fallback)
+        // 3 นาที เพื่อความแม่นยำมากขึ้น
+        const threeMinutesAgo = new Date(Date.now() - 3 * 60 * 1000);
+        const uniqueUsers = new Set<string>();
+        sessions.forEach(s => {
+          if (new Date(s.last_active_at) >= threeMinutesAgo) {
+            uniqueUsers.add(s.user_id);
+          }
+        });
+        setOnlineCount(Math.max(uniqueUsers.size, 1)); // อย่างน้อยต้องมีตัวเอง (Fallback)
       }).catch(() => {
         setOnlineCount(1);
       });
     };
 
     runHeartbeat();
-    const interval = setInterval(runHeartbeat, 60000); // Every 1 minute
-    return () => clearInterval(interval);
+    const interval = setInterval(runHeartbeat, 30000); // Every 30 seconds for better accuracy
+
+    // Send heartbeat when user returns to the tab
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        runHeartbeat();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
   }, [user, currentPage, currentTopic]);
+
+  // Scroll to top when page changes
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'instant' });
+  }, [currentPage, currentPart, currentTopic, showLearningStats]);
 
   const persistUserUiState = async (patch: Partial<UserUiState>) => {
     const nextState: UserUiState = {
@@ -412,8 +439,7 @@ const App: React.FC = () => {
             <Loader2 className="w-7 h-7 animate-spin" />
           </div>
           <div className="text-center">
-            <div className="text-lg font-bold text-slate-900">กำลังเชื่อมต่อระบบ</div>
-            <div className="text-sm text-slate-500 mt-1">กำลังกู้คืน session และโหลดข้อมูลจาก Supabase</div>
+            <div className="text-lg font-bold text-slate-900">กำลังเข้าสู่หน้าบทเรียน</div>
           </div>
         </div>
       </div>
@@ -717,8 +743,15 @@ const App: React.FC = () => {
 
       {/* Floating Donation Button - Hidden when in lesson view */}
       {!currentTopic && (
-        <div className="fixed bottom-6 right-6 z-40 flex flex-col items-end gap-2">
+        <div className="fixed bottom-6 right-6 z-40 flex flex-col items-end gap-2 sobkru-donate-container">
           <style>{`
+            @media (max-width: 640px) {
+              .sobkru-donate-container {
+                transform: scale(0.5);
+                transform-origin: bottom right;
+              }
+            }
+
             @keyframes sobkruCoffeeFloat {
               0%, 100% { transform: translateY(0) rotate(-2deg); }
               50% { transform: translateY(-3px) rotate(2deg); }
