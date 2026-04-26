@@ -77,7 +77,9 @@ export const userActivityService = {
 
   async getStudyTimeMap(userId: string): Promise<Record<string, number>> {
     ensureSupabase();
+    console.log('getStudyTimeMap query for userId:', userId);
     const rows = await supabaseRest.select<StudyTimeRow[]>('study_time', `select=topic_id,seconds&user_id=eq.${encodeValue(userId)}`);
+    console.log('getStudyTimeMap rows:', rows);
     return rows.reduce<Record<string, number>>((acc, row) => {
       acc[row.topic_id] = Number(row.seconds || 0);
       return acc;
@@ -138,20 +140,25 @@ export const userActivityService = {
   async sendHeartbeat(userId: string, userName: string, currentPage: string) {
     try {
       ensureSupabase();
+      console.log('Sending heartbeat for user:', userId);
       await supabaseRest.upsert<any[]>('user_sessions', {
         user_id: userId,
         user_name: userName,
         current_page: currentPage,
         last_active_at: new Date().toISOString(),
       }, 'user_id');
-    } catch {
-      // silently fail – heartbeat is best-effort
+      console.log('Heartbeat sent successfully');
+    } catch (err) {
+      console.error('Heartbeat failed:', err);
     }
   },
 
   async getOnlineSessions(): Promise<{ user_id: string; user_name: string; current_page: string; last_active_at: string }[]> {
     ensureSupabase();
-    return supabaseRest.select<any[]>('user_sessions', 'select=user_id,user_name,current_page,last_active_at&order=last_active_at.desc');
+    console.log('Fetching online sessions...');
+    const sessions = await supabaseRest.select<any[]>('user_sessions', 'select=user_id,user_name,current_page,last_active_at&order=last_active_at.desc');
+    console.log('Online sessions fetched:', sessions?.length || 0, sessions);
+    return sessions;
   },
 
   // ── Daily login log ──────────────────────────────────────────

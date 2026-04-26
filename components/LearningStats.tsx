@@ -21,11 +21,13 @@ const LearningStats: React.FC<LearningStatsProps> = ({ onClose, user: propUser }
       if (!user) return;
 
       try {
+        console.log('Loading stats for user:', user.id, user.name);
         const [timeMap, quizCount, examStats] = await Promise.all([
           userActivityService.getStudyTimeMap(user.id),
           userActivityService.getQuizAttemptsCount(user.id),
           userActivityService.getMockExamStats(user.id),
         ]);
+        console.log('Stats loaded:', { timeMap, quizCount, examStats });
         setStats(timeMap);
         setTotalQuizzes(quizCount);
         setMockExamStats(examStats);

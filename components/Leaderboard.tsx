@@ -50,7 +50,9 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ onBack }) => {
     const load = async () => {
       setIsLoading(true);
       try {
+        console.log('Loading leaderboard...');
         const data = await userActivityService.getLeaderboard();
+        console.log('Leaderboard data:', data?.length || 0, data);
         setAttempts(data);
       } catch (error) {
         console.error('Failed to load leaderboard', error);

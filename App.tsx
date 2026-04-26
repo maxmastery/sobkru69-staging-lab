@@ -105,11 +105,12 @@ const App: React.FC = () => {
     ]);
 
     // Log daily login & start heartbeat
-    userActivityService.logDailyLogin(activeUser.id).catch(() => {});
-    userActivityService.sendHeartbeat(activeUser.id, activeUser.name, 'dashboard').catch(() => {});
+    userActivityService.logDailyLogin(activeUser.id).catch(err => console.error('logDailyLogin error:', err));
+    userActivityService.sendHeartbeat(activeUser.id, activeUser.name, 'dashboard').catch(err => console.error('sendHeartbeat error:', err));
     
     // Fetch online count
     userActivityService.getOnlineSessions().then(sessions => {
+      console.log('Online sessions fetched:', sessions?.length || 0, sessions);
       const threeMinutesAgo = new Date(Date.now() - 3 * 60 * 1000);
       const uniqueUsers = new Set<string>();
       sessions.forEach(s => {
@@ -118,7 +119,10 @@ const App: React.FC = () => {
         }
       });
       setOnlineCount(uniqueUsers.size);
-    }).catch(() => {});
+    }).catch(err => {
+      console.error('getOnlineSessions error:', err);
+      setOnlineCount(0);
+    });
   };
 
   useEffect(() => {
@@ -234,7 +238,7 @@ const App: React.FC = () => {
         pageStatus = 'exam';
       }
 
-      userActivityService.sendHeartbeat(user.id, user.name, pageStatus).catch(() => {});
+      userActivityService.sendHeartbeat(user.id, user.name, pageStatus).catch(err => console.error('heartbeat send error:', err));
       
       userActivityService.getOnlineSessions().then(sessions => {
         // 3 นาที เพื่อความแม่นยำมากขึ้น
@@ -246,7 +250,8 @@ const App: React.FC = () => {
           }
         });
         setOnlineCount(uniqueUsers.size);
-      }).catch(() => {
+      }).catch(err => {
+        console.error('heartbeat getOnlineSessions error:', err);
         setOnlineCount(0);
       });
     };

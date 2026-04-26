@@ -33,6 +33,7 @@ const normalizeSupabaseUrl = (rawValue: string) => {
 export const getSupabaseConfig = (): SupabaseRuntimeConfig => {
   const url = normalizeSupabaseUrl(getLocalValue('VITE_SUPABASE_URL') || getEnvValue('VITE_SUPABASE_URL'));
   const anonKey = getLocalValue('VITE_SUPABASE_ANON_KEY') || getEnvValue('VITE_SUPABASE_ANON_KEY');
+  console.log('Supabase config URL:', url ? 'configured' : 'MISSING', 'Key:', anonKey ? 'configured' : 'MISSING');
 
   return {
     url,
@@ -68,6 +69,7 @@ const readResponse = async <T>(response: Response): Promise<T> => {
 
   if (!response.ok) {
     const message = parsed?.message || parsed?.hint || parsed?.details || text || 'Supabase request failed';
+    console.error('Supabase REST error:', { status: response.status, message, parsed });
     throw new Error(message);
   }
 
