@@ -20,7 +20,6 @@ import UserStatistics from './components/UserStatistics';
 import { ExamPart, SubTopic } from './types';
 import { authService, User, BellNotification, UserUiState } from './services/authService';
 import { userActivityService } from './services/userActivityService';
-import { presenceService } from './services/presenceService';
 import { LogOut, AlertTriangle, Bell, X, Settings, User as UserIcon, BarChart3, Megaphone, MessageSquare, Loader2 } from 'lucide-react';
 
 type PageState = 'dashboard' | 'news' | 'discussion' | 'shop' | 'mock-exam' | 'contact-support' | 'leaderboard' | 'user-stats';
@@ -229,54 +228,65 @@ const App: React.FC = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const [onlineCount, setOnlineCount] = useState(0);
-  const [debugInfo, setDebugInfo] = useState<any>(null);
-
-  // ── Online Presence Logic (Final Fix + Debug Box) ──────────────────
+  // Heartbeat & Online Status Loop
   useEffect(() => {
-    // 1. สร้าง sessionId จาก localStorage
-    let sid = localStorage.getItem("session_id");
-    if (!sid) {
-      sid = (window.crypto && window.crypto.randomUUID) 
-        ? window.crypto.randomUUID() 
-        : Math.random().toString(36).substring(2) + Date.now().toString(36);
-      localStorage.setItem("session_id", sid);
-    }
+    if (!user) return;
 
-    const envUrl = !!import.meta.env.VITE_SUPABASE_URL;
-    const envKey = !!import.meta.env.VITE_SUPABASE_ANON_KEY;
+    const runHeartbeat = async () => {
+      let pageStatus: string = currentPage;
+      if (currentTopic) {
+        pageStatus = `lesson:${currentTopic.id}`;
+      } else if (currentPage === 'mock-exam') {
+        pageStatus = 'exam';
+      }
 
-    const runSync = async () => {
-      const token = user ? await authService.getOwnAccessToken(user.id).catch(() => '') : undefined;
+      // Pass auth token if available to ensure RLS works correctly
+      const token = await authService.getOwnAccessToken(user.id).catch(() => '');
+
+      userActivityService.sendHeartbeat(user.id, user.name, pageStatus, token).catch(err => console.error('heartbeat send error:', err));
       
-      // 2. upsert เข้า public.online_presence ทันทีตอนเปิดหน้า
-      const upsertRes = await presenceService.trackPresence(sid!, token);
-      
-      // 4. query count คนที่ last_seen ภายใน 60 วินาที
-      const countRes = await presenceService.getOnlineCountWithDebug(token);
-      
-      setOnlineCount(countRes.count);
-      setDebugInfo({
-        sessionId: sid,
-        upsertSuccess: upsertRes.success,
-        upsertError: upsertRes.error || '',
-        count: countRes.count,
-        countError: countRes.error || '',
-        sinceTime: new Date(countRes.since).toLocaleTimeString(),
-        urlLoaded: envUrl,
-        keyLoaded: envKey
+      userActivityService.getOnlineSessions(token).then(sessions => {
+        // Broad threshold (15 mins) for debugging if timezone issues exist
+        const threshold = new Date(Date.now() - 15 * 60 * 1000);
+        const uniqueUsers = new Set<string>();
+        
+        if (Array.isArray(sessions)) {
+          console.log(`[ONLINE DEBUG] Fetched ${sessions.length} total sessions from DB`);
+          sessions.forEach(s => {
+            const lastActive = new Date(s.last_active_at);
+            const isActive = lastActive >= threshold;
+            if (s && s.last_active_at && isActive) {
+              uniqueUsers.add(s.user_id);
+            }
+          });
+          console.log(`[ONLINE DEBUG] Active in last 15 mins: ${uniqueUsers.size}`);
+        } else {
+          console.error('[ONLINE DEBUG] Sessions is not an array:', sessions);
+        }
+        
+        setOnlineCount(uniqueUsers.size || (user ? 1 : 0)); // Fallback to 1 if we are logged in but count is 0
+      }).catch(err => {
+        console.error('[ONLINE DEBUG] getOnlineSessions failed:', err);
+        setOnlineCount(user ? 1 : 0);
       });
-
-      // 3 & 5. log ผลลัพธ์
-      console.log('[DEBUG] Upsert:', upsertRes);
-      console.log('[DEBUG] Count:', countRes);
     };
 
-    runSync();
-    const timer = setInterval(runSync, 15000);
+    runHeartbeat();
+    const interval = setInterval(runHeartbeat, 30000); // Every 30 seconds for better accuracy
 
-    return () => clearInterval(timer);
-  }, [user]);
+    // Send heartbeat when user returns to the tab
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        runHeartbeat();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [user, currentPage, currentTopic]);
 
   // Scroll to top when page changes
   useEffect(() => {
@@ -515,7 +525,6 @@ const App: React.FC = () => {
           onNavigateToMockExam={() => setCurrentPage('mock-exam')}
           onNavigateToLeaderboard={() => setCurrentPage('user-stats')}
           onlineCount={onlineCount}
-          debugInfo={debugInfo}
         />
       );
     }
@@ -758,7 +767,7 @@ const App: React.FC = () => {
           <style>{`
             @media (max-width: 640px) {
               .sobkru-donate-container {
-                transform: scale(0.65);
+                transform: scale(0.5);
                 transform-origin: bottom right;
               }
             }

@@ -906,37 +906,3 @@ alter table public.mock_exam_attempts enable row level security;
 create policy "mock_exam_attempts_anon_all" on public.mock_exam_attempts
   for all to anon, authenticated
   using (true) with check (true);
--- ---------------------------------------------------------------------------
--- Online Presence System (Final Version)
--- ---------------------------------------------------------------------------
-
-create table if not exists public.online_presence (
-  id text primary key,
-  last_seen timestamptz not null default now()
-);
-
-alter table public.online_presence enable row level security;
-
-drop policy if exists "allow read online_presence" on public.online_presence;
-create policy "allow read online_presence"
-on public.online_presence
-for select
-to anon, authenticated
-using (true);
-
-drop policy if exists "allow insert online_presence" on public.online_presence;
-create policy "allow insert online_presence"
-on public.online_presence
-for insert
-to anon, authenticated
-with check (true);
-
-drop policy if exists "allow update online_presence" on public.online_presence;
-create policy "allow update online_presence"
-on public.online_presence
-for update
-to anon, authenticated
-using (true)
-with check (true);
-
-grant select, insert, update, delete on public.online_presence to anon, authenticated;
