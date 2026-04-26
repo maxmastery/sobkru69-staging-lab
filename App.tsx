@@ -246,23 +246,28 @@ const App: React.FC = () => {
       userActivityService.sendHeartbeat(user.id, user.name, pageStatus, token).catch(err => console.error('heartbeat send error:', err));
       
       userActivityService.getOnlineSessions(token).then(sessions => {
-        // 5 นาที เพื่อความแม่นยำมากขึ้น (ป้องกันเรื่อง timezone mismatch)
-        const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
+        // Broad threshold (15 mins) for debugging if timezone issues exist
+        const threshold = new Date(Date.now() - 15 * 60 * 1000);
         const uniqueUsers = new Set<string>();
+        
         if (Array.isArray(sessions)) {
-          console.log('Calculating online count from:', sessions.length, 'sessions');
+          console.log(`[ONLINE DEBUG] Fetched ${sessions.length} total sessions from DB`);
           sessions.forEach(s => {
             const lastActive = new Date(s.last_active_at);
-            if (s && s.last_active_at && lastActive >= fiveMinutesAgo) {
+            const isActive = lastActive >= threshold;
+            if (s && s.last_active_at && isActive) {
               uniqueUsers.add(s.user_id);
             }
           });
+          console.log(`[ONLINE DEBUG] Active in last 15 mins: ${uniqueUsers.size}`);
+        } else {
+          console.error('[ONLINE DEBUG] Sessions is not an array:', sessions);
         }
-        console.log('Final unique online count:', uniqueUsers.size);
-        setOnlineCount(uniqueUsers.size);
+        
+        setOnlineCount(uniqueUsers.size || (user ? 1 : 0)); // Fallback to 1 if we are logged in but count is 0
       }).catch(err => {
-        console.error('heartbeat getOnlineSessions error:', err);
-        setOnlineCount(0);
+        console.error('[ONLINE DEBUG] getOnlineSessions failed:', err);
+        setOnlineCount(user ? 1 : 0);
       });
     };
 

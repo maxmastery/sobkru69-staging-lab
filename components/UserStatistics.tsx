@@ -118,24 +118,6 @@ const UserStatistics: React.FC<UserStatisticsProps> = ({ onBack }) => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-        {/* Province Chart */}
-        <ChartBox 
-          title="สถิติผู้ใช้งานตามจังหวัด (TOP 10)" 
-          icon={<MapPin className="w-5 h-5 text-emerald-600" />}
-          data={stats.byProvince}
-          barColor="bg-emerald-500"
-        />
-
-        {/* Major Chart */}
-        <ChartBox 
-          title="สถิติเอกที่เลือกสอบ" 
-          icon={<GraduationCap className="w-5 h-5 text-purple-600" />}
-          data={stats.byMajor}
-          barColor="bg-purple-500"
-        />
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* Gender Chart */}
         <ChartBox 
           title="สถิติเพศ" 
@@ -150,6 +132,24 @@ const UserStatistics: React.FC<UserStatisticsProps> = ({ onBack }) => {
           icon={<UserCheck className="w-5 h-5 text-orange-600" />}
           data={stats.byExamCount}
           barColor="bg-orange-500"
+        />
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        {/* Province Chart */}
+        <ChartBox 
+          title="สถิติผู้ใช้งานตามจังหวัด (TOP 10)" 
+          icon={<MapPin className="w-5 h-5 text-emerald-600" />}
+          data={stats.byProvince}
+          barColor="bg-emerald-500"
+        />
+
+        {/* Major Chart */}
+        <ChartBox 
+          title="สถิติเอกที่เลือกสอบ" 
+          icon={<GraduationCap className="w-5 h-5 text-purple-600" />}
+          data={stats.byMajor}
+          barColor="bg-purple-500"
         />
       </div>
     </div>

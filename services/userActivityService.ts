@@ -140,14 +140,15 @@ export const userActivityService = {
   async sendHeartbeat(userId: string, userName: string, currentPage: string, authToken?: string) {
     try {
       ensureSupabase();
-      await supabaseRest.upsert<any[]>('user_sessions', {
+      const res = await supabaseRest.upsert<any[]>('user_sessions', {
         user_id: userId,
         user_name: userName,
         current_page: currentPage,
         last_active_at: new Date().toISOString(),
       }, 'user_id', authToken);
+      console.log(`[HEARTBEAT DEBUG] Sent for ${userId}. Res:`, res);
     } catch (err) {
-      console.error('Heartbeat failed:', err);
+      console.error('[HEARTBEAT DEBUG] Heartbeat failed:', err);
     }
   },
 
