@@ -45,7 +45,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onSelectPart, onNavigateToNews, o
         <h2 className="text-2xl md:text-3xl font-bold text-slate-800 mb-2">
           คอร์สออนไลน์ เตรียมสอบครูผู้ช่วย สพฐ.
         </h2>
-        <p className="text-base text-slate-600 w-full whitespace-normal md:whitespace-nowrap">
+        <p className="text-base text-slate-600 w-full whitespace-normal">
           ระบบติวสอบออนไลน์อัจฉริยะ ครอบคลุมเนื้อหาตามเกณฑ์ใหม่ เจาะลึก ภาค ก ภาค ข และ ภาค ค ( อัพเดต ปี 2569 )
         </p>
       </header>
@@ -111,8 +111,8 @@ const Dashboard: React.FC<DashboardProps> = ({ onSelectPart, onNavigateToNews, o
                 <Newspaper className="w-6 h-6" />
               </div>
               <div>
-                <h4 className="font-bold text-base md:text-lg text-slate-900 transition-colors group-hover:text-blue-700">ข่าวสารประชาสัมพันธ์</h4>
-                <p className="text-xs text-slate-500 transition-colors group-hover:text-blue-600">ติดตามข่าวสาร ประกาศ และอัปเดตต่างๆ</p>
+                <h4 className="font-bold text-base md:text-lg text-slate-900 transition-colors group-hover:text-blue-700 whitespace-nowrap">ข่าวสารประชาสัมพันธ์</h4>
+                <p className="text-xs text-slate-500 transition-colors group-hover:text-blue-600 whitespace-nowrap">ติดตามข่าวสาร ประกาศ และอัปเดตต่างๆ</p>
               </div>
             </div>
             <span className="relative ml-3 rounded-full bg-blue-100 px-3 py-1 text-xs font-bold text-blue-700 transition-colors group-hover:bg-blue-600 group-hover:text-white">ดูข่าว</span>
@@ -125,8 +125,8 @@ const Dashboard: React.FC<DashboardProps> = ({ onSelectPart, onNavigateToNews, o
                 <MessageSquare className="w-6 h-6" />
               </div>
               <div>
-                <h4 className="font-bold text-base md:text-lg text-slate-900 transition-colors group-hover:text-indigo-700">กระดานสนทนา</h4>
-                <p className="text-xs text-slate-500 transition-colors group-hover:text-indigo-600">พูดคุย แลกเปลี่ยนความรู้</p>
+                <h4 className="font-bold text-base md:text-lg text-slate-900 transition-colors group-hover:text-indigo-700 whitespace-nowrap">กระดานสนทนา</h4>
+                <p className="text-xs text-slate-500 transition-colors group-hover:text-indigo-600 whitespace-nowrap">พูดคุย แลกเปลี่ยนความรู้</p>
               </div>
             </div>
             <span className="relative ml-3 rounded-full bg-indigo-100 px-3 py-1 text-xs font-bold text-indigo-700 transition-colors group-hover:bg-indigo-600 group-hover:text-white">ถามตอบ</span>
@@ -139,8 +139,8 @@ const Dashboard: React.FC<DashboardProps> = ({ onSelectPart, onNavigateToNews, o
                 <Trophy className="w-6 h-6" />
               </div>
               <div>
-                <h4 className="font-bold text-base md:text-lg text-slate-900 transition-colors group-hover:text-amber-700">ทำเนียบผู้พิชิต</h4>
-                <p className="text-xs text-slate-500 transition-colors group-hover:text-amber-600">ตารางคะแนนสูงสุด Hall of Fame</p>
+                <h4 className="font-bold text-base md:text-lg text-slate-900 transition-colors group-hover:text-amber-700 whitespace-nowrap">ทำเนียบผู้พิชิต</h4>
+                <p className="text-xs text-slate-500 transition-colors group-hover:text-amber-600 whitespace-nowrap">ตารางคะแนนสูงสุด Hall of Fame</p>
               </div>
             </div>
             <span className="relative ml-3 rounded-full bg-amber-100 px-3 py-1 text-xs font-bold text-amber-700 transition-colors group-hover:bg-amber-500 group-hover:text-white">ดูคะแนน</span>

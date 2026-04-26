@@ -139,6 +139,7 @@ const AdminDonations: React.FC = () => {
                 <tr className="bg-slate-50 border-b border-slate-200">
                   <th className="px-6 py-4 text-xs font-bold text-slate-600 uppercase">#</th>
                   <th className="px-6 py-4 text-xs font-bold text-slate-600 uppercase">วันที่</th>
+                  <th className="px-6 py-4 text-xs font-bold text-slate-600 uppercase">ผู้เลี้ยงกาแฟ</th>
                   <th className="px-6 py-4 text-xs font-bold text-slate-600 uppercase">ประเภท</th>
                   <th className="px-6 py-4 text-xs font-bold text-slate-600 uppercase">ยอดเงิน</th>
                   <th className="px-6 py-4 text-xs font-bold text-slate-600 uppercase">สถานะ</th>
@@ -149,6 +150,10 @@ const AdminDonations: React.FC = () => {
                   <tr key={d.id || idx} className="hover:bg-slate-50/50 transition-colors">
                     <td className="px-6 py-4 text-sm text-slate-500 font-mono">{idx + 1}</td>
                     <td className="px-6 py-4 text-sm text-slate-600 whitespace-nowrap">{new Date(d.date).toLocaleString('th-TH', { dateStyle: 'medium', timeStyle: 'short' })}</td>
+                    <td className="px-6 py-4 text-sm font-medium text-slate-800">
+                      <div className="font-bold">{(d as any).userName || 'ไม่ระบุ'}</div>
+                      <div className="text-[10px] text-slate-400 font-normal">{(d as any).userEmail || ''}</div>
+                    </td>
                     <td className="px-6 py-4 text-sm font-bold text-slate-800">{d.type || 'ไม่ระบุ'}</td>
                     <td className="px-6 py-4 text-sm font-mono font-bold text-amber-600">{Number(d.amount).toLocaleString()} ฿</td>
                     <td className="px-6 py-4">

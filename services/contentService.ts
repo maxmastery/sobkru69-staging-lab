@@ -552,8 +552,21 @@ export const contentService = {
 
   async getAllDonations(): Promise<ContentDonationRecord[]> {
     ensureSupabase();
-    const rows = await supabaseRest.select<DonationRow[]>('donations', 'select=id,user_id,user_email,tier_id,tier_name,amount,slip_path,slip_hash,slip_text_hash,transaction_ref,status,verification_message,gift_link,created_at&order=created_at.desc');
-    return rows.map(toDonationRecord);
+    // ดึงข้อมูลการเลี้ยงกาแฟพร้อมกับข้อมูลโปรไฟล์ผู้ใช้ (ถ้ามี)
+    // หมายเหตุ: ใช้ .select('*') หรือระบุคอลัมน์ที่ต้องการ
+    // เนื่องจากเราใช้ supabaseRest.select เราจะพยายามดึงข้อมูลโปรไฟล์มาด้วยโดยใช้ syntax ของ PostgREST
+    const rows = await supabaseRest.select<any[]>('donations', 'select=*,profiles:user_profiles(name,display_name,email)&order=created_at.desc');
+    
+    return rows.map(record => {
+      const donation = toDonationRecord(record);
+      // เพิ่มข้อมูลชื่อผู้ใช้เข้าไปใน record
+      const profile = record.profiles;
+      return {
+        ...donation,
+        userName: profile?.display_name || profile?.name || record.user_email || 'ผู้ใช้งานไม่ระบุชื่อ',
+        userEmail: profile?.email || record.user_email || ''
+      } as any;
+    });
   },
 };
 

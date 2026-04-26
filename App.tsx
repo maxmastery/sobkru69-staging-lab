@@ -19,9 +19,10 @@ import Leaderboard from './components/Leaderboard';
 import { ExamPart, SubTopic } from './types';
 import { authService, User, BellNotification, UserUiState } from './services/authService';
 import { userActivityService } from './services/userActivityService';
-import { LogOut, AlertTriangle, Bell, X, Settings, User as UserIcon, BarChart3, Megaphone, MessageSquare, Loader2 } from 'lucide-react';
+import UserGeneralStats from './components/UserGeneralStats';
+import { LogOut, AlertTriangle, Bell, X, Settings, User as UserIcon, BarChart3, Megaphone, MessageSquare, Loader2, PieChart } from 'lucide-react';
 
-type PageState = 'dashboard' | 'news' | 'discussion' | 'shop' | 'mock-exam' | 'contact-support' | 'leaderboard';
+type PageState = 'dashboard' | 'news' | 'discussion' | 'shop' | 'mock-exam' | 'contact-support' | 'leaderboard' | 'stats';
 const SHOW_DONATION_HISTORY_SHORTCUT = false;
 
 const FloatingCoffeeCup: React.FC = () => (
@@ -431,6 +432,9 @@ const App: React.FC = () => {
     if (currentPage === 'leaderboard') {
       return <Leaderboard onBack={handleBackToDashboard} />;
     }
+    if (currentPage === 'stats') {
+      return <UserGeneralStats onBack={handleBackToDashboard} />;
+    }
 
     if (!currentPart) {
       return (
@@ -537,6 +541,13 @@ const App: React.FC = () => {
                 >
                   <BarChart3 className="w-4 h-4 text-slate-400" />
                   สถิติการเรียน
+                </button>
+                <button 
+                  onClick={() => { setCurrentPage('stats'); setShowProfileMenu(false); setShowLearningStats(false); }}
+                  className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2"
+                >
+                  <PieChart className="w-4 h-4 text-slate-400" />
+                  สถิติผู้ใช้งาน
                 </button>
                 {user.email !== 'Krumax' && (
                   <button 

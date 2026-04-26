@@ -147,7 +147,7 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ onBack }) => {
             Hall of Fame
           </div>
           <h2 className="text-3xl font-black text-slate-800 mb-3">ตารางคะแนนผู้พิชิตการทดสอบ</h2>
-          <p className="text-slate-500 max-w-xl mx-auto">
+          <p className="text-slate-500 mx-auto">
             เรียงลำดับจากคะแนนรวมสูงสุด หากคะแนนเท่ากันจะเปรียบเทียบเวลาที่ใช้ (เร็วกว่า = อันดับดีกว่า)
           </p>
         </div>

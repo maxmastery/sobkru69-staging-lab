@@ -217,5 +217,18 @@ export const userActivityService = {
     ensureSupabase();
     return supabaseRest.select<any[]>('mock_exam_attempts', 'select=user_id,user_name,exam_key,score,total,duration_seconds,is_completed,created_at&is_completed=eq.true&order=created_at.desc');
   },
+
+  async getSystemUserStats(): Promise<any> {
+    ensureSupabase();
+    // ดึงโปรไฟล์ทั้งหมด (สรุป)
+    const profiles = await supabaseRest.select<any[]>('user_profiles', 'select=gender,age_range,province,target_major');
+    // ดึงสถิติการสอบ
+    const attempts = await supabaseRest.select<any[]>('mock_exam_attempts', 'select=id');
+    
+    return {
+      profiles,
+      totalAttempts: attempts.length
+    };
+  },
 };
 
