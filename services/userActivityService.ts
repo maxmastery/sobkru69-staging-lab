@@ -137,26 +137,24 @@ export const userActivityService = {
 
   // ── Heartbeat (online tracking) ──────────────────────────────
 
-  async sendHeartbeat(userId: string, userName: string, currentPage: string) {
+  async sendHeartbeat(userId: string, userName: string, currentPage: string, authToken?: string) {
     try {
       ensureSupabase();
-      console.log('Sending heartbeat for user:', userId);
       await supabaseRest.upsert<any[]>('user_sessions', {
         user_id: userId,
         user_name: userName,
         current_page: currentPage,
         last_active_at: new Date().toISOString(),
-      }, 'user_id');
-      console.log('Heartbeat sent successfully');
+      }, 'user_id', authToken);
     } catch (err) {
       console.error('Heartbeat failed:', err);
     }
   },
 
-  async getOnlineSessions(): Promise<{ user_id: string; user_name: string; current_page: string; last_active_at: string }[]> {
+  async getOnlineSessions(authToken?: string): Promise<{ user_id: string; user_name: string; current_page: string; last_active_at: string }[]> {
     try {
       ensureSupabase();
-      const sessions = await supabaseRest.select<any[]>('user_sessions', 'select=user_id,user_name,current_page,last_active_at&order=last_active_at.desc');
+      const sessions = await supabaseRest.select<any[]>('user_sessions', 'select=user_id,user_name,current_page,last_active_at&order=last_active_at.desc', authToken);
       return Array.isArray(sessions) ? sessions : [];
     } catch (err) {
       console.error('getOnlineSessions error:', err);
@@ -197,20 +195,39 @@ export const userActivityService = {
     answeredCount: number;
     durationSeconds: number;
     isCompleted: boolean;
-  }) {
+  }, authToken?: string) {
     ensureSupabase();
-    await supabaseRest.insert<any[]>('mock_exam_attempts', {
-      id: createId(),
-      user_id: data.userId,
-      user_name: data.userName,
-      exam_key: data.examKey,
-      score: data.score,
-      total: data.total,
-      answered_count: data.answeredCount,
-      duration_seconds: data.durationSeconds,
-      is_completed: data.isCompleted,
-      created_at: new Date().toISOString(),
-    });
+    try {
+      await supabaseRest.insert<any[]>('mock_exam_attempts', {
+        id: createId(),
+        user_id: data.userId,
+        user_name: data.userName,
+        exam_key: data.examKey,
+        score: data.score,
+        total: data.total,
+        answered_count: data.answeredCount,
+        duration_seconds: data.durationSeconds,
+        is_completed: data.isCompleted,
+        created_at: new Date().toISOString(),
+      }, authToken);
+    } catch (err) {
+      console.error('saveMockExamAttempt failed, trying fallback:', err);
+      // Fallback for older schema (missing columns)
+      try {
+        await supabaseRest.insert<any[]>('mock_exam_attempts', {
+          id: createId(),
+          user_id: data.userId,
+          exam_key: data.examKey,
+          score: data.score,
+          total: data.total,
+          duration_seconds: data.durationSeconds,
+          completed_at: new Date().toISOString(),
+        }, authToken);
+      } catch (fallbackErr) {
+        console.error('saveMockExamAttempt fallback also failed:', fallbackErr);
+        throw fallbackErr;
+      }
+    }
   },
 
   async getMockExamStats(userId: string): Promise<{ attemptCount: number; totalCorrect: number; totalAnswered: number; totalQuestions: number }> {

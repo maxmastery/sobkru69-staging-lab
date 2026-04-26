@@ -231,7 +231,7 @@ const App: React.FC = () => {
   useEffect(() => {
     if (!user) return;
 
-    const runHeartbeat = () => {
+    const runHeartbeat = async () => {
       let pageStatus: string = currentPage;
       if (currentTopic) {
         pageStatus = `lesson:${currentTopic.id}`;
@@ -239,9 +239,12 @@ const App: React.FC = () => {
         pageStatus = 'exam';
       }
 
-      userActivityService.sendHeartbeat(user.id, user.name, pageStatus).catch(err => console.error('heartbeat send error:', err));
+      // Pass auth token if available to ensure RLS works correctly
+      const token = await authService.getOwnAccessToken(user.id).catch(() => '');
+
+      userActivityService.sendHeartbeat(user.id, user.name, pageStatus, token).catch(err => console.error('heartbeat send error:', err));
       
-      userActivityService.getOnlineSessions().then(sessions => {
+      userActivityService.getOnlineSessions(token).then(sessions => {
         // 3 นาที เพื่อความแม่นยำมากขึ้น
         const threeMinutesAgo = new Date(Date.now() - 3 * 60 * 1000);
         const uniqueUsers = new Set<string>();

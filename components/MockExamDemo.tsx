@@ -8,6 +8,7 @@ import { PART_A3_GOOD_GOV_EXAM_META, getPartA3GoodGovExamQuestions } from '../da
 import { PART_B1_TEACHING_EXAM_META, getPartB1TeachingExamQuestions } from '../data/mockExamB1Teaching';
 import { PART_B3_EDUCATION_LAW_EXAM_META, getPartB3EducationLawExamQuestions } from '../data/mockExamB3EducationLaw';
 import { userActivityService, getStoredUser } from '../services/userActivityService';
+import { authService } from '../services/authService';
 
 interface MockExamDemoProps {
   onBack: () => void;
@@ -36,6 +37,7 @@ export const MockExamDemo: React.FC<MockExamDemoProps> = ({ onBack }) => {
     const user = getStoredUser();
     if (!user) return;
     try {
+      const token = await authService.getOwnAccessToken(user.id).catch(() => '');
       await userActivityService.saveMockExamAttempt({
         userId: user.id,
         userName: user.name,
@@ -45,7 +47,7 @@ export const MockExamDemo: React.FC<MockExamDemoProps> = ({ onBack }) => {
         answeredCount: data.answeredCount,
         durationSeconds: data.durationSeconds,
         isCompleted: data.isCompleted,
-      });
+      }, token);
     } catch (error) {
       console.error('Failed to save mock exam attempt', error);
     }

@@ -213,13 +213,13 @@ const Auth: React.FC<AuthProps> = ({ onLogin, initialError = '' }) => {
                   <Mail className="h-5 w-5 text-slate-400 group-focus-within:text-slate-900 transition-colors" />
                 </div>
                 <input
-                  type="email"
+                  type="text"
                   name="email"
                   required
                   value={formData.email}
                   onChange={handleChange}
                   className="block w-full pl-11 pr-4 py-3.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 focus:ring-2 focus:ring-slate-900 focus:border-slate-900 transition-all outline-none"
-                  placeholder="your@email.com"
+                  placeholder="อีเมล หรือ ชื่อผู้ใช้งาน (สำหรับ Admin)"
                 />
               </div>
             </div>
