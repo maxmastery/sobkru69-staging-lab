@@ -907,33 +907,36 @@ create policy "mock_exam_attempts_anon_all" on public.mock_exam_attempts
   for all to anon, authenticated
   using (true) with check (true);
 -- ---------------------------------------------------------------------------
--- Online Presence System
+-- Online Presence System (Final Version)
 -- ---------------------------------------------------------------------------
 
-create table if not exists public.online_users (
-  id uuid primary key default gen_random_uuid(),
-  session_id uuid not null unique,
-  user_id text,
-  last_seen timestamptz not null default now(),
-  created_at timestamptz not null default now()
+create table if not exists public.online_presence (
+  id text primary key,
+  last_seen timestamptz not null default now()
 );
 
-alter table public.online_users enable row level security;
+alter table public.online_presence enable row level security;
 
-drop policy if exists online_users_all_access on public.online_users;
-create policy online_users_all_access on public.online_users 
-  for all to anon, authenticated 
-  using (true) with check (true);
+drop policy if exists "allow read online_presence" on public.online_presence;
+create policy "allow read online_presence"
+on public.online_presence
+for select
+to anon, authenticated
+using (true);
 
-create or replace function public.get_online_count()
-returns integer
-language sql
-security definer
-as $$
-  select count(distinct session_id)::integer
-  from public.online_users
-  where last_seen > (now() - interval '60 seconds');
-$$;
+drop policy if exists "allow insert online_presence" on public.online_presence;
+create policy "allow insert online_presence"
+on public.online_presence
+for insert
+to anon, authenticated
+with check (true);
 
-grant execute on function public.get_online_count() to anon, authenticated;
-grant select, insert, update, delete on public.online_users to anon, authenticated;
+drop policy if exists "allow update online_presence" on public.online_presence;
+create policy "allow update online_presence"
+on public.online_presence
+for update
+to anon, authenticated
+using (true)
+with check (true);
+
+grant select, insert, update, delete on public.online_presence to anon, authenticated;

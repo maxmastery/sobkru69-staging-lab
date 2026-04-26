@@ -144,7 +144,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onSelectPart, onNavigateToNews, o
                 <p className="text-xs text-slate-500 transition-colors group-hover:text-emerald-600 whitespace-nowrap">สถิติผู้ใช้งานในระบบ Hall of Fame</p>
               </div>
             </div>
-            <span className="relative ml-3 rounded-full bg-emerald-100 px-3 py-1 text-xs font-bold text-emerald-700 transition-colors group-hover:bg-emerald-500 group-hover:text-white">ดูข้อมูล</span>
+            <span className="relative ml-3 rounded-full bg-emerald-600 px-3 py-1 text-xs font-bold text-white transition-colors group-hover:bg-emerald-700 group-hover:text-white">ดูข้อมูล</span>
           </button>
         </div>
 

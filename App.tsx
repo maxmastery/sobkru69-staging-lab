@@ -229,34 +229,37 @@ const App: React.FC = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // ── Online Presence Logic ─────────────────────────────────────────
+  // ── Online Presence Logic (Final Fix) ──────────────────────────────
   useEffect(() => {
-    // Generate or retrieve session ID for this tab
-    let sid = sessionStorage.getItem('sobkru_sid');
+    // 6. ใน frontend ให้สร้าง session_id เก็บใน localStorage
+    let sid = localStorage.getItem("session_id");
     if (!sid) {
       sid = (window.crypto && window.crypto.randomUUID) 
         ? window.crypto.randomUUID() 
         : Math.random().toString(36).substring(2) + Date.now().toString(36);
-      sessionStorage.setItem('sobkru_sid', sid);
+      localStorage.setItem("session_id", sid);
     }
 
     const updatePresence = async () => {
       try {
         const token = user ? await authService.getOwnAccessToken(user.id).catch(() => '') : undefined;
-        await presenceService.trackPresence(sid!, user?.id || null, token);
+        // 7. ตอนเปิดหน้าเว็บ ให้ upsert ลง online_presence
+        await presenceService.trackPresence(sid!, token);
       } catch (err) {
-        console.error('Update presence error:', err);
+        console.error('[PRESENCE ERROR] updatePresence failed:', err);
       }
     };
 
     const fetchOnlineCount = async () => {
       try {
         const token = user ? await authService.getOwnAccessToken(user.id).catch(() => '') : undefined;
+        // 9. ตอนนับออนไลน์ ให้ query แบบนี้ (Logic handled inside service)
         const count = await presenceService.getOnlineCount(token);
-        // Ensure at least 1 if we are logged in
-        setOnlineCount(Math.max(count, user ? 1 : 0));
+        console.log(`[PRESENCE DEBUG] Current Online Count: ${count}`);
+        setOnlineCount(count);
       } catch (err) {
-        console.error('Fetch online count error:', err);
+        // 11. ถ้ายังเป็น 0 ให้แสดง error บน console ทันที ห้ามกลืน error
+        console.error('[PRESENCE ERROR] fetchOnlineCount failed:', err);
       }
     };
 
@@ -264,23 +267,13 @@ const App: React.FC = () => {
     updatePresence();
     fetchOnlineCount();
 
-    // Intervals: Track every 20s, Poll every 10s (for real-time feel)
-    const trackTimer = setInterval(updatePresence, 20000);
-    const pollTimer = setInterval(fetchOnlineCount, 10000);
-
-    // Visibility change handler
-    const handleVisibility = () => {
-      if (document.visibilityState === 'visible') {
-        updatePresence();
-        fetchOnlineCount();
-      }
-    };
-    document.addEventListener('visibilitychange', handleVisibility);
+    // 8. ทุก 15 วินาที ให้อัปเดต last_seen
+    const trackTimer = setInterval(updatePresence, 15000);
+    const pollTimer = setInterval(fetchOnlineCount, 15000);
 
     return () => {
       clearInterval(trackTimer);
       clearInterval(pollTimer);
-      document.removeEventListener('visibilitychange', handleVisibility);
     };
   }, [user]);
 
