@@ -135,37 +135,6 @@ export const userActivityService = {
     return rows.length;
   },
 
-  // ── Heartbeat (online tracking) ──────────────────────────────
-
-  async sendHeartbeat(userId: string, userName: string, currentPage: string, authToken?: string) {
-    try {
-      ensureSupabase();
-      const res = await supabaseRest.upsert<any[]>('user_sessions', {
-        user_id: userId,
-        user_name: userName,
-        current_page: currentPage,
-        last_active_at: new Date().toISOString(),
-      }, 'user_id', authToken);
-      console.log(`[HEARTBEAT DEBUG] Sent for ${userId}. Res:`, res);
-    } catch (err) {
-      console.error('[HEARTBEAT DEBUG] Heartbeat failed:', err);
-    }
-  },
-
-  async getOnlineSessions(authToken?: string): Promise<{ user_id: string; user_name: string; current_page: string; last_active_at: string }[]> {
-    try {
-      ensureSupabase();
-      const sessions = await supabaseRest.select<any[]>('user_sessions', 'select=user_id,user_name,current_page,last_active_at&order=last_active_at.desc', authToken);
-      if (Array.isArray(sessions)) {
-        console.log(`Fetched ${sessions.length} sessions from DB`);
-      }
-      return Array.isArray(sessions) ? sessions : [];
-    } catch (err) {
-      console.error('getOnlineSessions error:', err);
-      return [];
-    }
-  },
-
   // ── Daily login log ──────────────────────────────────────────
 
   async logDailyLogin(userId: string) {

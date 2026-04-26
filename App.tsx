@@ -81,7 +81,6 @@ const App: React.FC = () => {
   const [donationInitialView, setDonationInitialView] = useState<'intro' | 'history'>('intro');
   const [marquee, setMarquee] = useState<{ text: string; isActive: boolean } | null>(null);
   const [currentPage, setCurrentPage] = useState<PageState>('dashboard');
-  const [onlineCount, setOnlineCount] = useState(0);
   const menuRef = useRef<HTMLDivElement>(null);
 
   // Bell Notifications
@@ -107,24 +106,6 @@ const App: React.FC = () => {
 
     // Log daily login & start heartbeat
     userActivityService.logDailyLogin(activeUser.id).catch(err => console.error('logDailyLogin error:', err));
-    userActivityService.sendHeartbeat(activeUser.id, activeUser.name, 'dashboard').catch(err => console.error('sendHeartbeat error:', err));
-    
-    // Fetch online count
-    userActivityService.getOnlineSessions().then(sessions => {
-      const threeMinutesAgo = new Date(Date.now() - 3 * 60 * 1000);
-      const uniqueUsers = new Set<string>();
-      if (Array.isArray(sessions)) {
-        sessions.forEach(s => {
-          if (s && s.last_active_at && new Date(s.last_active_at) >= threeMinutesAgo) {
-            uniqueUsers.add(s.user_id);
-          }
-        });
-      }
-      setOnlineCount(uniqueUsers.size);
-    }).catch(err => {
-      console.error('getOnlineSessions error:', err);
-      setOnlineCount(0);
-    });
   };
 
   useEffect(() => {
@@ -228,65 +209,6 @@ const App: React.FC = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Heartbeat & Online Status Loop
-  useEffect(() => {
-    if (!user) return;
-
-    const runHeartbeat = async () => {
-      let pageStatus: string = currentPage;
-      if (currentTopic) {
-        pageStatus = `lesson:${currentTopic.id}`;
-      } else if (currentPage === 'mock-exam') {
-        pageStatus = 'exam';
-      }
-
-      // Pass auth token if available to ensure RLS works correctly
-      const token = await authService.getOwnAccessToken(user.id).catch(() => '');
-
-      userActivityService.sendHeartbeat(user.id, user.name, pageStatus, token).catch(err => console.error('heartbeat send error:', err));
-      
-      userActivityService.getOnlineSessions(token).then(sessions => {
-        // Broad threshold (15 mins) for debugging if timezone issues exist
-        const threshold = new Date(Date.now() - 15 * 60 * 1000);
-        const uniqueUsers = new Set<string>();
-        
-        if (Array.isArray(sessions)) {
-          console.log(`[ONLINE DEBUG] Fetched ${sessions.length} total sessions from DB`);
-          sessions.forEach(s => {
-            const lastActive = new Date(s.last_active_at);
-            const isActive = lastActive >= threshold;
-            if (s && s.last_active_at && isActive) {
-              uniqueUsers.add(s.user_id);
-            }
-          });
-          console.log(`[ONLINE DEBUG] Active in last 15 mins: ${uniqueUsers.size}`);
-        } else {
-          console.error('[ONLINE DEBUG] Sessions is not an array:', sessions);
-        }
-        
-        setOnlineCount(uniqueUsers.size || (user ? 1 : 0)); // Fallback to 1 if we are logged in but count is 0
-      }).catch(err => {
-        console.error('[ONLINE DEBUG] getOnlineSessions failed:', err);
-        setOnlineCount(user ? 1 : 0);
-      });
-    };
-
-    runHeartbeat();
-    const interval = setInterval(runHeartbeat, 30000); // Every 30 seconds for better accuracy
-
-    // Send heartbeat when user returns to the tab
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
-        runHeartbeat();
-      }
-    };
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-
-    return () => {
-      clearInterval(interval);
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-    };
-  }, [user, currentPage, currentTopic]);
 
   // Scroll to top when page changes
   useEffect(() => {
@@ -524,7 +446,6 @@ const App: React.FC = () => {
           onNavigateToShop={() => setCurrentPage('shop')}
           onNavigateToMockExam={() => setCurrentPage('mock-exam')}
           onNavigateToLeaderboard={() => setCurrentPage('user-stats')}
-          onlineCount={onlineCount}
         />
       );
     }
