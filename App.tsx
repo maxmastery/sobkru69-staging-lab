@@ -244,7 +244,7 @@ const App: React.FC = () => {
     runHeartbeat();
     const interval = setInterval(runHeartbeat, 60000); // Every 1 minute
     return () => clearInterval(interval);
-  }, [user, currentPage, currentSubTopic]);
+  }, [user, currentPage, currentTopic]);
 
   const persistUserUiState = async (patch: Partial<UserUiState>) => {
     const nextState: UserUiState = {
