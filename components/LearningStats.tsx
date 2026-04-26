@@ -35,7 +35,7 @@ const LearningStats: React.FC<LearningStatsProps> = ({ onClose, user: propUser }
     };
 
     loadStats();
-  }, []);
+  }, [propUser]);
 
   // Calculate totals
   let totalSeconds = 0;

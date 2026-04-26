@@ -511,7 +511,10 @@ const clearOAuthState = () => {
   safeStorage.removeSession(GOOGLE_OAUTH_STATE_KEY);
   safeStorage.removeLocal(GOOGLE_PKCE_VERIFIER_KEY);
   safeStorage.removeLocal(GOOGLE_OAUTH_STATE_KEY);
+  safeStorage.removeSession(GOOGLE_OAUTH_PROCESSED_KEY);
 };
+
+const GOOGLE_OAUTH_PROCESSED_KEY = 'sobkru69_oauth_processed';
 
 const markGoogleLoginPending = () => {
   safeStorage.setSession(GOOGLE_LOGIN_PENDING_KEY, '1');
@@ -527,13 +530,21 @@ const hasPendingGoogleLogin = () => {
   return safeStorage.getSession(GOOGLE_LOGIN_PENDING_KEY) === '1' || safeStorage.getLocal(GOOGLE_LOGIN_PENDING_KEY) === '1';
 };
 
+const markOAuthProcessed = () => {
+  safeStorage.setSession(GOOGLE_OAUTH_PROCESSED_KEY, '1');
+};
+
+const hasOAuthProcessed = () => {
+  return safeStorage.getSession(GOOGLE_OAUTH_PROCESSED_KEY) === '1';
+};
+
 const cleanAuthRedirectUrl = () => {
   try {
     const url = new URL(window.location.href);
     url.hash = '';
     ['code', 'state', 'error', 'error_code', 'error_description', 'google_login'].forEach(param => url.searchParams.delete(param));
-    // Use replaceState to replace the current history entry so back button won't return to OAuth URL
-    window.history.replaceState({ ...window.history.state, authRedirectCleaned: true }, document.title, url.toString());
+    window.history.replaceState({}, document.title, url.toString());
+    markOAuthProcessed();
   } catch {
     // ignore
   }
@@ -755,11 +766,11 @@ export const authService = {
         return { success: true, user: adminUser };
       }
 
-      // Skip OAuth processing if this page was already cleaned (back button pressed)
-      const urlAlreadyCleaned = typeof window !== 'undefined' && window.history.state?.authRedirectCleaned;
+      // Skip OAuth processing if already processed (prevents back button from re-triggering OAuth)
+      const oauthAlreadyProcessed = hasOAuthProcessed();
 
       let session = await getActiveSession();
-      if (!session && typeof window !== 'undefined' && window.location.search.includes('code=') && !urlAlreadyCleaned) {
+      if (!session && typeof window !== 'undefined' && window.location.search.includes('code=') && !oauthAlreadyProcessed) {
         try {
           session = await consumeOAuthRedirectIfNeeded();
         } catch (exchangeError: any) {
