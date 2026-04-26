@@ -16,6 +16,9 @@ import MockExamDemo from './components/MockExamDemo';
 import ContactSupport from './components/ContactSupport';
 import BellNotificationsPanel from './components/BellNotificationsPanel';
 import Leaderboard from './components/Leaderboard';
+import { ExamPart, SubTopic } from './types';
+import { authService, User, BellNotification, UserUiState } from './services/authService';
+import { userActivityService } from './services/userActivityService';
 import { LogOut, AlertTriangle, Bell, X, Settings, User as UserIcon, BarChart3, Megaphone, MessageSquare, Loader2 } from 'lucide-react';
 
 type PageState = 'dashboard' | 'news' | 'discussion' | 'shop' | 'mock-exam' | 'contact-support' | 'leaderboard';
