@@ -222,19 +222,29 @@ const App: React.FC = () => {
     if (!user) return;
 
     const runHeartbeat = () => {
-      userActivityService.sendHeartbeat(user.id, user.name, currentPage).catch(() => {});
+      let pageStatus: string = currentPage;
+      if (currentTopic) {
+        pageStatus = `lesson:${currentTopic.id}`;
+      } else if (currentPage === 'mock-exam') {
+        pageStatus = 'exam';
+      }
+
+      userActivityService.sendHeartbeat(user.id, user.name, pageStatus).catch(() => {});
       
       userActivityService.getOnlineSessions().then(sessions => {
-        const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
-        const count = sessions.filter(s => new Date(s.last_active_at) >= fiveMinutesAgo).length;
-        setOnlineCount(count);
-      }).catch(() => {});
+        // ขยายเป็น 10 นาทีเพื่อความยืดหยุ่น
+        const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000);
+        const count = sessions.filter(s => new Date(s.last_active_at) >= tenMinutesAgo).length;
+        setOnlineCount(count || 1); // อย่างน้อยต้องมีตัวเอง (Fallback)
+      }).catch(() => {
+        setOnlineCount(1);
+      });
     };
 
     runHeartbeat();
     const interval = setInterval(runHeartbeat, 60000); // Every 1 minute
     return () => clearInterval(interval);
-  }, [user, currentPage]);
+  }, [user, currentPage, currentSubTopic]);
 
   const persistUserUiState = async (patch: Partial<UserUiState>) => {
     const nextState: UserUiState = {

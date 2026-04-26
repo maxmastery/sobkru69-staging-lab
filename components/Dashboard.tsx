@@ -169,7 +169,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onSelectPart, onNavigateToNews, o
               <div className="absolute inset-0 w-2.5 h-2.5 bg-emerald-500 rounded-full animate-ping opacity-75"></div>
             </div>
             <span className="text-xs font-bold text-emerald-700 tracking-wide uppercase">
-              ({onlineCount}) Online
+              {onlineCount} Online
             </span>
           </div>
         </div>

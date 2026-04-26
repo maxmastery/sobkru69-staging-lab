@@ -70,7 +70,7 @@ const AdminUserInsights: React.FC<AdminUserInsightsProps> = ({ users }) => {
     // Online users (active in last 5 minutes)
     const onlineUsers = sessions.filter(s => new Date(s.last_active_at) >= fiveMinutesAgo);
     const onlineCount = onlineUsers.length;
-    const learningUsers = onlineUsers.filter(s => s.current_page === 'lesson' || s.current_page === 'topic');
+    const learningUsers = onlineUsers.filter(s => s.current_page.startsWith('lesson') || s.current_page === 'topic');
     const examUsers = onlineUsers.filter(s => s.current_page === 'exam' || s.current_page === 'mock-exam');
     const learningOrExamCount = learningUsers.length + examUsers.length;
 
