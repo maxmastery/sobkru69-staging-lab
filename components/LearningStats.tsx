@@ -3,18 +3,21 @@ import { BarChart3, Clock, BookOpen, CheckCircle, ChevronLeft, Target, Trophy } 
 import { EXAM_CURRICULUM } from '../constants';
 import { getStoredUser, userActivityService } from '../services/userActivityService';
 
+import { User } from '../services/authService';
+
 interface LearningStatsProps {
   onClose: () => void;
+  user?: User | null;
 }
 
-const LearningStats: React.FC<LearningStatsProps> = ({ onClose }) => {
+const LearningStats: React.FC<LearningStatsProps> = ({ onClose, user: propUser }) => {
   const [stats, setStats] = useState<{ [chapterId: string]: number }>({});
   const [totalQuizzes, setTotalQuizzes] = useState(0);
   const [mockExamStats, setMockExamStats] = useState<{ attemptCount: number; totalCorrect: number; totalAnswered: number; totalQuestions: number }>({ attemptCount: 0, totalCorrect: 0, totalAnswered: 0, totalQuestions: 0 });
 
   useEffect(() => {
     const loadStats = async () => {
-      const user = getStoredUser();
+      const user = propUser || getStoredUser();
       if (!user) return;
 
       try {

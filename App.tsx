@@ -117,7 +117,7 @@ const App: React.FC = () => {
           uniqueUsers.add(s.user_id);
         }
       });
-      setOnlineCount(Math.max(uniqueUsers.size, 1));
+      setOnlineCount(uniqueUsers.size);
     }).catch(() => {});
   };
 
@@ -245,9 +245,9 @@ const App: React.FC = () => {
             uniqueUsers.add(s.user_id);
           }
         });
-        setOnlineCount(Math.max(uniqueUsers.size, 1)); // อย่างน้อยต้องมีตัวเอง (Fallback)
+        setOnlineCount(uniqueUsers.size);
       }).catch(() => {
-        setOnlineCount(1);
+        setOnlineCount(0);
       });
     };
 
@@ -466,7 +466,7 @@ const App: React.FC = () => {
 
   const renderMainContent = () => {
     if (showLearningStats) {
-      return <LearningStats onClose={() => setShowLearningStats(false)} />;
+      return <LearningStats onClose={() => setShowLearningStats(false)} user={user} />;
     }
     
     if (currentPage === 'news') {

@@ -77,7 +77,7 @@ const DiscussionBoard: React.FC<DiscussionBoardProps> = ({ onBack, currentUser }
       content: newContent,
       author: currentUser.email === 'Krumax' ? 'Admin ผู้ดูแลระบบ' : currentUser.name,
       tag: newTag,
-      date: new Date().toISOString().split('T')[0],
+      date: new Date().toISOString(),
       repliesCount: 0,
       status: 'active',
       replies: []
