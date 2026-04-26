@@ -229,9 +229,12 @@ const App: React.FC = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // ── Online Presence Logic (Final Fix) ──────────────────────────────
+  const [onlineCount, setOnlineCount] = useState(0);
+  const [debugInfo, setDebugInfo] = useState<any>(null);
+
+  // ── Online Presence Logic (Final Fix + Debug Box) ──────────────────
   useEffect(() => {
-    // 6. ใน frontend ให้สร้าง session_id เก็บใน localStorage
+    // 1. สร้าง sessionId จาก localStorage
     let sid = localStorage.getItem("session_id");
     if (!sid) {
       sid = (window.crypto && window.crypto.randomUUID) 
@@ -240,41 +243,39 @@ const App: React.FC = () => {
       localStorage.setItem("session_id", sid);
     }
 
-    const updatePresence = async () => {
-      try {
-        const token = user ? await authService.getOwnAccessToken(user.id).catch(() => '') : undefined;
-        // 7. ตอนเปิดหน้าเว็บ ให้ upsert ลง online_presence
-        await presenceService.trackPresence(sid!, token);
-      } catch (err) {
-        console.error('[PRESENCE ERROR] updatePresence failed:', err);
-      }
+    const envUrl = !!import.meta.env.VITE_SUPABASE_URL;
+    const envKey = !!import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+    const runSync = async () => {
+      const token = user ? await authService.getOwnAccessToken(user.id).catch(() => '') : undefined;
+      
+      // 2. upsert เข้า public.online_presence ทันทีตอนเปิดหน้า
+      const upsertRes = await presenceService.trackPresence(sid!, token);
+      
+      // 4. query count คนที่ last_seen ภายใน 60 วินาที
+      const countRes = await presenceService.getOnlineCountWithDebug(token);
+      
+      setOnlineCount(countRes.count);
+      setDebugInfo({
+        sessionId: sid,
+        upsertSuccess: upsertRes.success,
+        upsertError: upsertRes.error || '',
+        count: countRes.count,
+        countError: countRes.error || '',
+        sinceTime: new Date(countRes.since).toLocaleTimeString(),
+        urlLoaded: envUrl,
+        keyLoaded: envKey
+      });
+
+      // 3 & 5. log ผลลัพธ์
+      console.log('[DEBUG] Upsert:', upsertRes);
+      console.log('[DEBUG] Count:', countRes);
     };
 
-    const fetchOnlineCount = async () => {
-      try {
-        const token = user ? await authService.getOwnAccessToken(user.id).catch(() => '') : undefined;
-        // 9. ตอนนับออนไลน์ ให้ query แบบนี้ (Logic handled inside service)
-        const count = await presenceService.getOnlineCount(token);
-        console.log(`[PRESENCE DEBUG] Current Online Count: ${count}`);
-        setOnlineCount(count);
-      } catch (err) {
-        // 11. ถ้ายังเป็น 0 ให้แสดง error บน console ทันที ห้ามกลืน error
-        console.error('[PRESENCE ERROR] fetchOnlineCount failed:', err);
-      }
-    };
+    runSync();
+    const timer = setInterval(runSync, 15000);
 
-    // Initial execution
-    updatePresence();
-    fetchOnlineCount();
-
-    // 8. ทุก 15 วินาที ให้อัปเดต last_seen
-    const trackTimer = setInterval(updatePresence, 15000);
-    const pollTimer = setInterval(fetchOnlineCount, 15000);
-
-    return () => {
-      clearInterval(trackTimer);
-      clearInterval(pollTimer);
-    };
+    return () => clearInterval(timer);
   }, [user]);
 
   // Scroll to top when page changes
@@ -514,6 +515,7 @@ const App: React.FC = () => {
           onNavigateToMockExam={() => setCurrentPage('mock-exam')}
           onNavigateToLeaderboard={() => setCurrentPage('user-stats')}
           onlineCount={onlineCount}
+          debugInfo={debugInfo}
         />
       );
     }

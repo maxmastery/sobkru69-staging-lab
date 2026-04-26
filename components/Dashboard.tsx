@@ -12,9 +12,28 @@ interface DashboardProps {
   onNavigateToMockExam: () => void;
   onNavigateToLeaderboard?: () => void;
   onlineCount?: number;
+  debugInfo?: {
+    sessionId: string;
+    upsertSuccess: boolean;
+    upsertError: string;
+    count: number;
+    countError: string;
+    sinceTime: string;
+    urlLoaded: boolean;
+    keyLoaded: boolean;
+  };
 }
 
-const Dashboard: React.FC<DashboardProps> = ({ onSelectPart, onNavigateToNews, onNavigateToDiscussion, onNavigateToShop, onNavigateToMockExam, onNavigateToLeaderboard, onlineCount = 0 }) => {
+const Dashboard: React.FC<DashboardProps> = ({ 
+  onSelectPart, 
+  onNavigateToNews, 
+  onNavigateToDiscussion, 
+  onNavigateToShop, 
+  onNavigateToMockExam, 
+  onNavigateToLeaderboard, 
+  onlineCount = 0,
+  debugInfo 
+}) => {
   const getIcon = (id: PartId) => {
     switch (id) {
       case PartId.PART_A: return <BookOpen className="w-12 h-12 text-white mb-4" />;
@@ -144,25 +163,12 @@ const Dashboard: React.FC<DashboardProps> = ({ onSelectPart, onNavigateToNews, o
                 <p className="text-xs text-slate-500 transition-colors group-hover:text-emerald-600 whitespace-nowrap">สถิติผู้ใช้งานในระบบ Hall of Fame</p>
               </div>
             </div>
-            <span className="relative ml-3 rounded-full bg-emerald-600 px-3 py-1 text-xs font-bold text-white transition-colors group-hover:bg-emerald-700 group-hover:text-white">ดูข้อมูล</span>
+            <span className="relative ml-3 rounded-full bg-[#059669] px-3 py-1 text-xs font-bold text-white transition-colors group-hover:bg-[#047857] group-hover:text-white shadow-sm">ดูข้อมูล</span>
           </button>
         </div>
 
-        {/* Hidden Shop Button */}
-        <div className="border border-blue-500/0 p-1 hidden">
-          <button onClick={onNavigateToShop} className="flex items-center p-4 bg-white rounded-2xl border border-slate-100 hover:bg-amber-500 hover:border-amber-500 transition-all duration-300 group text-left relative overflow-hidden mt-4">
-            <div className="w-12 h-12 rounded-xl bg-amber-50 flex items-center justify-center mr-4 group-hover:bg-white/20 transition-all duration-300 shrink-0">
-              <ShoppingCart className="w-6 h-6 text-amber-600 group-hover:text-white transition-colors" />
-            </div>
-            <div>
-              <h4 className="font-bold text-base md:text-lg text-slate-800 group-hover:text-white transition-colors mb-0.5">สั่งซื้อ ชีทสรุปรวมอ่านเตรียมสอบ</h4>
-              <p className="text-xs text-slate-500 group-hover:text-amber-100 transition-colors">ชีทสรุปเนื้อหาเน้นๆ พร้อมเทคนิคทำข้อสอบ</p>
-            </div>
-          </button>
-        </div>
-        
         {/* Online Status Indicator */}
-        <div className="flex justify-center mt-4">
+        <div className="flex flex-col items-center justify-center mt-4 gap-4">
           <div className="inline-flex items-center gap-2 bg-emerald-50 px-4 py-2 rounded-full border border-emerald-100 shadow-sm transition-all hover:shadow-md">
             <div className="relative">
               <div className="w-2.5 h-2.5 bg-emerald-500 rounded-full"></div>
@@ -172,6 +178,43 @@ const Dashboard: React.FC<DashboardProps> = ({ onSelectPart, onNavigateToNews, o
               {onlineCount} Online
             </span>
           </div>
+
+          {/* Debug Box */}
+          {debugInfo && (
+            <div className="w-full max-w-md bg-slate-900/90 text-[10px] font-mono text-emerald-400 p-4 rounded-xl border border-slate-800 shadow-2xl backdrop-blur-sm">
+              <div className="flex items-center justify-between mb-2 pb-1 border-b border-slate-800">
+                <span className="text-white font-bold uppercase tracking-widest text-[9px]">Presence Debug System</span>
+                <span className={debugInfo.upsertSuccess ? 'text-emerald-400' : 'text-red-400'}>
+                  {debugInfo.upsertSuccess ? '● ACTIVE' : '○ ERROR'}
+                </span>
+              </div>
+              <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+                <div className="text-slate-500 italic">sessionId:</div>
+                <div className="truncate text-slate-300">{debugInfo.sessionId || 'None'}</div>
+                
+                <div className="text-slate-500 italic">upsert success:</div>
+                <div className={debugInfo.upsertSuccess ? 'text-emerald-400' : 'text-red-400'}>{String(debugInfo.upsertSuccess)}</div>
+                
+                <div className="text-slate-500 italic">upsert error:</div>
+                <div className="truncate text-red-400">{debugInfo.upsertError || 'None'}</div>
+                
+                <div className="text-slate-500 italic">count:</div>
+                <div className="text-white font-bold">{debugInfo.count}</div>
+                
+                <div className="text-slate-500 italic">count error:</div>
+                <div className="truncate text-red-400">{debugInfo.countError || 'None'}</div>
+                
+                <div className="text-slate-500 italic">since time:</div>
+                <div className="text-slate-300">{debugInfo.sinceTime}</div>
+                
+                <div className="text-slate-500 italic">env url:</div>
+                <div className={debugInfo.urlLoaded ? 'text-emerald-400' : 'text-red-400'}>{debugInfo.urlLoaded ? 'LOADED' : 'MISSING'}</div>
+                
+                <div className="text-slate-500 italic">env key:</div>
+                <div className={debugInfo.keyLoaded ? 'text-emerald-400' : 'text-red-400'}>{debugInfo.keyLoaded ? 'LOADED' : 'MISSING'}</div>
+              </div>
+            </div>
+          )}
         </div>
 
       </div>
