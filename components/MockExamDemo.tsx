@@ -7,6 +7,7 @@ import { PART_A2_ENGLISH_EXAM_META, getPartA2EnglishExamQuestions } from '../dat
 import { PART_A3_GOOD_GOV_EXAM_META, getPartA3GoodGovExamQuestions } from '../data/mockExamA3GoodGov';
 import { PART_B1_TEACHING_EXAM_META, getPartB1TeachingExamQuestions } from '../data/mockExamB1Teaching';
 import { PART_B3_EDUCATION_LAW_EXAM_META, getPartB3EducationLawExamQuestions } from '../data/mockExamB3EducationLaw';
+import { userActivityService, getStoredUser } from '../services/userActivityService';
 
 interface MockExamDemoProps {
   onBack: () => void;
@@ -21,12 +22,32 @@ export const MockExamDemo: React.FC<MockExamDemoProps> = ({ onBack }) => {
   const [examTitle, setExamTitle] = useState('');
   const [examDuration, setExamDuration] = useState(0);
   const [examQuestions, setExamQuestions] = useState<Question[]>([]);
+  const [examKey, setExamKey] = useState('');
 
-  const startStandardExam = (title: string, duration: number, questions: Question[]) => {
+  const startStandardExam = (title: string, duration: number, questions: Question[], key: string) => {
     setExamTitle(title);
     setExamDuration(duration);
     setExamQuestions(questions);
+    setExamKey(key);
     setView('exam');
+  };
+
+  const handleExamComplete = async (data: { score: number; total: number; durationSeconds: number; isCompleted: boolean; examKey: string }) => {
+    const user = getStoredUser();
+    if (!user) return;
+    try {
+      await userActivityService.saveMockExamAttempt({
+        userId: user.id,
+        userName: user.name,
+        examKey: data.examKey,
+        score: data.score,
+        total: data.total,
+        durationSeconds: data.durationSeconds,
+        isCompleted: data.isCompleted,
+      });
+    } catch (error) {
+      console.error('Failed to save mock exam attempt', error);
+    }
   };
 
   const startPartA1Exam = () => {
@@ -35,7 +56,7 @@ export const MockExamDemo: React.FC<MockExamDemoProps> = ({ onBack }) => {
       ...getPartA1MathExamQuestions(PART_A1_MATH_EXAM_META.questionCount),
     ];
 
-    startStandardExam('ภาค ก1: การคิดวิเคราะห์', PART_A1_THAI_EXAM_META.durationSeconds, questions);
+    startStandardExam('ภาค ก1: การคิดวิเคราะห์', PART_A1_THAI_EXAM_META.durationSeconds, questions, 'part_a1');
   };
 
   const startPartA2Exam = () => {
@@ -43,6 +64,7 @@ export const MockExamDemo: React.FC<MockExamDemoProps> = ({ onBack }) => {
       PART_A2_ENGLISH_EXAM_META.title,
       PART_A2_ENGLISH_EXAM_META.durationSeconds,
       getPartA2EnglishExamQuestions(PART_A2_ENGLISH_EXAM_META.questionCount),
+      'part_a2',
     );
   };
 
@@ -51,6 +73,7 @@ export const MockExamDemo: React.FC<MockExamDemoProps> = ({ onBack }) => {
       PART_A3_GOOD_GOV_EXAM_META.title,
       PART_A3_GOOD_GOV_EXAM_META.durationSeconds,
       getPartA3GoodGovExamQuestions(PART_A3_GOOD_GOV_EXAM_META.questionCount),
+      'part_a3',
     );
   };
 
@@ -59,6 +82,7 @@ export const MockExamDemo: React.FC<MockExamDemoProps> = ({ onBack }) => {
       PART_B1_TEACHING_EXAM_META.title,
       PART_B1_TEACHING_EXAM_META.durationSeconds,
       getPartB1TeachingExamQuestions(PART_B1_TEACHING_EXAM_META.questionCount),
+      'part_b1',
     );
   };
 
@@ -67,11 +91,12 @@ export const MockExamDemo: React.FC<MockExamDemoProps> = ({ onBack }) => {
       PART_B3_EDUCATION_LAW_EXAM_META.title,
       PART_B3_EDUCATION_LAW_EXAM_META.durationSeconds,
       getPartB3EducationLawExamQuestions(PART_B3_EDUCATION_LAW_EXAM_META.questionCount),
+      'part_b3',
     );
   };
 
   if (view === 'exam') {
-    return <StandardExam title={examTitle} durationSeconds={examDuration} questions={examQuestions} onBack={() => setView('hub')} />;
+    return <StandardExam title={examTitle} durationSeconds={examDuration} questions={examQuestions} onBack={() => setView('hub')} examKey={examKey} onExamComplete={handleExamComplete} />;
   }
 
   return (

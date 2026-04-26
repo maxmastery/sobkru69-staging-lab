@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { BookOpen, GraduationCap, Users, Newspaper, MessageSquare, ShoppingCart, FileText } from 'lucide-react';
+import { BookOpen, GraduationCap, Users, Newspaper, MessageSquare, ShoppingCart, FileText, Trophy } from 'lucide-react';
 import { EXAM_CURRICULUM } from '../constants';
 import { ExamPart, PartId } from '../types';
 
@@ -10,9 +10,10 @@ interface DashboardProps {
   onNavigateToDiscussion: () => void;
   onNavigateToShop: () => void;
   onNavigateToMockExam: () => void;
+  onNavigateToLeaderboard?: () => void;
 }
 
-const Dashboard: React.FC<DashboardProps> = ({ onSelectPart, onNavigateToNews, onNavigateToDiscussion, onNavigateToShop, onNavigateToMockExam }) => {
+const Dashboard: React.FC<DashboardProps> = ({ onSelectPart, onNavigateToNews, onNavigateToDiscussion, onNavigateToShop, onNavigateToMockExam, onNavigateToLeaderboard }) => {
   const getIcon = (id: PartId) => {
     switch (id) {
       case PartId.PART_A: return <BookOpen className="w-12 h-12 text-white mb-4" />;
@@ -102,7 +103,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onSelectPart, onNavigateToNews, o
         </div>
 
         {/* Quick Actions */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-1">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-1">
           <button onClick={onNavigateToNews} className="group relative flex items-center justify-between overflow-hidden rounded-3xl border border-blue-100 bg-gradient-to-br from-white via-blue-50/70 to-white p-5 text-left shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-blue-300 hover:shadow-xl hover:shadow-blue-900/10">
             <div className="absolute -right-8 -top-10 h-28 w-28 rounded-full bg-blue-100/70 transition-transform duration-500 group-hover:scale-125"></div>
             <div className="relative flex items-center gap-4">
@@ -124,11 +125,25 @@ const Dashboard: React.FC<DashboardProps> = ({ onSelectPart, onNavigateToNews, o
                 <MessageSquare className="w-6 h-6" />
               </div>
               <div>
-                <h4 className="font-bold text-base md:text-lg text-slate-900 transition-colors group-hover:text-indigo-700">กระดานสนทนา / สอบถามปัญหา</h4>
-                <p className="text-xs text-slate-500 transition-colors group-hover:text-indigo-600">พูดคุย แลกเปลี่ยนความรู้ และเสนอแนะ</p>
+                <h4 className="font-bold text-base md:text-lg text-slate-900 transition-colors group-hover:text-indigo-700">กระดานสนทนา</h4>
+                <p className="text-xs text-slate-500 transition-colors group-hover:text-indigo-600">พูดคุย แลกเปลี่ยนความรู้</p>
               </div>
             </div>
             <span className="relative ml-3 rounded-full bg-indigo-100 px-3 py-1 text-xs font-bold text-indigo-700 transition-colors group-hover:bg-indigo-600 group-hover:text-white">ถามตอบ</span>
+          </button>
+
+          <button onClick={onNavigateToLeaderboard} className="group relative flex items-center justify-between overflow-hidden rounded-3xl border border-amber-100 bg-gradient-to-br from-white via-amber-50/70 to-white p-5 text-left shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-amber-300 hover:shadow-xl hover:shadow-amber-900/10">
+            <div className="absolute -right-8 -top-10 h-28 w-28 rounded-full bg-amber-100/70 transition-transform duration-500 group-hover:scale-125"></div>
+            <div className="relative flex items-center gap-4">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-amber-500 text-white shadow-lg shadow-amber-500/20 transition-transform duration-300 group-hover:rotate-3 group-hover:scale-105">
+                <Trophy className="w-6 h-6" />
+              </div>
+              <div>
+                <h4 className="font-bold text-base md:text-lg text-slate-900 transition-colors group-hover:text-amber-700">ทำเนียบผู้พิชิต</h4>
+                <p className="text-xs text-slate-500 transition-colors group-hover:text-amber-600">ตารางคะแนนสูงสุด Hall of Fame</p>
+              </div>
+            </div>
+            <span className="relative ml-3 rounded-full bg-amber-100 px-3 py-1 text-xs font-bold text-amber-700 transition-colors group-hover:bg-amber-500 group-hover:text-white">ดูคะแนน</span>
           </button>
         </div>
 

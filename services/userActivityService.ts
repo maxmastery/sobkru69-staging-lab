@@ -132,4 +132,90 @@ export const userActivityService = {
     const rows = await supabaseRest.select<QuizAttemptRow[]>('quiz_attempts', `select=id&user_id=eq.${encodeValue(userId)}`);
     return rows.length;
   },
+
+  // ── Heartbeat (online tracking) ──────────────────────────────
+
+  async sendHeartbeat(userId: string, userName: string, currentPage: string) {
+    try {
+      ensureSupabase();
+      await supabaseRest.upsert<any[]>('user_sessions', {
+        user_id: userId,
+        user_name: userName,
+        current_page: currentPage,
+        last_active_at: new Date().toISOString(),
+      }, 'user_id');
+    } catch {
+      // silently fail – heartbeat is best-effort
+    }
+  },
+
+  async getOnlineSessions(): Promise<{ user_id: string; user_name: string; current_page: string; last_active_at: string }[]> {
+    ensureSupabase();
+    return supabaseRest.select<any[]>('user_sessions', 'select=user_id,user_name,current_page,last_active_at&order=last_active_at.desc');
+  },
+
+  // ── Daily login log ──────────────────────────────────────────
+
+  async logDailyLogin(userId: string) {
+    try {
+      ensureSupabase();
+      const today = new Date().toISOString().split('T')[0];
+      await supabaseRest.upsert<any[]>('daily_login_log', {
+        id: `${userId}_${today}`,
+        user_id: userId,
+        login_date: today,
+        created_at: new Date().toISOString(),
+      }, 'id');
+    } catch {
+      // silently fail
+    }
+  },
+
+  async getDailyLoginLogs(): Promise<{ user_id: string; login_date: string; created_at: string }[]> {
+    ensureSupabase();
+    return supabaseRest.select<any[]>('daily_login_log', 'select=user_id,login_date,created_at&order=login_date.desc&limit=1000');
+  },
+
+  // ── Mock Exam Attempts (Win Rate + Leaderboard) ──────────────
+
+  async saveMockExamAttempt(data: {
+    userId: string;
+    userName: string;
+    examKey: string;
+    score: number;
+    total: number;
+    durationSeconds: number;
+    isCompleted: boolean;
+  }) {
+    ensureSupabase();
+    await supabaseRest.insert<any[]>('mock_exam_attempts', {
+      id: createId(),
+      user_id: data.userId,
+      user_name: data.userName,
+      exam_key: data.examKey,
+      score: data.score,
+      total: data.total,
+      duration_seconds: data.durationSeconds,
+      is_completed: data.isCompleted,
+      created_at: new Date().toISOString(),
+    });
+  },
+
+  async getMockExamStats(userId: string): Promise<{ attemptCount: number; totalCorrect: number; totalQuestions: number }> {
+    ensureSupabase();
+    const rows = await supabaseRest.select<any[]>('mock_exam_attempts', `select=score,total&user_id=eq.${encodeValue(userId)}`);
+    let totalCorrect = 0;
+    let totalQuestions = 0;
+    rows.forEach((r: any) => {
+      totalCorrect += Number(r.score || 0);
+      totalQuestions += Number(r.total || 0);
+    });
+    return { attemptCount: rows.length, totalCorrect, totalQuestions };
+  },
+
+  async getLeaderboard(): Promise<any[]> {
+    ensureSupabase();
+    return supabaseRest.select<any[]>('mock_exam_attempts', 'select=user_id,user_name,exam_key,score,total,duration_seconds,is_completed,created_at&is_completed=eq.true&order=created_at.desc');
+  },
 };
+

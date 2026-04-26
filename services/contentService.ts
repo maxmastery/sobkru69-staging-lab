@@ -549,4 +549,11 @@ export const contentService = {
     });
     return toDonationRecord(rows[0]);
   },
+
+  async getAllDonations(): Promise<ContentDonationRecord[]> {
+    ensureSupabase();
+    const rows = await supabaseRest.select<DonationRow[]>('donations', 'select=id,user_id,user_email,tier_id,tier_name,amount,slip_path,slip_hash,slip_text_hash,transaction_ref,status,verification_message,gift_link,created_at&order=created_at.desc');
+    return rows.map(toDonationRecord);
+  },
 };
+

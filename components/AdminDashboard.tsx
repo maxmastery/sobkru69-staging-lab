@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Settings, Users, Bell, Save, Trash2, Edit2, Loader2, Plus, X, ArrowLeft, CheckCircle2, Megaphone, Newspaper, MessageSquare, ShoppingCart, Search, BarChart3, Eye, Image as ImageIcon, ShieldAlert } from 'lucide-react';
+import { Settings, Users, Bell, Save, Trash2, Edit2, Loader2, Plus, X, ArrowLeft, CheckCircle2, Megaphone, Newspaper, MessageSquare, ShoppingCart, Search, BarChart3, Eye, Image as ImageIcon, ShieldAlert, Coffee, UserCheck } from 'lucide-react';
 import { authService, User } from '../services/authService';
 import AdminNews from './admin/AdminNews';
 import AdminDiscussion from './admin/AdminDiscussion';
@@ -8,6 +8,8 @@ import AdminStatistics from './admin/AdminStatistics';
 import AdminBellNotifications from './admin/AdminBellNotifications';
 import AdminMessages from './admin/AdminMessages';
 import AdminReports from './admin/AdminReports';
+import AdminUserInsights from './admin/AdminUserInsights';
+import AdminDonations from './admin/AdminDonations';
 import { contentService } from '../services/contentService';
 
 interface AdminDashboardProps {
@@ -16,7 +18,7 @@ interface AdminDashboardProps {
 
 const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
   const viteEnv = (import.meta as any).env || {};
-  const [activeTab, setActiveTab] = useState<'settings' | 'users' | 'notification' | 'bell' | 'messages' | 'marquee' | 'news' | 'discussion' | 'shop' | 'statistics' | 'reports'>('settings');
+  const [activeTab, setActiveTab] = useState<'settings' | 'users' | 'notification' | 'bell' | 'messages' | 'marquee' | 'news' | 'discussion' | 'shop' | 'statistics' | 'reports' | 'user-insights' | 'donations'>('settings');
   const normalizeSupabaseUrl = (rawValue: string) => {
     const value = rawValue.trim();
     const markdownMatch = value.match(/\((https?:\/\/[^)\s]+)\)/i);
@@ -63,7 +65,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
   };
 
   useEffect(() => {
-    if (activeTab === 'users' || activeTab === 'statistics') {
+    if (activeTab === 'users' || activeTab === 'statistics' || activeTab === 'user-insights') {
       fetchUsers();
     } else if (activeTab === 'notification') {
       fetchNotification();
@@ -272,6 +274,24 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
           >
             <Users className="w-5 h-5" />
             จัดการผู้ใช้งาน
+          </button>
+          <button
+            onClick={() => setActiveTab('user-insights')}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-colors ${
+              activeTab === 'user-insights' ? 'bg-teal-600 text-white' : 'text-slate-600 hover:bg-slate-100'
+            }`}
+          >
+            <UserCheck className="w-5 h-5" />
+            ข้อมูลผู้ใช้งาน
+          </button>
+          <button
+            onClick={() => setActiveTab('donations')}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-colors ${
+              activeTab === 'donations' ? 'bg-amber-600 text-white' : 'text-slate-600 hover:bg-slate-100'
+            }`}
+          >
+            <Coffee className="w-5 h-5" />
+            แดชบอร์ดเลี้ยงกาแฟ
           </button>
           <button
             onClick={() => setActiveTab('reports')}
@@ -805,6 +825,37 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
             ) : (
               <AdminStatistics users={users} />
             )}
+          </div>
+        )}
+
+        {activeTab === 'user-insights' && (
+          <div className="w-full max-w-6xl">
+            <h3 className="text-2xl font-bold text-slate-800 mb-6 flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-teal-100 flex items-center justify-center">
+                <UserCheck className="w-6 h-6 text-teal-600" />
+              </div>
+              ข้อมูลผู้ใช้งาน
+            </h3>
+            {isLoading ? (
+              <div className="flex flex-col items-center justify-center py-20 text-slate-500 space-y-4 bg-white rounded-2xl border border-slate-200">
+                <div className="w-8 h-8 border-4 border-teal-200 border-t-teal-600 rounded-full animate-spin"></div>
+                <p>กำลังโหลดข้อมูล...</p>
+              </div>
+            ) : (
+              <AdminUserInsights users={users} />
+            )}
+          </div>
+        )}
+
+        {activeTab === 'donations' && (
+          <div className="w-full max-w-6xl">
+            <h3 className="text-2xl font-bold text-slate-800 mb-6 flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center">
+                <Coffee className="w-6 h-6 text-amber-600" />
+              </div>
+              แดชบอร์ดเลี้ยงกาแฟ
+            </h3>
+            <AdminDonations />
           </div>
         )}
       </div>

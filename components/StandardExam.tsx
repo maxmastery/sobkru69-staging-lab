@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Clock, Send, ChevronLeft, ChevronRight, Flag, CheckCircle, AlertCircle } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Clock, Send, ChevronLeft, ChevronRight, Flag, CheckCircle, AlertCircle, StopCircle } from 'lucide-react';
 
 export interface Question {
   id: number;
@@ -15,6 +15,8 @@ interface StandardExamProps {
   durationSeconds: number;
   questions: Question[];
   onBack: () => void;
+  examKey?: string;
+  onExamComplete?: (data: { score: number; total: number; durationSeconds: number; isCompleted: boolean; examKey: string }) => void;
 }
 
 const OPTION_LABELS = ['ก', 'ข', 'ค', 'ง'];
@@ -46,7 +48,7 @@ const renderTextWithMathSymbols = (text: string) => {
   return parts.length > 0 ? parts : normalizedText;
 };
 
-export const StandardExam: React.FC<StandardExamProps> = ({ title, durationSeconds, questions, onBack }) => {
+export const StandardExam: React.FC<StandardExamProps> = ({ title, durationSeconds, questions, onBack, examKey = '', onExamComplete }) => {
   const [timeLeft, setTimeLeft] = useState(durationSeconds);
   const [isFinished, setIsFinished] = useState(false);
   
@@ -54,6 +56,8 @@ export const StandardExam: React.FC<StandardExamProps> = ({ title, durationSecon
   const [answers, setAnswers] = useState<Record<number, number>>({});
   const [flagged, setFlagged] = useState<Record<number, boolean>>({});
   const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [showStopModal, setShowStopModal] = useState(false);
+  const hasReportedRef = useRef(false);
 
   useEffect(() => {
     if (isFinished) return;
@@ -97,6 +101,18 @@ export const StandardExam: React.FC<StandardExamProps> = ({ title, durationSecon
     setIsFinished(true);
   };
 
+  const handleStopExam = () => {
+    setShowStopModal(false);
+    // Report as incomplete
+    if (!hasReportedRef.current && onExamComplete) {
+      hasReportedRef.current = true;
+      const score = calculateScore();
+      const elapsed = durationSeconds - timeLeft;
+      onExamComplete({ score, total: questions.length, durationSeconds: elapsed, isCompleted: false, examKey });
+    }
+    onBack();
+  };
+
   const calculateScore = () => {
     let score = 0;
     questions.forEach((q, index) => {
@@ -112,6 +128,13 @@ export const StandardExam: React.FC<StandardExamProps> = ({ title, durationSecon
     const percentage = (score / questions.length) * 100;
     const isPassed = percentage >= 60;
     const unansweredCount = questions.length - Object.keys(answers).length;
+    const elapsed = durationSeconds - timeLeft;
+
+    // Report completed exam
+    if (!hasReportedRef.current && onExamComplete) {
+      hasReportedRef.current = true;
+      onExamComplete({ score, total: questions.length, durationSeconds: elapsed, isCompleted: true, examKey });
+    }
 
     return (
       <div className="fixed inset-0 bg-slate-50 z-50 overflow-y-auto font-sans p-4 md:p-8">
@@ -266,6 +289,13 @@ export const StandardExam: React.FC<StandardExamProps> = ({ title, durationSecon
             {formatTime(timeLeft)}
           </div>
           <button 
+            onClick={() => setShowStopModal(true)}
+            className="bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 md:px-5 rounded-lg flex items-center gap-2 transition-colors text-sm md:text-base"
+          >
+            <StopCircle className="w-4 h-4" />
+            <span className="hidden md:inline">หยุดทำข้อสอบ</span>
+          </button>
+          <button 
             onClick={() => setShowConfirmModal(true)}
             className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 md:px-5 rounded-lg flex items-center gap-2 transition-colors text-sm md:text-base"
           >
@@ -302,6 +332,36 @@ export const StandardExam: React.FC<StandardExamProps> = ({ title, durationSecon
                 className="flex-1 py-2.5 px-4 rounded-xl font-medium text-white bg-blue-600 hover:bg-blue-700 transition-colors"
               >
                 ยืนยันส่งข้อสอบ
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Stop Exam Confirmation Modal */}
+      {showStopModal && (
+        <div className="fixed inset-0 bg-slate-900/50 z-[100] flex items-center justify-center p-4 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 animate-in fade-in zoom-in duration-200">
+            <div className="flex items-center justify-center w-12 h-12 rounded-full bg-red-100 text-red-600 mb-4 mx-auto">
+              <StopCircle className="w-6 h-6" />
+            </div>
+            <h3 className="text-xl font-bold text-center text-slate-800 mb-2">ยืนยันหยุดทำการทดสอบ</h3>
+            <p className="text-center text-slate-600 mb-6">
+              คุณแน่ใจหรือไม่ว่าต้องการหยุดทำข้อสอบ? <br/>
+              <span className="text-sm text-slate-500">ระบบจะบันทึกผลการทำข้อสอบจนถึงตอนที่หยุด แต่จะไม่เห็นเฉลย</span>
+            </p>
+            <div className="flex gap-3">
+              <button 
+                onClick={() => setShowStopModal(false)}
+                className="flex-1 py-2.5 px-4 rounded-xl font-medium text-slate-700 bg-slate-100 hover:bg-slate-200 transition-colors"
+              >
+                ทำต่อ
+              </button>
+              <button 
+                onClick={handleStopExam}
+                className="flex-1 py-2.5 px-4 rounded-xl font-medium text-white bg-red-600 hover:bg-red-700 transition-colors"
+              >
+                หยุดทำข้อสอบ
               </button>
             </div>
           </div>

@@ -832,3 +832,60 @@ $$;
 grant execute on function public.list_user_profiles() to anon, authenticated;
 grant execute on function public.admin_update_user_profile(uuid, text, text, text, text, text, text, text) to anon, authenticated;
 grant execute on function public.deactivate_user_profile(uuid) to anon, authenticated;
+
+-- ---------------------------------------------------------------------------
+-- User sessions (heartbeat / online tracking)
+-- ---------------------------------------------------------------------------
+
+create table if not exists public.user_sessions (
+  user_id text primary key,
+  user_name text not null default '',
+  current_page text not null default 'dashboard',
+  last_active_at timestamptz not null default now()
+);
+
+alter table public.user_sessions enable row level security;
+
+create policy "user_sessions_anon_all" on public.user_sessions
+  for all to anon, authenticated
+  using (true) with check (true);
+
+-- ---------------------------------------------------------------------------
+-- Daily login log
+-- ---------------------------------------------------------------------------
+
+create table if not exists public.daily_login_log (
+  id text primary key,
+  user_id text not null,
+  login_date date not null default current_date,
+  created_at timestamptz not null default now(),
+  unique(user_id, login_date)
+);
+
+alter table public.daily_login_log enable row level security;
+
+create policy "daily_login_log_anon_all" on public.daily_login_log
+  for all to anon, authenticated
+  using (true) with check (true);
+
+-- ---------------------------------------------------------------------------
+-- Mock exam attempts (leaderboard + win rate)
+-- ---------------------------------------------------------------------------
+
+create table if not exists public.mock_exam_attempts (
+  id text primary key,
+  user_id text not null,
+  user_name text not null default '',
+  exam_key text not null default '',
+  score integer not null default 0,
+  total integer not null default 0,
+  duration_seconds integer not null default 0,
+  is_completed boolean not null default true,
+  created_at timestamptz not null default now()
+);
+
+alter table public.mock_exam_attempts enable row level security;
+
+create policy "mock_exam_attempts_anon_all" on public.mock_exam_attempts
+  for all to anon, authenticated
+  using (true) with check (true);

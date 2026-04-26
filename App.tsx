@@ -15,11 +15,13 @@ import ShopPage from './components/ShopPage';
 import MockExamDemo from './components/MockExamDemo';
 import ContactSupport from './components/ContactSupport';
 import BellNotificationsPanel from './components/BellNotificationsPanel';
+import Leaderboard from './components/Leaderboard';
 import { ExamPart, SubTopic } from './types';
 import { authService, User, BellNotification, UserUiState } from './services/authService';
+import { userActivityService } from './services/userActivityService';
 import { LogOut, AlertTriangle, Bell, X, Settings, User as UserIcon, BarChart3, Megaphone, MessageSquare, Loader2 } from 'lucide-react';
 
-type PageState = 'dashboard' | 'news' | 'discussion' | 'shop' | 'mock-exam' | 'contact-support';
+type PageState = 'dashboard' | 'news' | 'discussion' | 'shop' | 'mock-exam' | 'contact-support' | 'leaderboard';
 const SHOW_DONATION_HISTORY_SHORTCUT = false;
 
 const FloatingCoffeeCup: React.FC = () => (
@@ -100,6 +102,10 @@ const App: React.FC = () => {
       fetchUnreadSupportCount(activeUser.id, nextUiState.readSupportMessageIds),
       checkPopupNotification(activeUser.id, nextUiState.popupSeenMap),
     ]);
+
+    // Log daily login & start heartbeat
+    userActivityService.logDailyLogin(activeUser.id).catch(() => {});
+    userActivityService.sendHeartbeat(activeUser.id, activeUser.name, 'dashboard').catch(() => {});
   };
 
   useEffect(() => {
@@ -422,6 +428,9 @@ const App: React.FC = () => {
         />
       );
     }
+    if (currentPage === 'leaderboard') {
+      return <Leaderboard onBack={handleBackToDashboard} />;
+    }
 
     if (!currentPart) {
       return (
@@ -431,6 +440,7 @@ const App: React.FC = () => {
           onNavigateToDiscussion={() => setCurrentPage('discussion')}
           onNavigateToShop={() => setCurrentPage('shop')}
           onNavigateToMockExam={() => setCurrentPage('mock-exam')}
+          onNavigateToLeaderboard={() => setCurrentPage('leaderboard')}
         />
       );
     }
