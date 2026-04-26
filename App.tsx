@@ -16,13 +16,9 @@ import MockExamDemo from './components/MockExamDemo';
 import ContactSupport from './components/ContactSupport';
 import BellNotificationsPanel from './components/BellNotificationsPanel';
 import Leaderboard from './components/Leaderboard';
-import { ExamPart, SubTopic } from './types';
-import { authService, User, BellNotification, UserUiState } from './services/authService';
-import { userActivityService } from './services/userActivityService';
-import UserGeneralStats from './components/UserGeneralStats';
-import { LogOut, AlertTriangle, Bell, X, Settings, User as UserIcon, BarChart3, Megaphone, MessageSquare, Loader2, PieChart } from 'lucide-react';
+import { LogOut, AlertTriangle, Bell, X, Settings, User as UserIcon, BarChart3, Megaphone, MessageSquare, Loader2 } from 'lucide-react';
 
-type PageState = 'dashboard' | 'news' | 'discussion' | 'shop' | 'mock-exam' | 'contact-support' | 'leaderboard' | 'stats';
+type PageState = 'dashboard' | 'news' | 'discussion' | 'shop' | 'mock-exam' | 'contact-support' | 'leaderboard';
 const SHOW_DONATION_HISTORY_SHORTCUT = false;
 
 const FloatingCoffeeCup: React.FC = () => (
@@ -81,6 +77,7 @@ const App: React.FC = () => {
   const [donationInitialView, setDonationInitialView] = useState<'intro' | 'history'>('intro');
   const [marquee, setMarquee] = useState<{ text: string; isActive: boolean } | null>(null);
   const [currentPage, setCurrentPage] = useState<PageState>('dashboard');
+  const [onlineCount, setOnlineCount] = useState(0);
   const menuRef = useRef<HTMLDivElement>(null);
 
   // Bell Notifications
@@ -107,6 +104,13 @@ const App: React.FC = () => {
     // Log daily login & start heartbeat
     userActivityService.logDailyLogin(activeUser.id).catch(() => {});
     userActivityService.sendHeartbeat(activeUser.id, activeUser.name, 'dashboard').catch(() => {});
+    
+    // Fetch online count
+    userActivityService.getOnlineSessions().then(sessions => {
+      const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
+      const count = sessions.filter(s => new Date(s.last_active_at) >= fiveMinutesAgo).length;
+      setOnlineCount(count);
+    }).catch(() => {});
   };
 
   useEffect(() => {
@@ -209,6 +213,25 @@ const App: React.FC = () => {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  // Heartbeat & Online Status Loop
+  useEffect(() => {
+    if (!user) return;
+
+    const runHeartbeat = () => {
+      userActivityService.sendHeartbeat(user.id, user.name, currentPage).catch(() => {});
+      
+      userActivityService.getOnlineSessions().then(sessions => {
+        const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
+        const count = sessions.filter(s => new Date(s.last_active_at) >= fiveMinutesAgo).length;
+        setOnlineCount(count);
+      }).catch(() => {});
+    };
+
+    runHeartbeat();
+    const interval = setInterval(runHeartbeat, 60000); // Every 1 minute
+    return () => clearInterval(interval);
+  }, [user, currentPage]);
 
   const persistUserUiState = async (patch: Partial<UserUiState>) => {
     const nextState: UserUiState = {
@@ -432,9 +455,6 @@ const App: React.FC = () => {
     if (currentPage === 'leaderboard') {
       return <Leaderboard onBack={handleBackToDashboard} />;
     }
-    if (currentPage === 'stats') {
-      return <UserGeneralStats onBack={handleBackToDashboard} />;
-    }
 
     if (!currentPart) {
       return (
@@ -445,6 +465,7 @@ const App: React.FC = () => {
           onNavigateToShop={() => setCurrentPage('shop')}
           onNavigateToMockExam={() => setCurrentPage('mock-exam')}
           onNavigateToLeaderboard={() => setCurrentPage('leaderboard')}
+          onlineCount={onlineCount}
         />
       );
     }
@@ -541,13 +562,6 @@ const App: React.FC = () => {
                 >
                   <BarChart3 className="w-4 h-4 text-slate-400" />
                   สถิติการเรียน
-                </button>
-                <button 
-                  onClick={() => { setCurrentPage('stats'); setShowProfileMenu(false); setShowLearningStats(false); }}
-                  className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2"
-                >
-                  <PieChart className="w-4 h-4 text-slate-400" />
-                  สถิติผู้ใช้งาน
                 </button>
                 {user.email !== 'Krumax' && (
                   <button 

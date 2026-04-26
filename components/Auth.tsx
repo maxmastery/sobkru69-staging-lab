@@ -198,7 +198,7 @@ const Auth: React.FC<AuthProps> = ({ onLogin, initialError = '' }) => {
       <div className="relative w-full max-w-5xl h-[750px] bg-white backdrop-blur-sm shadow-2xl rounded-3xl overflow-hidden z-10 flex">
         
         {/* ================= ซีกซ้าย: ฟอร์มเข้าสู่ระบบ (ตรึงอยู่กับที่) ================= */}
-        <div className="absolute top-0 left-0 w-1/2 h-full bg-white z-0 flex flex-col justify-center px-8 sm:px-16 overflow-y-auto custom-scrollbar">
+        <div className={`absolute top-0 left-0 w-full sm:w-1/2 h-full bg-white z-0 flex flex-col justify-center px-8 sm:px-16 overflow-y-auto custom-scrollbar transition-transform duration-500 ${isLogin ? 'translate-x-0' : '-translate-x-full sm:translate-x-0'}`}>
           <div className="flex flex-col items-center text-center mb-8 mt-4">
             <h1 className="text-3xl font-bold text-slate-900 tracking-tight mb-6">SOBKRU <span className="text-amber-500">69</span></h1>
             <h2 className="text-2xl font-bold text-slate-800 mb-2">ระบบติวสอบครูออนไลน์ฟรี</h2>
@@ -299,11 +299,23 @@ const Auth: React.FC<AuthProps> = ({ onLogin, initialError = '' }) => {
                 {notice}
               </div>
             )}
+            
+            {/* Mobile Switcher */}
+            <div className="sm:hidden text-center pt-4 border-t border-slate-100">
+              <p className="text-slate-500 text-sm mb-2">ยังไม่มีบัญชีผู้ใช้งาน?</p>
+              <button 
+                type="button"
+                onClick={toggleMode}
+                className="text-slate-900 font-bold hover:underline"
+              >
+                สมัครสมาชิกใหม่
+              </button>
+            </div>
           </form>
         </div>
 
         {/* ================= ซีกขวา: ฟอร์มสมัครสมาชิก (ตรึงอยู่กับที่) ================= */}
-        <div className="absolute top-0 right-0 w-1/2 h-full bg-white z-0 flex flex-col justify-center px-8 sm:px-12 py-8 overflow-y-auto custom-scrollbar">
+        <div className={`absolute top-0 right-0 w-full sm:w-1/2 h-full bg-white z-0 flex flex-col justify-center px-8 sm:px-12 py-8 overflow-y-auto custom-scrollbar transition-transform duration-500 ${!isLogin ? 'translate-x-0' : 'translate-x-full sm:translate-x-0'}`}>
           <div className="flex flex-col items-center text-center mb-6 mt-4">
             <h1 className="text-3xl font-bold text-slate-900 tracking-tight mb-2">SOBKRU <span className="text-amber-500">69</span></h1>
             <h2 className="text-xl font-bold text-slate-800 mb-1">สร้างบัญชีใหม่</h2>
@@ -514,12 +526,24 @@ const Auth: React.FC<AuthProps> = ({ onLogin, initialError = '' }) => {
                 {notice}
               </div>
             )}
+
+            {/* Mobile Switcher */}
+            <div className="sm:hidden text-center pt-4 border-t border-slate-100">
+              <p className="text-slate-500 text-sm mb-2">มีบัญชีผู้ใช้งานอยู่แล้ว?</p>
+              <button 
+                type="button"
+                onClick={toggleMode}
+                className="text-slate-900 font-bold hover:underline"
+              >
+                เข้าสู่ระบบที่นี่
+              </button>
+            </div>
           </form>
         </div>
 
-        {/* ================= แผ่นรูปภาพแบบสไลด์ (ซ้อนทับอยู่ด้านบนสุด) ================= */}
+        {/* ================= แผ่นรูปภาพแบบสไลด์ (ซ้อนทับอยู่ด้านบนสุด) - แสดงเฉพาะจอใหญ่ ================= */}
         <div 
-          className="absolute top-0 left-0 w-1/2 h-full z-20 shadow-[0_0_40px_rgba(0,0,0,0.3)] overflow-hidden"
+          className="absolute top-0 left-0 w-1/2 h-full z-20 shadow-[0_0_40px_rgba(0,0,0,0.3)] overflow-hidden hidden sm:block"
           style={{ 
             transform: isLogin ? 'translateX(100%)' : 'translateX(0%)',
             transition: 'transform 0.7s cubic-bezier(0.4, 0, 0.2, 1)'

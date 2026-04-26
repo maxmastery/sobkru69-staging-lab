@@ -11,9 +11,10 @@ interface DashboardProps {
   onNavigateToShop: () => void;
   onNavigateToMockExam: () => void;
   onNavigateToLeaderboard?: () => void;
+  onlineCount?: number;
 }
 
-const Dashboard: React.FC<DashboardProps> = ({ onSelectPart, onNavigateToNews, onNavigateToDiscussion, onNavigateToShop, onNavigateToMockExam, onNavigateToLeaderboard }) => {
+const Dashboard: React.FC<DashboardProps> = ({ onSelectPart, onNavigateToNews, onNavigateToDiscussion, onNavigateToShop, onNavigateToMockExam, onNavigateToLeaderboard, onlineCount = 0 }) => {
   const getIcon = (id: PartId) => {
     switch (id) {
       case PartId.PART_A: return <BookOpen className="w-12 h-12 text-white mb-4" />;
@@ -158,6 +159,19 @@ const Dashboard: React.FC<DashboardProps> = ({ onSelectPart, onNavigateToNews, o
               <p className="text-xs text-slate-500 group-hover:text-amber-100 transition-colors">ชีทสรุปเนื้อหาเน้นๆ พร้อมเทคนิคทำข้อสอบ</p>
             </div>
           </button>
+        </div>
+        
+        {/* Online Status Indicator */}
+        <div className="flex justify-center mt-4">
+          <div className="inline-flex items-center gap-2 bg-emerald-50 px-4 py-2 rounded-full border border-emerald-100 shadow-sm transition-all hover:shadow-md">
+            <div className="relative">
+              <div className="w-2.5 h-2.5 bg-emerald-500 rounded-full"></div>
+              <div className="absolute inset-0 w-2.5 h-2.5 bg-emerald-500 rounded-full animate-ping opacity-75"></div>
+            </div>
+            <span className="text-xs font-bold text-emerald-700 tracking-wide uppercase">
+              ({onlineCount}) Online
+            </span>
+          </div>
         </div>
 
       </div>
