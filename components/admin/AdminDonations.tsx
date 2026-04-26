@@ -72,13 +72,13 @@ const AdminDonations: React.FC = () => {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-gradient-to-br from-amber-500 to-orange-600 p-5 rounded-2xl text-white relative overflow-hidden">
           <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-bl-[50px] -mr-4 -mt-4"></div>
-          <div className="relative">
+          <div className="relative text-slate-900">
             <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center mb-3">
               <Coffee className="w-5 h-5" />
             </div>
-            <p className="text-xs font-bold text-white/80 uppercase tracking-wider mb-1">ยอดรวมทั้งหมด</p>
+            <p className="text-xs font-bold opacity-80 uppercase tracking-wider mb-1">ยอดรวมทั้งหมด</p>
             <h4 className="text-3xl font-black">{summary.totalAll.toLocaleString()} ฿</h4>
-            <p className="text-xs text-white/70 mt-1">{summary.countAll} รายการ</p>
+            <p className="text-xs opacity-70 mt-1">{summary.countAll} รายการ</p>
           </div>
         </div>
 

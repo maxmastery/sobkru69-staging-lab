@@ -26,8 +26,15 @@ const UserGeneralStats: React.FC<UserGeneralStatsProps> = ({ onBack }) => {
   }, []);
 
   const stats = useMemo(() => {
-    if (!data) return null;
-    const { profiles, totalAttempts } = data;
+    if (!data) return {
+      totalUsers: 0,
+      totalAttempts: 0,
+      gender: [],
+      age: [],
+      province: [],
+      major: [],
+    };
+    const { profiles = [], totalAttempts = 0 } = data;
     const totalUsers = profiles.length;
 
     const genderMap: Record<string, number> = {};
@@ -73,7 +80,7 @@ const UserGeneralStats: React.FC<UserGeneralStatsProps> = ({ onBack }) => {
     );
   }
 
-  if (!stats) return null;
+  // Removed null check to avoid white screen
 
   const StatHeader = ({ title, icon: Icon, color }: { title: string, icon: any, color: string }) => (
     <h3 className="text-lg font-bold text-slate-800 mb-6 flex items-center gap-2">

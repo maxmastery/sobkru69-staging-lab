@@ -76,7 +76,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onSelectPart, onNavigateToNews, o
         ))}
       </div>
 
-      <div className="flex flex-col gap-6 mt-10 max-w-4xl mx-auto">
+      <div className="flex flex-col gap-6 mt-10 max-w-6xl mx-auto">
         
         {/* Top Row: Mock Exam (Blue Box) */}
         <div className="border border-blue-500/0 p-1">
