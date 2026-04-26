@@ -16,12 +16,13 @@ import MockExamDemo from './components/MockExamDemo';
 import ContactSupport from './components/ContactSupport';
 import BellNotificationsPanel from './components/BellNotificationsPanel';
 import Leaderboard from './components/Leaderboard';
+import UserStatistics from './components/UserStatistics';
 import { ExamPart, SubTopic } from './types';
 import { authService, User, BellNotification, UserUiState } from './services/authService';
 import { userActivityService } from './services/userActivityService';
 import { LogOut, AlertTriangle, Bell, X, Settings, User as UserIcon, BarChart3, Megaphone, MessageSquare, Loader2 } from 'lucide-react';
 
-type PageState = 'dashboard' | 'news' | 'discussion' | 'shop' | 'mock-exam' | 'contact-support' | 'leaderboard';
+type PageState = 'dashboard' | 'news' | 'discussion' | 'shop' | 'mock-exam' | 'contact-support' | 'leaderboard' | 'user-stats';
 const SHOW_DONATION_HISTORY_SHORTCUT = false;
 
 const FloatingCoffeeCup: React.FC = () => (
@@ -245,16 +246,19 @@ const App: React.FC = () => {
       userActivityService.sendHeartbeat(user.id, user.name, pageStatus, token).catch(err => console.error('heartbeat send error:', err));
       
       userActivityService.getOnlineSessions(token).then(sessions => {
-        // 3 นาที เพื่อความแม่นยำมากขึ้น
-        const threeMinutesAgo = new Date(Date.now() - 3 * 60 * 1000);
+        // 5 นาที เพื่อความแม่นยำมากขึ้น (ป้องกันเรื่อง timezone mismatch)
+        const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
         const uniqueUsers = new Set<string>();
         if (Array.isArray(sessions)) {
+          console.log('Calculating online count from:', sessions.length, 'sessions');
           sessions.forEach(s => {
-            if (s && s.last_active_at && new Date(s.last_active_at) >= threeMinutesAgo) {
+            const lastActive = new Date(s.last_active_at);
+            if (s && s.last_active_at && lastActive >= fiveMinutesAgo) {
               uniqueUsers.add(s.user_id);
             }
           });
         }
+        console.log('Final unique online count:', uniqueUsers.size);
         setOnlineCount(uniqueUsers.size);
       }).catch(err => {
         console.error('heartbeat getOnlineSessions error:', err);
@@ -502,8 +506,8 @@ const App: React.FC = () => {
         />
       );
     }
-    if (currentPage === 'leaderboard') {
-      return <Leaderboard onBack={handleBackToDashboard} />;
+    if (currentPage === 'user-stats') {
+      return <UserStatistics onBack={handleBackToDashboard} />;
     }
 
     if (!currentPart) {
@@ -514,7 +518,7 @@ const App: React.FC = () => {
           onNavigateToDiscussion={() => setCurrentPage('discussion')}
           onNavigateToShop={() => setCurrentPage('shop')}
           onNavigateToMockExam={() => setCurrentPage('mock-exam')}
-          onNavigateToLeaderboard={() => setCurrentPage('leaderboard')}
+          onNavigateToLeaderboard={() => setCurrentPage('user-stats')}
           onlineCount={onlineCount}
         />
       );

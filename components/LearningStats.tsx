@@ -1,8 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { BarChart3, Clock, BookOpen, CheckCircle, ChevronLeft, Target, Trophy } from 'lucide-react';
+import { BarChart3, Clock, BookOpen, ChevronLeft } from 'lucide-react';
 import { EXAM_CURRICULUM } from '../constants';
 import { getStoredUser, userActivityService } from '../services/userActivityService';
-
 import { User } from '../services/authService';
 
 interface LearningStatsProps {
@@ -12,8 +11,6 @@ interface LearningStatsProps {
 
 const LearningStats: React.FC<LearningStatsProps> = ({ onClose, user: propUser }) => {
   const [stats, setStats] = useState<{ [chapterId: string]: number }>({});
-  const [totalQuizzes, setTotalQuizzes] = useState(0);
-  const [mockExamStats, setMockExamStats] = useState<{ attemptCount: number; totalCorrect: number; totalAnswered: number; totalQuestions: number }>({ attemptCount: 0, totalCorrect: 0, totalAnswered: 0, totalQuestions: 0 });
 
   useEffect(() => {
     const loadStats = async () => {
@@ -25,20 +22,6 @@ const LearningStats: React.FC<LearningStatsProps> = ({ onClose, user: propUser }
         setStats(timeMap || {});
       } catch (error) {
         console.error('Error loading study time stats', error);
-      }
-
-      try {
-        const quizCount = await userActivityService.getQuizAttemptsCount(user.id);
-        setTotalQuizzes(quizCount || 0);
-      } catch (error) {
-        console.error('Error loading quiz stats', error);
-      }
-
-      try {
-        const examStats = await userActivityService.getMockExamStats(user.id);
-        setMockExamStats(examStats || { attemptCount: 0, totalCorrect: 0, totalAnswered: 0, totalQuestions: 0 });
-      } catch (error) {
-        console.error('Error loading exam stats', error);
       }
     };
 
@@ -90,8 +73,8 @@ const LearningStats: React.FC<LearningStatsProps> = ({ onClose, user: propUser }
         <p className="text-slate-500 mt-2">ติดตามความคืบหน้าและประวัติการเข้าเรียนของคุณ</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-        <div className="bg-white p-6 rounded-2xl border border-slate-200 flex items-center gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+        <div className="bg-white p-6 rounded-2xl border border-slate-200 flex items-center gap-4 shadow-sm">
           <div className="w-12 h-12 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center">
             <BookOpen className="w-6 h-6" />
           </div>
@@ -100,50 +83,13 @@ const LearningStats: React.FC<LearningStatsProps> = ({ onClose, user: propUser }
             <p className="text-2xl font-bold text-slate-800">{viewedChaptersCount} <span className="text-sm font-normal text-slate-500">/ {totalChapters} บท</span></p>
           </div>
         </div>
-        <div className="bg-white p-6 rounded-2xl border border-slate-200 flex items-center gap-4">
-          <div className="w-12 h-12 rounded-full bg-green-100 text-green-600 flex items-center justify-center">
-            <CheckCircle className="w-6 h-6" />
-          </div>
-          <div>
-            <p className="text-sm text-slate-500 font-medium">ทำแบบทดสอบแล้ว</p>
-            <p className="text-2xl font-bold text-slate-800">{totalQuizzes} <span className="text-sm font-normal text-slate-500">ครั้ง</span></p>
-          </div>
-        </div>
-        <div className="bg-white p-6 rounded-2xl border border-slate-200 flex items-center gap-4">
+        <div className="bg-white p-6 rounded-2xl border border-slate-200 flex items-center gap-4 shadow-sm">
           <div className="w-12 h-12 rounded-full bg-orange-100 text-orange-600 flex items-center justify-center">
             <Clock className="w-6 h-6" />
           </div>
           <div>
             <p className="text-sm text-slate-500 font-medium">เวลาเรียนรวม</p>
             <p className="text-2xl font-bold text-slate-800">{totalMinutes} <span className="text-sm font-normal text-slate-500">นาที</span></p>
-          </div>
-        </div>
-      </div>
-
-      {/* Mock Exam Stats Row */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-        <div className="bg-white p-6 rounded-2xl border border-indigo-200 flex items-center gap-4">
-          <div className="w-12 h-12 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center">
-            <Trophy className="w-6 h-6" />
-          </div>
-          <div>
-            <p className="text-sm text-slate-500 font-medium">ทำข้อสอบเสมือนจริง</p>
-            <p className="text-2xl font-bold text-indigo-600">{mockExamStats.attemptCount} <span className="text-sm font-normal text-slate-500">ครั้ง</span></p>
-            <p className="text-xs text-slate-400 mt-0.5">นับทั้งทำเสร็จและทำไม่เสร็จ</p>
-          </div>
-        </div>
-        <div className="bg-white p-6 rounded-2xl border border-amber-200 flex items-center gap-4">
-          <div className="w-12 h-12 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center">
-            <Target className="w-6 h-6" />
-          </div>
-          <div>
-            <p className="text-sm text-slate-500 font-medium">Win Rate (อัตราตอบถูก)</p>
-            <p className="text-2xl font-bold text-amber-600">
-              {mockExamStats.totalAnswered > 0 ? Math.round((mockExamStats.totalCorrect / mockExamStats.totalAnswered) * 100) : 0}%
-            </p>
-            <p className="text-xs text-slate-400 mt-0.5">
-              {mockExamStats.totalCorrect}/{mockExamStats.totalAnswered} ข้อที่กา (รวมทุกครั้ง)
-            </p>
           </div>
         </div>
       </div>

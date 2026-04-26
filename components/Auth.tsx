@@ -219,7 +219,7 @@ const Auth: React.FC<AuthProps> = ({ onLogin, initialError = '' }) => {
                   value={formData.email}
                   onChange={handleChange}
                   className="block w-full pl-11 pr-4 py-3.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 focus:ring-2 focus:ring-slate-900 focus:border-slate-900 transition-all outline-none"
-                  placeholder="อีเมล หรือ ชื่อผู้ใช้งาน (สำหรับ Admin)"
+                  placeholder="E-mail"
                 />
               </div>
             </div>

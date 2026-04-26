@@ -155,6 +155,9 @@ export const userActivityService = {
     try {
       ensureSupabase();
       const sessions = await supabaseRest.select<any[]>('user_sessions', 'select=user_id,user_name,current_page,last_active_at&order=last_active_at.desc', authToken);
+      if (Array.isArray(sessions)) {
+        console.log(`Fetched ${sessions.length} sessions from DB`);
+      }
       return Array.isArray(sessions) ? sessions : [];
     } catch (err) {
       console.error('getOnlineSessions error:', err);
