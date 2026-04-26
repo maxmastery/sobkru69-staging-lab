@@ -467,16 +467,16 @@ drop policy if exists donations_anon_all on public.donations;
 create policy donations_anon_all on public.donations for all to anon using (true) with check (true);
 
 drop policy if exists lesson_progress_anon_all on public.lesson_progress;
-create policy lesson_progress_anon_all on public.lesson_progress for all to anon using (true) with check (true);
+create policy lesson_progress_anon_all on public.lesson_progress for all to anon, authenticated using (true) with check (true);
 
 drop policy if exists study_time_anon_all on public.study_time;
-create policy study_time_anon_all on public.study_time for all to anon using (true) with check (true);
+create policy study_time_anon_all on public.study_time for all to anon, authenticated using (true) with check (true);
 
 drop policy if exists quiz_attempts_anon_all on public.quiz_attempts;
-create policy quiz_attempts_anon_all on public.quiz_attempts for all to anon using (true) with check (true);
+create policy quiz_attempts_anon_all on public.quiz_attempts for all to anon, authenticated using (true) with check (true);
 
 drop policy if exists mock_exam_attempts_anon_all on public.mock_exam_attempts;
-create policy mock_exam_attempts_anon_all on public.mock_exam_attempts for all to anon using (true) with check (true);
+create policy mock_exam_attempts_anon_all on public.mock_exam_attempts for all to anon, authenticated using (true) with check (true);
 
 -- ---------------------------------------------------------------------------
 -- Storage buckets
@@ -885,16 +885,19 @@ create table if not exists public.mock_exam_attempts (
   created_at timestamptz not null default now()
 );
 
--- Add answered_count column if it doesn't exist (for existing installations)
+-- Add missing columns to mock_exam_attempts for compatibility
 do $$
 begin
-  if not exists (
-    select 1 from information_schema.columns
-    where table_schema = 'public'
-      and table_name = 'mock_exam_attempts'
-      and column_name = 'answered_count'
-  ) then
+  if not exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'mock_exam_attempts' and column_name = 'user_name') then
+    alter table public.mock_exam_attempts add column user_name text not null default '';
+  end if;
+  
+  if not exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'mock_exam_attempts' and column_name = 'answered_count') then
     alter table public.mock_exam_attempts add column answered_count integer not null default 0;
+  end if;
+
+  if not exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'mock_exam_attempts' and column_name = 'is_completed') then
+    alter table public.mock_exam_attempts add column is_completed boolean not null default true;
   end if;
 end $$;
 

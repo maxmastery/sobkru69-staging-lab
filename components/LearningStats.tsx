@@ -21,18 +21,24 @@ const LearningStats: React.FC<LearningStatsProps> = ({ onClose, user: propUser }
       if (!user) return;
 
       try {
-        console.log('Loading stats for user:', user.id, user.name);
-        const [timeMap, quizCount, examStats] = await Promise.all([
-          userActivityService.getStudyTimeMap(user.id),
-          userActivityService.getQuizAttemptsCount(user.id),
-          userActivityService.getMockExamStats(user.id),
-        ]);
-        console.log('Stats loaded:', { timeMap, quizCount, examStats });
-        setStats(timeMap);
-        setTotalQuizzes(quizCount);
-        setMockExamStats(examStats);
+        const timeMap = await userActivityService.getStudyTimeMap(user.id);
+        setStats(timeMap || {});
       } catch (error) {
-        console.error('Error loading stats', error);
+        console.error('Error loading study time stats', error);
+      }
+
+      try {
+        const quizCount = await userActivityService.getQuizAttemptsCount(user.id);
+        setTotalQuizzes(quizCount || 0);
+      } catch (error) {
+        console.error('Error loading quiz stats', error);
+      }
+
+      try {
+        const examStats = await userActivityService.getMockExamStats(user.id);
+        setMockExamStats(examStats || { attemptCount: 0, totalCorrect: 0, totalAnswered: 0, totalQuestions: 0 });
+      } catch (error) {
+        console.error('Error loading exam stats', error);
       }
     };
 

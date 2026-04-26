@@ -110,14 +110,15 @@ const App: React.FC = () => {
     
     // Fetch online count
     userActivityService.getOnlineSessions().then(sessions => {
-      console.log('Online sessions fetched:', sessions?.length || 0, sessions);
       const threeMinutesAgo = new Date(Date.now() - 3 * 60 * 1000);
       const uniqueUsers = new Set<string>();
-      sessions.forEach(s => {
-        if (new Date(s.last_active_at) >= threeMinutesAgo) {
-          uniqueUsers.add(s.user_id);
-        }
-      });
+      if (Array.isArray(sessions)) {
+        sessions.forEach(s => {
+          if (s && s.last_active_at && new Date(s.last_active_at) >= threeMinutesAgo) {
+            uniqueUsers.add(s.user_id);
+          }
+        });
+      }
       setOnlineCount(uniqueUsers.size);
     }).catch(err => {
       console.error('getOnlineSessions error:', err);
@@ -244,11 +245,13 @@ const App: React.FC = () => {
         // 3 นาที เพื่อความแม่นยำมากขึ้น
         const threeMinutesAgo = new Date(Date.now() - 3 * 60 * 1000);
         const uniqueUsers = new Set<string>();
-        sessions.forEach(s => {
-          if (new Date(s.last_active_at) >= threeMinutesAgo) {
-            uniqueUsers.add(s.user_id);
-          }
-        });
+        if (Array.isArray(sessions)) {
+          sessions.forEach(s => {
+            if (s && s.last_active_at && new Date(s.last_active_at) >= threeMinutesAgo) {
+              uniqueUsers.add(s.user_id);
+            }
+          });
+        }
         setOnlineCount(uniqueUsers.size);
       }).catch(err => {
         console.error('heartbeat getOnlineSessions error:', err);

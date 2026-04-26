@@ -154,11 +154,14 @@ export const userActivityService = {
   },
 
   async getOnlineSessions(): Promise<{ user_id: string; user_name: string; current_page: string; last_active_at: string }[]> {
-    ensureSupabase();
-    console.log('Fetching online sessions...');
-    const sessions = await supabaseRest.select<any[]>('user_sessions', 'select=user_id,user_name,current_page,last_active_at&order=last_active_at.desc');
-    console.log('Online sessions fetched:', sessions?.length || 0, sessions);
-    return sessions;
+    try {
+      ensureSupabase();
+      const sessions = await supabaseRest.select<any[]>('user_sessions', 'select=user_id,user_name,current_page,last_active_at&order=last_active_at.desc');
+      return Array.isArray(sessions) ? sessions : [];
+    } catch (err) {
+      console.error('getOnlineSessions error:', err);
+      return [];
+    }
   },
 
   // ── Daily login log ──────────────────────────────────────────
@@ -211,19 +214,43 @@ export const userActivityService = {
   },
 
   async getMockExamStats(userId: string): Promise<{ attemptCount: number; totalCorrect: number; totalAnswered: number; totalQuestions: number }> {
-    ensureSupabase();
-    const rows = await supabaseRest.select<any[]>('mock_exam_attempts', `select=score,total,answered_count,is_completed&user_id=eq.${encodeValue(userId)}`);
-    let totalCorrect = 0;
-    let totalAnswered = 0;
-    let totalQuestions = 0;
-    rows.forEach((r: any) => {
-      totalCorrect += Number(r.score || 0);
-      // Use answered_count if available, otherwise fall back to total
-      const answered = Number(r.answered_count || r.total || 0);
-      totalAnswered += answered;
-      totalQuestions += Number(r.total || 0);
-    });
-    return { attemptCount: rows.length, totalCorrect, totalAnswered, totalQuestions };
+    try {
+      ensureSupabase();
+      const rows = await supabaseRest.select<any[]>('mock_exam_attempts', `select=score,total,answered_count,is_completed&user_id=eq.${encodeValue(userId)}`);
+      
+      if (!Array.isArray(rows)) {
+        return { attemptCount: 0, totalCorrect: 0, totalAnswered: 0, totalQuestions: 0 };
+      }
+
+      let totalCorrect = 0;
+      let totalAnswered = 0;
+      let totalQuestions = 0;
+      rows.forEach((r: any) => {
+        totalCorrect += Number(r.score || 0);
+        // Use answered_count if available, otherwise fall back to total
+        const answered = Number(r.answered_count || r.total || 0);
+        totalAnswered += answered;
+        totalQuestions += Number(r.total || 0);
+      });
+      return { attemptCount: rows.length, totalCorrect, totalAnswered, totalQuestions };
+    } catch (err) {
+      console.error('getMockExamStats error (might be missing columns):', err);
+      // Fallback for older schema
+      try {
+        const rows = await supabaseRest.select<any[]>('mock_exam_attempts', `select=score,total&user_id=eq.${encodeValue(userId)}`);
+        if (!Array.isArray(rows)) return { attemptCount: 0, totalCorrect: 0, totalAnswered: 0, totalQuestions: 0 };
+        
+        let totalCorrect = 0;
+        let totalQuestions = 0;
+        rows.forEach((r: any) => {
+          totalCorrect += Number(r.score || 0);
+          totalQuestions += Number(r.total || 0);
+        });
+        return { attemptCount: rows.length, totalCorrect, totalAnswered: totalQuestions, totalQuestions };
+      } catch {
+        return { attemptCount: 0, totalCorrect: 0, totalAnswered: 0, totalQuestions: 0 };
+      }
+    }
   },
 
   async getLeaderboard(): Promise<any[]> {
