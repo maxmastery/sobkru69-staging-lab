@@ -63,8 +63,8 @@ const TIERS: Tier[] = [
     id: 't2',
     name: 'เลี้ยงกาแฟ',
     price: 65,
-    subtitle: 'รับไฟล์สรุปเนื้อหาสอบครูผู้ช่วย',
-    bonus: '(ไฟล์สรุปเนื้อหาสอบครูผู้ช่วย)',
+    subtitle: 'รับไฟล์แบบฝึกหัดภาษาอังกฤษ 2 ชุด',
+    bonus: '(ไฟล์แบบฝึกหัดภาษาอังกฤษ 2 ชุด)',
     image: 'https://cribfrwvdpshvdpxgnuc.supabase.co/storage/v1/object/public/sobkru-images/sleep%20(1).png',
     qrCode: 'https://cribfrwvdpshvdpxgnuc.supabase.co/storage/v1/object/public/sobkru-images/Cooffee%20(1).jpg',
     color: {
@@ -354,7 +354,7 @@ const DonationModal: React.FC<DonationModalProps> = ({ onClose, initialView = 'i
                     คุณได้เลี้ยงกาแฟแล้ว คลิก เพื่อรับไฟล์สรุปเนื้อหา
                   </a>
                 ) : (
-                  'เลี้ยงกาแฟนักพัฒนาเพื่อแลกรับไฟล์สรุปเนื้อหาการสอบครูผู้ช่วย'
+                  'แลกรับไฟล์แบบฝึกหัดภาษาอังกฤษ 2 ชุด'
                 )}
               </p>
             </div>
@@ -474,7 +474,7 @@ const DonationModal: React.FC<DonationModalProps> = ({ onClose, initialView = 'i
             onClick={triggerFileUpload}
             className={`w-full py-4 px-6 rounded-2xl font-bold flex items-center justify-center gap-3 transition-all text-white text-lg ${selectedTier.color.badge} hover:opacity-90`}
           >
-            <Upload className="w-6 h-6" /> แนบสลิปเพื่อรับ ไฟล์สรุปเนื้อหา
+            <Upload className="w-6 h-6" /> แนบสลิปเพื่อรับของที่ระลึก
           </button>
           </motion.div>
         )}
@@ -583,7 +583,7 @@ const DonationModal: React.FC<DonationModalProps> = ({ onClose, initialView = 'i
                   onClick={() => window.open(SUMMARY_FILE_LINK, '_blank')}
                   className="w-full py-4 px-6 rounded-2xl font-bold bg-green-600 text-white hover:bg-green-700 transition-all flex justify-center items-center gap-3 text-lg"
                >
-                  รับไฟล์สรุปเนื้อหา <Gift className="w-6 h-6" />
+                  รับไฟล์แบบฝึกหัดภาษาอังกฤษ <Gift className="w-6 h-6" />
                </button>
             )}
 
@@ -592,7 +592,7 @@ const DonationModal: React.FC<DonationModalProps> = ({ onClose, initialView = 'i
                   onClick={() => window.open(SUMMARY_FILE_LINK, '_blank')}
                   className="w-full py-4 px-6 rounded-2xl font-bold bg-emerald-800 text-white hover:bg-emerald-900 transition-all flex justify-center items-center gap-3 text-lg"
                >
-                  รับไฟล์สรุปเนื้อหา <Gift className="w-6 h-6" />
+                  รับไฟล์แบบฝึกหัดภาษาอังกฤษ <Gift className="w-6 h-6" />
                </button>
             )}
             
