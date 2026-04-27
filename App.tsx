@@ -688,7 +688,7 @@ const App: React.FC = () => {
           <style>{`
             @media (max-width: 640px) {
               .sobkru-donate-container {
-                transform: scale(0.5);
+                transform: scale(0.6);
                 transform-origin: bottom right;
               }
             }

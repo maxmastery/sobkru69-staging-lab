@@ -792,7 +792,7 @@ export const authService = {
         if (pendingGoogleLogin) {
           return {
             success: false,
-            message: 'Google login สำเร็จแล้ว แต่แอปยังไม่สามารถรับ session ได้ครบ กรุณาลองอีกครั้ง หากยังเป็นเหมือนเดิมให้ตรวจ Site URL และ Redirect URL ใน Supabase ให้ตรงกับโดเมนที่ใช้อยู่',
+            message: 'การเข้าสู่ระบบยังไม่สมบูรณ์\nกรุณาเข้าสู่ระบบใหม่อีกครั้ง\nหากเปิดจาก LINE แนะนำให้เปิดลิงก์ใน Safari หรือ Chrome ก่อนเข้าสู่ระบบ',
           };
         }
         return { success: false, message: 'ยังไม่มี session การเข้าสู่ระบบ' };

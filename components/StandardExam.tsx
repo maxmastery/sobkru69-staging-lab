@@ -293,14 +293,14 @@ export const StandardExam: React.FC<StandardExamProps> = ({ title, durationSecon
           </div>
           <button 
             onClick={() => setShowStopModal(true)}
-            className="bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 md:px-5 rounded-lg flex items-center gap-2 transition-colors text-sm md:text-base"
+            className="hidden md:flex bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 md:px-5 rounded-lg items-center gap-2 transition-colors text-sm md:text-base"
           >
             <StopCircle className="w-4 h-4" />
             <span className="hidden md:inline">หยุดทำข้อสอบ</span>
           </button>
           <button 
             onClick={() => setShowConfirmModal(true)}
-            className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 md:px-5 rounded-lg flex items-center gap-2 transition-colors text-sm md:text-base"
+            className="hidden md:flex bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 md:px-5 rounded-lg items-center gap-2 transition-colors text-sm md:text-base"
           >
             <Send className="w-4 h-4" />
             <span className="hidden md:inline">ส่งข้อสอบ</span>
@@ -437,6 +437,24 @@ export const StandardExam: React.FC<StandardExamProps> = ({ title, durationSecon
               <div className="flex items-center justify-between mb-6">
                 <div className="bg-blue-100 text-blue-800 text-sm font-bold px-4 py-1.5 rounded-full">
                   ข้อที่ {currentQuestionIndex + 1} / {questions.length}
+                </div>
+
+                {/* Mobile Exam Controls - Only visible on small screens */}
+                <div className="flex md:hidden items-center gap-2">
+                  <button 
+                    onClick={() => setShowStopModal(true)}
+                    className="bg-red-600 hover:bg-red-700 text-white p-2 rounded-lg flex items-center justify-center transition-colors shadow-sm"
+                    title="หยุดทำข้อสอบ"
+                  >
+                    <StopCircle className="w-5 h-5" />
+                  </button>
+                  <button 
+                    onClick={() => setShowConfirmModal(true)}
+                    className="bg-blue-600 hover:bg-blue-700 text-white p-2 rounded-lg flex items-center justify-center transition-colors shadow-sm"
+                    title="ส่งข้อสอบ"
+                  >
+                    <Send className="w-5 h-5" />
+                  </button>
                 </div>
                 <button 
                   onClick={toggleFlag}
