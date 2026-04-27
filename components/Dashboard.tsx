@@ -46,7 +46,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onSelectPart, onNavigateToNews, o
           คอร์สออนไลน์ เตรียมสอบครูผู้ช่วย สพฐ.
         </h2>
         <p className="text-base text-slate-600 w-full whitespace-normal">
-          ระบบติวสอบออนไลน์อัจฉริยะ ครอบคลุมเนื้อหาตามเกณฑ์ใหม่ เจาะลึก ภาค ก ภาค ข และ ภาค ค ( อัพเดต ปี 2569 )
+          ระบบสรุปเนื้อหาการสอบบรรจุครูผู้ช่วย เจาะลึก ภาค ก ภาค ข และ ภาค ค ( อัพเดต ปี 2569 )
         </p>
       </header>
 
@@ -132,18 +132,18 @@ const Dashboard: React.FC<DashboardProps> = ({ onSelectPart, onNavigateToNews, o
             <span className="relative ml-3 rounded-full bg-indigo-100 px-3 py-1 text-xs font-bold text-indigo-700 transition-colors group-hover:bg-indigo-600 group-hover:text-white">ถามตอบ</span>
           </button>
 
-          <button onClick={onNavigateToLeaderboard} className="group relative flex items-center justify-between overflow-hidden rounded-3xl border border-amber-100 bg-gradient-to-br from-white via-amber-50/70 to-white p-5 text-left shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-amber-300 hover:shadow-xl hover:shadow-amber-900/10">
-            <div className="absolute -right-8 -top-10 h-28 w-28 rounded-full bg-amber-100/70 transition-transform duration-500 group-hover:scale-125"></div>
+          <button onClick={onNavigateToLeaderboard} className="group relative flex items-center justify-between overflow-hidden rounded-3xl border border-emerald-100 bg-gradient-to-br from-white via-emerald-50/70 to-white p-5 text-left shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-emerald-300 hover:shadow-xl hover:shadow-emerald-900/10">
+            <div className="absolute -right-8 -top-10 h-28 w-28 rounded-full bg-emerald-100/70 transition-transform duration-500 group-hover:scale-125"></div>
             <div className="relative flex items-center gap-4">
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-emerald-500 text-white shadow-lg shadow-emerald-500/20 transition-transform duration-300 group-hover:rotate-3 group-hover:scale-105">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-emerald-500 text-white shadow-lg shadow-emerald-600/20 transition-transform duration-300 group-hover:rotate-3 group-hover:scale-105">
                 <BarChart3 className="w-6 h-6" />
               </div>
               <div>
                 <h4 className="font-bold text-base md:text-lg text-slate-900 transition-colors group-hover:text-emerald-700 whitespace-nowrap">ข้อมูลผู้ใช้งาน</h4>
-                <p className="text-xs text-slate-500 transition-colors group-hover:text-emerald-600 whitespace-nowrap">สถิติผู้ใช้งานในระบบ Hall of Fame</p>
+                <p className="text-xs text-slate-500 transition-colors group-hover:text-emerald-600 whitespace-nowrap">สถิติผู้ใช้งานในระบบ</p>
               </div>
             </div>
-            <span className="relative ml-3 rounded-full bg-emerald-100 px-3 py-1 text-xs font-bold text-emerald-700 transition-colors group-hover:bg-emerald-500 group-hover:text-white">ดูข้อมูล</span>
+            <span className="relative ml-3 rounded-full bg-emerald-100 px-3 py-1 text-xs font-bold text-emerald-700 transition-colors group-hover:bg-emerald-600 group-hover:text-white">ดูข้อมูล</span>
           </button>
         </div>
 
