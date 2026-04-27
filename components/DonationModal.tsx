@@ -238,24 +238,15 @@ const DonationModal: React.FC<DonationModalProps> = ({ onClose, initialView = 'i
         const slipKeywords = ['promptpay', 'thaiqr', 'payment', 'ธนาคาร', 'รายการ', 'อ้างอิง', 'บัญชี', 'baht', 'บาท'];
         const hasSlipSignal = slipKeywords.some(kw => cleanedText.includes(kw));
         
-        // Amount needs to match the selected tier's price exactly
-        const requiredAmount = selectedTier.price;
-        let hasAmount = false;
-        
-        // Extract all numbers to check if any matches the exact price (e.g. 65.00 -> 65)
+        // Extract all numbers to check if any amount exists (any amount is fine as per user request)
         const numbersMatch = text.match(/\d+[.,]?\d*/g) || [];
+        let anyAmountFound = false;
         for (const numStr of numbersMatch) {
-            // safely parse floats even if OCR read comma instead of dot
             const val = parseFloat(numStr.replace(',', '.'));
-            if (val === requiredAmount) {
-                hasAmount = true;
+            if (val > 0) {
+                anyAmountFound = true;
                 break;
             }
-        }
-
-        // Additional fallback: checking if "65บาท" exists directly
-        if (!hasAmount && (cleanedText.includes(`${requiredAmount}บาท`) || cleanedText.includes(`${requiredAmount}.00`))) {
-            hasAmount = true;
         }
 
         const conflicts = await contentService.findDonationConflicts({ slipHash, slipTextHash, transactionRef });
@@ -271,12 +262,14 @@ const DonationModal: React.FC<DonationModalProps> = ({ onClose, initialView = 'i
           return;
         }
 
-        if (hasName && hasAmount && hasSlipSignal) {
+        // Logic: Must have Merchant Name/Store and must have some kind of transaction signal
+        // We no longer require the amount to match the tier price exactly
+        if (hasName && (hasSlipSignal || transactionRef)) {
              const uploadedSlip = await contentService.uploadDonationSlip(file);
              await saveDonation(selectedTier, { slipHash, slipTextHash, transactionRef }, uploadedSlip.path);
              setView('success');
         } else {
-             setVerificationError('ข้อมูลในสลิปไม่ครบถ้วน กรุณาใช้สลิปฉบับเต็มที่เห็นชื่อบัญชี ยอดเงิน และข้อมูลธุรกรรมชัดเจน');
+             setVerificationError('ข้อมูลในสลิปไม่ครบถ้วน กรุณาใช้สลิปฉบับเต็มที่เห็นชื่อบัญชี CoolCom หรือ นายธนิท และข้อมูลธุรกรรมชัดเจน');
              setView('error');
         }
       } catch (err) {
