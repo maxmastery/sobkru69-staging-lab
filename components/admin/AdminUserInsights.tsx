@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { Users, Wifi, BookOpen, UserX, Clock, Activity, Loader2 } from 'lucide-react';
+import { Users, Wifi, BookOpen, UserX, Clock, Activity, Loader2, RefreshCw } from 'lucide-react';
 import { User } from '../../services/authService';
 import { userActivityService } from '../../services/userActivityService';
 
@@ -26,39 +26,39 @@ const AdminUserInsights: React.FC<AdminUserInsightsProps> = ({ users }) => {
   const [studyTimeMap, setStudyTimeMap] = useState<Record<string, Record<string, number>>>({});
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    const load = async () => {
-      if (!users || users.length === 0) return;
-      
-      setIsLoading(true);
-      try {
-        const [sessionsData, logsData, allStudyRows] = await Promise.all([
-          userActivityService.getOnlineSessions(),
-          userActivityService.getDailyLoginLogs(),
-          userActivityService.getAllStudyTimeRecords(),
-        ]);
-        
-        setSessions(Array.isArray(sessionsData) ? sessionsData : []);
-        setLoginLogs(Array.isArray(logsData) ? logsData : []);
-
-        const allStudyTime: Record<string, Record<string, number>> = {};
-        if (Array.isArray(allStudyRows)) {
-          allStudyRows.forEach(row => {
-            if (!allStudyTime[row.user_id]) {
-              allStudyTime[row.user_id] = {};
-            }
-            allStudyTime[row.user_id][row.topic_id] = (allStudyTime[row.user_id][row.topic_id] || 0) + (row.seconds || 0);
-          });
-        }
-
-        setStudyTimeMap(allStudyTime);
-      } catch (error) {
-        console.error('Failed to load insights', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
+  const load = async () => {
+    if (!users || users.length === 0) return;
     
+    setIsLoading(true);
+    try {
+      const [sessionsData, logsData, allStudyRows] = await Promise.all([
+        userActivityService.getOnlineSessions(),
+        userActivityService.getDailyLoginLogs(),
+        userActivityService.getAllStudyTimeRecords(),
+      ]);
+      
+      setSessions(Array.isArray(sessionsData) ? sessionsData : []);
+      setLoginLogs(Array.isArray(logsData) ? logsData : []);
+
+      const allStudyTime: Record<string, Record<string, number>> = {};
+      if (Array.isArray(allStudyRows)) {
+        allStudyRows.forEach(row => {
+          if (!allStudyTime[row.user_id]) {
+            allStudyTime[row.user_id] = {};
+          }
+          allStudyTime[row.user_id][row.topic_id] = (allStudyTime[row.user_id][row.topic_id] || 0) + (row.seconds || 0);
+        });
+      }
+
+      setStudyTimeMap(allStudyTime);
+    } catch (error) {
+      console.error('Failed to load insights', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
     load();
   }, [users]);
 
@@ -69,7 +69,16 @@ const AdminUserInsights: React.FC<AdminUserInsightsProps> = ({ users }) => {
     const totalUsers = users.length;
 
     // Online users (active in last 5 minutes)
-    const onlineUsers = sessions.filter(s => s.last_active_at && new Date(s.last_active_at) >= fiveMinutesAgo);
+    const onlineUsers = sessions.filter(s => {
+      if (!s.last_active_at) return false;
+      try {
+        const lastActive = new Date(s.last_active_at);
+        return lastActive >= fiveMinutesAgo;
+      } catch {
+        return false;
+      }
+    });
+    
     const onlineCount = onlineUsers.length;
     
     // Check if user is in lesson or exam
@@ -172,8 +181,23 @@ const AdminUserInsights: React.FC<AdminUserInsightsProps> = ({ users }) => {
   };
 
   return (
-    <div className="space-y-6">
-      {/* Summary Cards */}
+    <div className="space-y-8 pb-10">
+      {/* Header with Refresh */}
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-xl font-bold text-slate-800 flex items-center gap-3">
+          <Activity className="w-6 h-6 text-teal-600" />
+          ภาพรวมพฤติกรรมผู้ใช้งาน
+        </h2>
+        <button 
+          onClick={load}
+          disabled={isLoading}
+          className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-700 hover:bg-teal-50 hover:border-teal-200 transition-all shadow-sm disabled:opacity-50"
+        >
+          <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
+          อัปเดตข้อมูล
+        </button>
+      </div>
+
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
         <div className="bg-white p-5 rounded-2xl border border-slate-200 relative overflow-hidden">
           <div className="absolute top-0 right-0 w-20 h-20 bg-blue-50 rounded-bl-[40px] -mr-4 -mt-4"></div>

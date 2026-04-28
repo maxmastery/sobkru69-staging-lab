@@ -1,35 +1,29 @@
-import { isSupabaseConfigured, supabaseRest } from './supabaseRest';
+import { isSupabaseConfigured } from './supabaseRest';
 import { User } from './authService';
 import { getSupabaseClient } from './supabaseClient';
 
-type LessonProgressRow = {
-  id: string;
+export interface LessonProgressRow {
+  id?: string;
   user_id: string;
   topic_id: string;
   chapter_id: string;
   completed_at: string;
-};
+}
 
-type StudyTimeRow = {
-  id: string;
+export interface StudyTimeRow {
+  id?: string;
   user_id: string;
   topic_id: string;
   seconds: number;
   updated_at: string;
-};
+}
 
-type QuizAttemptRow = {
-  id: string;
+export interface UserSessionRow {
   user_id: string;
-  quiz_id: string;
-  topic_id: string | null;
-  score: number;
-  total: number;
-  answers: Record<string, unknown>;
-  completed_at: string;
-};
-
-const encodeValue = (value: string) => encodeURIComponent(value);
+  user_name: string;
+  current_page: string;
+  last_active_at: string;
+}
 
 const ensureSupabase = () => {
   if (!isSupabaseConfigured()) {
@@ -54,28 +48,41 @@ export const getStoredUser = (): User | null => {
 };
 
 export const userActivityService = {
+  // --- Lesson Progress ---
   async getCompletedChapterIds(userId: string, topicId: string): Promise<string[]> {
     ensureSupabase();
-    const rows = await supabaseRest.select<LessonProgressRow[]>('lesson_progress', `select=chapter_id&user_id=eq.${encodeValue(userId)}&topic_id=eq.${encodeValue(topicId)}`);
-    return rows.map(row => row.chapter_id);
+    const supabase = getSupabaseClient();
+    const { data, error } = await supabase
+      .from('lesson_progress')
+      .select('chapter_id')
+      .eq('user_id', userId)
+      .eq('topic_id', topicId);
+    
+    if (error) {
+      console.error('getCompletedChapterIds error:', error);
+      return [];
+    }
+    return (data || []).map(row => row.chapter_id);
   },
 
   async markChapterCompleted(userId: string, topicId: string, chapterId: string) {
     ensureSupabase();
-    await supabaseRest.upsert<LessonProgressRow[]>('lesson_progress', {
-      id: createId(),
+    const supabase = getSupabaseClient();
+    await supabase.from('lesson_progress').upsert({
       user_id: userId,
       topic_id: topicId,
       chapter_id: chapterId,
       completed_at: new Date().toISOString(),
-    }, 'user_id,topic_id,chapter_id');
+    }, { onConflict: 'user_id,topic_id,chapter_id' });
   },
 
   async resetTopicProgress(userId: string, topicId: string) {
     ensureSupabase();
-    await supabaseRest.delete<LessonProgressRow[]>('lesson_progress', `user_id=eq.${encodeValue(userId)}&topic_id=eq.${encodeValue(topicId)}`);
+    const supabase = getSupabaseClient();
+    await supabase.from('lesson_progress').delete().eq('user_id', userId).eq('topic_id', topicId);
   },
 
+  // --- Study Time ---
   async getStudyTimeMap(userId: string): Promise<Record<string, number>> {
     ensureSupabase();
     const supabase = getSupabaseClient();
@@ -98,47 +105,63 @@ export const userActivityService = {
     ensureSupabase();
     const supabase = getSupabaseClient();
     
-    // Check existing
-    const { data: existing } = await supabase
+    // First, try to get existing record
+    const { data: existing, error: fetchError } = await supabase
       .from('study_time')
       .select('id, seconds')
       .eq('user_id', userId)
       .eq('topic_id', topicId)
       .maybeSingle();
 
+    if (fetchError) {
+      console.error('incrementStudyTime fetch error:', fetchError);
+      return;
+    }
+
     if (existing) {
-      await supabase
+      const { error: updateError } = await supabase
         .from('study_time')
         .update({
           seconds: Number(existing.seconds || 0) + seconds,
           updated_at: new Date().toISOString(),
         })
         .eq('id', existing.id);
+      
+      if (updateError) console.error('incrementStudyTime update error:', updateError);
     } else {
-      await supabase
+      const { error: insertError } = await supabase
         .from('study_time')
         .insert({
           id: createId(),
           user_id: userId,
           topic_id: topicId,
-          seconds,
+          seconds: seconds,
           updated_at: new Date().toISOString(),
         });
+      
+      if (insertError) console.error('incrementStudyTime insert error:', insertError);
     }
   },
 
-  async resetStudyTime(userId: string, chapterIds: string[]) {
+  async getAllStudyTimeRecords(): Promise<any[]> {
     ensureSupabase();
-    await Promise.all(
-      chapterIds.map(chapterId =>
-        supabaseRest.delete<StudyTimeRow[]>('study_time', `user_id=eq.${encodeValue(userId)}&topic_id=eq.${encodeValue(chapterId)}`)
-      )
-    );
+    const supabase = getSupabaseClient();
+    const { data, error } = await supabase
+      .from('study_time')
+      .select('user_id, topic_id, seconds');
+    
+    if (error) {
+      console.error('getAllStudyTimeRecords error:', error);
+      return [];
+    }
+    return data || [];
   },
 
+  // --- Quiz & Exam ---
   async recordQuizAttempt(userId: string, topicId: string | null, score: number, total: number, answers: unknown[]) {
     ensureSupabase();
-    await supabaseRest.insert<QuizAttemptRow[]>('quiz_attempts', {
+    const supabase = getSupabaseClient();
+    await supabase.from('quiz_attempts').insert({
       id: createId(),
       user_id: userId,
       quiz_id: `generated-${Date.now()}`,
@@ -150,15 +173,64 @@ export const userActivityService = {
     });
   },
 
-  async getQuizAttemptsCount(userId: string) {
+  async saveMockExamAttempt(data: any) {
     ensureSupabase();
-    const rows = await supabaseRest.select<QuizAttemptRow[]>('quiz_attempts', `select=id&user_id=eq.${encodeValue(userId)}`);
-    return rows.length;
+    const supabase = getSupabaseClient();
+    await supabase.from('mock_exam_attempts').insert({
+      id: createId(),
+      user_id: data.userId,
+      user_name: data.userName,
+      exam_key: data.examKey,
+      score: data.score,
+      total: data.total,
+      answered_count: data.answeredCount,
+      duration_seconds: data.durationSeconds,
+      is_completed: data.isCompleted,
+      created_at: new Date().toISOString(),
+    });
   },
 
-  // ── Daily login log ──────────────────────────────────────────
+  // --- Session & Heartbeat ---
+  async updateUserSession(userId: string, userName: string, currentPage: string) {
+    if (!userId) return;
+    try {
+      ensureSupabase();
+      const supabase = getSupabaseClient();
+      
+      // We use upsert for user_id (primary key)
+      const { error } = await supabase.from('user_sessions').upsert({
+        user_id: userId,
+        user_name: userName || 'Anonymous',
+        current_page: currentPage || 'dashboard',
+        last_active_at: new Date().toISOString(),
+      }, { onConflict: 'user_id' });
+      
+      if (error) {
+        console.error('updateUserSession upsert error:', error);
+      }
+    } catch (err) {
+      console.error('updateUserSession failed:', err);
+    }
+  },
 
+  async getOnlineSessions(): Promise<UserSessionRow[]> {
+    ensureSupabase();
+    const supabase = getSupabaseClient();
+    const { data, error } = await supabase
+      .from('user_sessions')
+      .select('user_id, user_name, current_page, last_active_at')
+      .order('last_active_at', { ascending: false });
+    
+    if (error) {
+      console.error('getOnlineSessions error:', error);
+      return [];
+    }
+    return (data || []) as UserSessionRow[];
+  },
+
+  // --- Daily Log ---
   async logDailyLogin(userId: string) {
+    if (!userId) return;
     try {
       ensureSupabase();
       const supabase = getSupabaseClient();
@@ -189,153 +261,4 @@ export const userActivityService = {
     }
     return data || [];
   },
-
-  // ── Mock Exam Attempts (Win Rate + Leaderboard) ──────────────
-
-  async saveMockExamAttempt(data: {
-    userId: string;
-    userName: string;
-    examKey: string;
-    score: number;
-    total: number;
-    answeredCount: number;
-    durationSeconds: number;
-    isCompleted: boolean;
-  }, authToken?: string) {
-    ensureSupabase();
-    try {
-      await supabaseRest.insert<any[]>('mock_exam_attempts', {
-        id: createId(),
-        user_id: data.userId,
-        user_name: data.userName,
-        exam_key: data.examKey,
-        score: data.score,
-        total: data.total,
-        answered_count: data.answeredCount,
-        duration_seconds: data.durationSeconds,
-        is_completed: data.isCompleted,
-        created_at: new Date().toISOString(),
-      }, authToken);
-    } catch (err) {
-      console.error('saveMockExamAttempt failed, trying fallback:', err);
-      // Fallback for older schema (missing columns)
-      try {
-        await supabaseRest.insert<any[]>('mock_exam_attempts', {
-          id: createId(),
-          user_id: data.userId,
-          exam_key: data.examKey,
-          score: data.score,
-          total: data.total,
-          duration_seconds: data.durationSeconds,
-          completed_at: new Date().toISOString(),
-        }, authToken);
-      } catch (fallbackErr) {
-        console.error('saveMockExamAttempt fallback also failed:', fallbackErr);
-        throw fallbackErr;
-      }
-    }
-  },
-
-  async getMockExamStats(userId: string): Promise<{ attemptCount: number; totalCorrect: number; totalAnswered: number; totalQuestions: number }> {
-    try {
-      ensureSupabase();
-      const rows = await supabaseRest.select<any[]>('mock_exam_attempts', `select=score,total,answered_count,is_completed&user_id=eq.${encodeValue(userId)}`);
-      
-      if (!Array.isArray(rows)) {
-        return { attemptCount: 0, totalCorrect: 0, totalAnswered: 0, totalQuestions: 0 };
-      }
-
-      let totalCorrect = 0;
-      let totalAnswered = 0;
-      let totalQuestions = 0;
-      rows.forEach((r: any) => {
-        totalCorrect += Number(r.score || 0);
-        // Use answered_count if available, otherwise fall back to total
-        const answered = Number(r.answered_count || r.total || 0);
-        totalAnswered += answered;
-        totalQuestions += Number(r.total || 0);
-      });
-      return { attemptCount: rows.length, totalCorrect, totalAnswered, totalQuestions };
-    } catch (err) {
-      console.error('getMockExamStats error (might be missing columns):', err);
-      // Fallback for older schema
-      try {
-        const rows = await supabaseRest.select<any[]>('mock_exam_attempts', `select=score,total&user_id=eq.${encodeValue(userId)}`);
-        if (!Array.isArray(rows)) return { attemptCount: 0, totalCorrect: 0, totalAnswered: 0, totalQuestions: 0 };
-        
-        let totalCorrect = 0;
-        let totalQuestions = 0;
-        rows.forEach((r: any) => {
-          totalCorrect += Number(r.score || 0);
-          totalQuestions += Number(r.total || 0);
-        });
-        return { attemptCount: rows.length, totalCorrect, totalAnswered: totalQuestions, totalQuestions };
-      } catch {
-        return { attemptCount: 0, totalCorrect: 0, totalAnswered: 0, totalQuestions: 0 };
-      }
-    }
-  },
-
-  async getLeaderboard(): Promise<any[]> {
-    ensureSupabase();
-    return supabaseRest.select<any[]>('mock_exam_attempts', 'select=user_id,user_name,exam_key,score,total,duration_seconds,is_completed,created_at&is_completed=eq.true&order=created_at.desc');
-  },
-
-  async getSystemUserStats(): Promise<any> {
-    ensureSupabase();
-    // ดึงโปรไฟล์ทั้งหมด (สรุป)
-    const profiles = await supabaseRest.select<any[]>('user_profiles', 'select=gender,age_range,province,target_major');
-    // ดึงสถิติการสอบ
-    const attempts = await supabaseRest.select<any[]>('mock_exam_attempts', 'select=id');
-    
-    return {
-      profiles,
-      totalAttempts: attempts.length
-    };
-  },
-
-  async updateUserSession(userId: string, userName: string, currentPage: string) {
-    try {
-      ensureSupabase();
-      const supabase = getSupabaseClient();
-      await supabase.from('user_sessions').upsert({
-        user_id: userId,
-        user_name: userName,
-        current_page: currentPage,
-        last_active_at: new Date().toISOString(),
-      }, { onConflict: 'user_id' });
-    } catch (err) {
-      console.error('updateUserSession failed:', err);
-    }
-  },
-
-  async getOnlineSessions(): Promise<any[]> {
-    ensureSupabase();
-    const supabase = getSupabaseClient();
-    const { data, error } = await supabase
-      .from('user_sessions')
-      .select('user_id, user_name, current_page, last_active_at')
-      .order('last_active_at', { ascending: false });
-    
-    if (error) {
-      console.error('getOnlineSessions error:', error);
-      return [];
-    }
-    return data || [];
-  },
-
-  async getAllStudyTimeRecords(): Promise<any[]> {
-    ensureSupabase();
-    const supabase = getSupabaseClient();
-    const { data, error } = await supabase
-      .from('study_time')
-      .select('user_id, topic_id, seconds');
-    
-    if (error) {
-      console.error('getAllStudyTimeRecords error:', error);
-      return [];
-    }
-    return data || [];
-  },
 };
-
