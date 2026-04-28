@@ -30,10 +30,14 @@ const normalizeSupabaseUrl = (rawValue: string) => {
   return extracted.replace(/^["']|["']$/g, '').replace(/\/+$/, '');
 };
 
-export const getSupabaseConfig = (): SupabaseRuntimeConfig => {
+export function getSupabaseConfig(): SupabaseRuntimeConfig {
   const url = normalizeSupabaseUrl(getLocalValue('VITE_SUPABASE_URL') || getEnvValue('VITE_SUPABASE_URL'));
   const anonKey = getLocalValue('VITE_SUPABASE_ANON_KEY') || getEnvValue('VITE_SUPABASE_ANON_KEY');
-  console.log('Supabase config URL:', url ? 'configured' : 'MISSING', 'Key:', anonKey ? 'configured' : 'MISSING');
+  
+  // For debugging in development
+  if (import.meta.env.DEV) {
+    console.log('Supabase config URL:', url ? 'configured' : 'MISSING', 'Key:', anonKey ? 'configured' : 'MISSING');
+  }
 
   return {
     url,
@@ -42,7 +46,7 @@ export const getSupabaseConfig = (): SupabaseRuntimeConfig => {
     slipsBucket: getLocalValue('VITE_SUPABASE_SLIPS_BUCKET') || getEnvValue('VITE_SUPABASE_SLIPS_BUCKET') || DEFAULT_SLIPS_BUCKET,
     filesBucket: getLocalValue('VITE_SUPABASE_FILES_BUCKET') || getEnvValue('VITE_SUPABASE_FILES_BUCKET') || DEFAULT_FILES_BUCKET,
   };
-};
+}
 
 export const isSupabaseConfigured = () => {
   const config = getSupabaseConfig();
