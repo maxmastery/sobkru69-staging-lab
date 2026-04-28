@@ -148,7 +148,23 @@ const AdminNews: React.FC = () => {
 
             <div className="md:col-span-2">
               <label className="block text-sm font-medium text-slate-700 mb-2">เนื้อหาข่าว</label>
-              <div className="bg-slate-50 border border-slate-200 rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-blue-500 transition-all">
+              <div className="bg-white border border-slate-200 rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-blue-500 transition-all">
+                <style>{`
+                  .ql-editor {
+                    min-height: 400px;
+                    height: auto;
+                    padding-bottom: 40px;
+                    font-size: 16px;
+                  }
+                  .ql-container.ql-snow {
+                    border: none !important;
+                  }
+                  .ql-toolbar.ql-snow {
+                    border: none !important;
+                    border-bottom: 1px solid #e2e8f0 !important;
+                    background-color: #f8fafc;
+                  }
+                `}</style>
                 <ReactQuill
                   theme="snow"
                   value={currentNews.content || ''}
@@ -156,7 +172,7 @@ const AdminNews: React.FC = () => {
                   modules={modules}
                   formats={formats}
                   placeholder="เขียนเนื้อหาข่าวที่นี่..."
-                  className="bg-white min-h-[300px]"
+                  className="bg-white"
                 />
               </div>
             </div>
@@ -348,11 +364,11 @@ const AdminNews: React.FC = () => {
                       {item.status === 'published' ? 'เผยแพร่แล้ว' : 'ฉบับร่าง'}
                     </span>
                   </td>
-                  <td className="px-6 py-4 text-right space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button onClick={() => handleEdit(item)} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
+                  <td className="px-6 py-4 text-right space-x-2 transition-opacity">
+                    <button onClick={() => handleEdit(item)} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="แก้ไข">
                       <Edit2 className="w-4 h-4" />
                     </button>
-                    <button onClick={() => handleDelete(item.id)} className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors">
+                    <button onClick={() => handleDelete(item.id)} className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="ลบ">
                       <Trash2 className="w-4 h-4" />
                     </button>
                   </td>

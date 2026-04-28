@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, Calendar, User, Link as LinkIcon, X } from 'lucide-react';
+import { ArrowLeft, Calendar, User, Link as LinkIcon, X, ArrowRight } from 'lucide-react';
 import { NewsItem } from './admin/AdminNews';
 import { contentService } from '../services/contentService';
 
@@ -116,18 +116,28 @@ const NewsPage: React.FC<NewsPageProps> = ({ onBack }) => {
                 <h3 className="text-xl font-bold text-slate-800 mb-3 line-clamp-2 group-hover:text-blue-600 transition-colors">
                   {item.title}
                 </h3>
-                <p className="text-slate-600 text-sm line-clamp-3 mb-4 flex-1">
-                  {item.content}
-                </p>
-                <div className="pt-4 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500 mt-auto">
-                  <div className="flex items-center gap-1.5">
-                    <User className="w-4 h-4" />
+                <div className="mt-auto">
+                  <button 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedNews(item);
+                    }}
+                    className="w-full py-2.5 px-4 bg-slate-50 hover:bg-blue-600 hover:text-white text-blue-600 rounded-xl font-semibold text-sm transition-all flex items-center justify-center gap-2 border border-slate-100 group/btn"
+                  >
+                    อ่านเพิ่มเติม
+                    <ArrowRight className="w-4 h-4 group-hover/btn:translate-x-1 transition-transform" />
+                  </button>
+                </div>
+                
+                <div className="pt-4 border-t border-slate-100 flex items-center justify-between text-[10px] text-slate-400 mt-4">
+                  <div className="flex items-center gap-1">
+                    <User className="w-3 h-3" />
                     {item.author}
                   </div>
                   {item.source && (
-                    <div className="flex items-center gap-1.5">
-                      <LinkIcon className="w-4 h-4" />
-                      {item.source}
+                    <div className="flex items-center gap-1">
+                      <LinkIcon className="w-3 h-3" />
+                      {item.source.length > 20 ? item.source.substring(0, 20) + '...' : item.source}
                     </div>
                   )}
                 </div>
