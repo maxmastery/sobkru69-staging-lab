@@ -1,4 +1,7 @@
-import { isSupabaseConfigured } from './supabaseRest';
+/**
+ * userActivityService.ts
+ */
+import { isSupabaseConfigured, supabaseRest } from './supabaseRest';
 import { User } from './authService';
 import { getSupabaseClient } from './supabaseClient';
 

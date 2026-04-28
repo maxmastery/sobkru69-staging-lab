@@ -1,9 +1,9 @@
 
-const isSupabaseConfigured = () => {
+export const isSupabaseConfigured = () => {
   return Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
 };
 
-const getSupabaseConfig = () => {
+export const getSupabaseConfig = () => {
   return {
     url: process.env.NEXT_PUBLIC_SUPABASE_URL || '',
     anonKey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '',
@@ -16,7 +16,7 @@ const requireConfig = () => {
   return { url, key: anonKey };
 };
 
-const getAuthHeaders = (authToken?: string) => {
+export const getAuthHeaders = (authToken?: string) => {
   const { key } = requireConfig();
   const headers: Record<string, string> = {
     'apikey': key,
@@ -36,7 +36,7 @@ const readResponse = async <T>(response: Response): Promise<T> => {
   return response.json();
 };
 
-const supabaseRest = {
+export const supabaseRest = {
   async select<T>(table: string, query?: string, authToken?: string): Promise<T> {
     const { url } = requireConfig();
     const fullUrl = `${url}/rest/v1/${table}${query ? `?${query}` : ''}`;
@@ -112,5 +112,3 @@ const supabaseRest = {
     return readResponse<T>(response);
   },
 };
-
-export { isSupabaseConfigured, getSupabaseConfig, getAuthHeaders, supabaseRest };
