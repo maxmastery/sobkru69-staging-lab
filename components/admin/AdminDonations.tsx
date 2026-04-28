@@ -1,10 +1,16 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { Coffee, DollarSign, TrendingUp, Calendar, Loader2 } from 'lucide-react';
+import { Coffee, DollarSign, TrendingUp, Calendar, Loader2, Eye, ArrowLeft, ArrowRight, X, ImageIcon } from 'lucide-react';
 import { contentService, ContentDonationRecord } from '../../services/contentService';
+import { getSupabaseConfig } from '../../services/supabaseRest';
 
 const AdminDonations: React.FC = () => {
   const [donations, setDonations] = useState<ContentDonationRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [selectedSlip, setSelectedSlip] = useState<string | null>(null);
+  const itemsPerPage = 100;
+
+  const supabaseConfig = useMemo(() => getSupabaseConfig(), []);
 
   useEffect(() => {
     const load = async () => {
@@ -20,6 +26,12 @@ const AdminDonations: React.FC = () => {
     };
     load();
   }, []);
+
+  const getSlipUrl = (path: string) => {
+    if (!path) return '';
+    if (path.startsWith('http')) return path;
+    return `${supabaseConfig.url}/storage/v1/object/public/${supabaseConfig.slipsBucket}/${path}`;
+  };
 
   const summary = useMemo(() => {
     const now = new Date();
@@ -56,6 +68,9 @@ const AdminDonations: React.FC = () => {
 
     return { totalAll, totalToday, totalWeek, totalMonth, countAll };
   }, [donations]);
+
+  const totalPages = Math.ceil(donations.length / itemsPerPage);
+  const paginatedDonations = donations.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   if (isLoading) {
     return (
@@ -137,18 +152,19 @@ const AdminDonations: React.FC = () => {
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="bg-slate-50 border-b border-slate-200">
-                  <th className="px-6 py-4 text-xs font-bold text-slate-600 uppercase">#</th>
+                  <th className="px-6 py-4 text-xs font-bold text-slate-600 uppercase w-16">#</th>
                   <th className="px-6 py-4 text-xs font-bold text-slate-600 uppercase">วันที่</th>
                   <th className="px-6 py-4 text-xs font-bold text-slate-600 uppercase">ผู้เลี้ยงกาแฟ</th>
                   <th className="px-6 py-4 text-xs font-bold text-slate-600 uppercase">ประเภท</th>
                   <th className="px-6 py-4 text-xs font-bold text-slate-600 uppercase">ยอดเงิน</th>
+                  <th className="px-6 py-4 text-xs font-bold text-slate-600 uppercase">ใบเสร็จ</th>
                   <th className="px-6 py-4 text-xs font-bold text-slate-600 uppercase">สถานะ</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {donations.map((d, idx) => (
+                {paginatedDonations.map((d, idx) => (
                   <tr key={d.id || idx} className="hover:bg-slate-50/50 transition-colors">
-                    <td className="px-6 py-4 text-sm text-slate-500 font-mono">{idx + 1}</td>
+                    <td className="px-6 py-4 text-sm text-slate-500 font-mono">{(currentPage - 1) * itemsPerPage + idx + 1}</td>
                     <td className="px-6 py-4 text-sm text-slate-600 whitespace-nowrap">{new Date(d.date).toLocaleString('th-TH', { dateStyle: 'medium', timeStyle: 'short' })}</td>
                     <td className="px-6 py-4 text-sm font-medium text-slate-800">
                       <div className="font-bold">{(d as any).userName || 'ไม่ระบุ'}</div>
@@ -156,6 +172,19 @@ const AdminDonations: React.FC = () => {
                     </td>
                     <td className="px-6 py-4 text-sm font-bold text-slate-800">{d.type || 'ไม่ระบุ'}</td>
                     <td className="px-6 py-4 text-sm font-mono font-bold text-amber-600">{Number(d.amount).toLocaleString()} ฿</td>
+                    <td className="px-6 py-4">
+                      {d.slip ? (
+                        <button 
+                          onClick={() => setSelectedSlip(getSlipUrl(d.slip))}
+                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors text-xs font-semibold"
+                        >
+                          <Eye className="w-3.5 h-3.5" />
+                          ดูสลิป
+                        </button>
+                      ) : (
+                        <span className="text-slate-400 text-xs italic">ไม่มีหลักฐาน</span>
+                      )}
+                    </td>
                     <td className="px-6 py-4">
                       <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-700">
                         ยืนยันแล้ว
@@ -167,7 +196,74 @@ const AdminDonations: React.FC = () => {
             </table>
           </div>
         )}
+
+        {/* Footer with Stats and Pagination */}
+        <div className="p-4 bg-slate-50 border-t border-slate-200 flex flex-col sm:flex-row justify-between items-center gap-4">
+          <div className="text-sm font-medium text-slate-600">
+            รวมทั้งหมด <span className="text-amber-600 font-bold">{summary.totalAll.toLocaleString()} ฿</span> ({summary.countAll} รายการ)
+          </div>
+
+          {totalPages > 1 && (
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+                className="p-2 rounded-lg border border-slate-200 bg-white text-slate-600 disabled:opacity-30 hover:bg-slate-50 transition-colors"
+              >
+                <ArrowLeft className="w-4 h-4" />
+              </button>
+              <div className="text-sm text-slate-500 font-medium">
+                หน้า {currentPage} / {totalPages}
+              </div>
+              <button
+                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                disabled={currentPage === totalPages}
+                className="p-2 rounded-lg border border-slate-200 bg-white text-slate-600 disabled:opacity-30 hover:bg-slate-50 transition-colors"
+              >
+                <ArrowRight className="w-4 h-4" />
+              </button>
+            </div>
+          )}
+        </div>
       </div>
+
+      {/* Slip Preview Modal */}
+      {selectedSlip && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="relative max-w-lg w-full bg-white rounded-3xl overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between p-4 border-b border-slate-100">
+              <h4 className="font-bold text-slate-800 flex items-center gap-2">
+                <ImageIcon className="w-5 h-5 text-blue-500" />
+                หลักฐานการโอนเงิน
+              </h4>
+              <button 
+                onClick={() => setSelectedSlip(null)}
+                className="p-2 hover:bg-slate-100 rounded-full text-slate-400 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-4 bg-slate-50 flex items-center justify-center min-h-[300px]">
+              <img 
+                src={selectedSlip} 
+                alt="Donation Slip" 
+                className="max-w-full max-h-[70vh] rounded-xl shadow-md"
+                onError={(e) => {
+                  e.currentTarget.src = 'https://placehold.co/400x600?text=Slip+Not+Found';
+                }}
+              />
+            </div>
+            <div className="p-4 bg-white border-t border-slate-100 text-center">
+              <button 
+                onClick={() => setSelectedSlip(null)}
+                className="px-8 py-2.5 rounded-xl bg-slate-900 text-white font-bold hover:bg-slate-800 transition-colors"
+              >
+                ปิดหน้าต่าง
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
