@@ -23,8 +23,6 @@ export const getAuthHeaders = (authToken?: string) => {
   };
   if (authToken) {
     headers['Authorization'] = `Bearer ${authToken}`;
-  } else {
-    headers['Authorization'] = `Bearer ${key}`;
   }
   return headers;
 };
