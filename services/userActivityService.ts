@@ -260,5 +260,33 @@ export const userActivityService = {
       totalAttempts: attempts.length
     };
   },
+
+  async updateUserSession(userId: string, userName: string, currentPage: string) {
+    try {
+      ensureSupabase();
+      console.log('updateUserSession:', { userId, userName, currentPage });
+      await supabaseRest.upsert<any[]>('user_sessions', {
+        user_id: userId,
+        user_name: userName,
+        current_page: currentPage,
+        last_active_at: new Date().toISOString(),
+      }, 'user_id');
+    } catch (err) {
+      console.error('updateUserSession failed:', err);
+    }
+  },
+
+  async getOnlineSessions(): Promise<any[]> {
+    ensureSupabase();
+    console.log('getOnlineSessions called');
+    const data = await supabaseRest.select<any[]>('user_sessions', 'select=user_id,user_name,current_page,last_active_at&order=last_active_at.desc');
+    console.log('getOnlineSessions result:', data?.length || 0, 'rows');
+    return data;
+  },
+
+  async getAllStudyTimeRecords(): Promise<any[]> {
+    ensureSupabase();
+    return supabaseRest.select<any[]>('study_time', 'select=user_id,topic_id,seconds');
+  },
 };
 

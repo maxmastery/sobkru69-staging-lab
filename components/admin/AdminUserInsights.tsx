@@ -28,29 +28,29 @@ const AdminUserInsights: React.FC<AdminUserInsightsProps> = ({ users }) => {
 
   useEffect(() => {
     const load = async () => {
+      if (!users || users.length === 0) return;
+      
       setIsLoading(true);
       try {
-        const [sessionsData, logsData] = await Promise.all([
+        const [sessionsData, logsData, allStudyRows] = await Promise.all([
           userActivityService.getOnlineSessions(),
           userActivityService.getDailyLoginLogs(),
+          userActivityService.getAllStudyTimeRecords(),
         ]);
-        setSessions(sessionsData);
-        setLoginLogs(logsData);
+        
+        setSessions(Array.isArray(sessionsData) ? sessionsData : []);
+        setLoginLogs(Array.isArray(logsData) ? logsData : []);
 
-        // Load study time for all users (batch — just load from study_time table)
         const allStudyTime: Record<string, Record<string, number>> = {};
-        await Promise.all(
-          users.slice(0, 200).map(async (u) => {
-            try {
-              const timeMap = await userActivityService.getStudyTimeMap(u.id);
-              if (Object.keys(timeMap).length > 0) {
-                allStudyTime[u.id] = timeMap;
-              }
-            } catch {
-              // ignore
+        if (Array.isArray(allStudyRows)) {
+          allStudyRows.forEach(row => {
+            if (!allStudyTime[row.user_id]) {
+              allStudyTime[row.user_id] = {};
             }
-          })
-        );
+            allStudyTime[row.user_id][row.topic_id] = (allStudyTime[row.user_id][row.topic_id] || 0) + (row.seconds || 0);
+          });
+        }
+
         setStudyTimeMap(allStudyTime);
       } catch (error) {
         console.error('Failed to load insights', error);
@@ -58,6 +58,7 @@ const AdminUserInsights: React.FC<AdminUserInsightsProps> = ({ users }) => {
         setIsLoading(false);
       }
     };
+    
     load();
   }, [users]);
 
@@ -68,10 +69,16 @@ const AdminUserInsights: React.FC<AdminUserInsightsProps> = ({ users }) => {
     const totalUsers = users.length;
 
     // Online users (active in last 5 minutes)
-    const onlineUsers = sessions.filter(s => new Date(s.last_active_at) >= fiveMinutesAgo);
+    const onlineUsers = sessions.filter(s => s.last_active_at && new Date(s.last_active_at) >= fiveMinutesAgo);
     const onlineCount = onlineUsers.length;
-    const learningUsers = onlineUsers.filter(s => s.current_page.startsWith('lesson') || s.current_page === 'topic');
-    const examUsers = onlineUsers.filter(s => s.current_page === 'exam' || s.current_page === 'mock-exam');
+    
+    // Check if user is in lesson or exam
+    const learningUsers = onlineUsers.filter(s => 
+      s.current_page && (s.current_page.startsWith('lesson') || s.current_page.startsWith('learning'))
+    );
+    const examUsers = onlineUsers.filter(s => 
+      s.current_page && (s.current_page === 'exam' || s.current_page === 'mock-exam')
+    );
     const learningOrExamCount = learningUsers.length + examUsers.length;
 
     // Users who have study time > 0
@@ -85,9 +92,9 @@ const AdminUserInsights: React.FC<AdminUserInsightsProps> = ({ users }) => {
     }).length;
     const over5MinPercent = totalUsers > 0 ? Math.round((usersOver5Min / totalUsers) * 100) : 0;
 
-    // Part A / Part B breakdown
-    const partATopics = ['a1-thai', 'a1-math', 'a1_', 'a2-english', 'a2_', 'a3-good-gov', 'a3_'];
-    const partBTopics = ['b1-teaching', 'b1_', 'b3-education-law', 'b3_'];
+    // Part A / Part B breakdown - Updated to match subTopic IDs from constants
+    const partATopics = ['a1', 'a2', 'a3'];
+    const partBTopics = ['b1', 'b2', 'b3'];
 
     let partACount = 0;
     let partBCount = 0;
@@ -97,13 +104,14 @@ const AdminUserInsights: React.FC<AdminUserInsightsProps> = ({ users }) => {
     Object.values(studyTimeMap).forEach(timeMap => {
       let hasA = false;
       let hasB = false;
-      Object.entries(timeMap).forEach(([chapterId, seconds]) => {
-        const lower = chapterId.toLowerCase();
-        if (partATopics.some(p => lower.includes(p)) || lower.startsWith('a')) {
+      Object.entries(timeMap).forEach(([topicId, seconds]) => {
+        const lower = topicId.toLowerCase();
+        
+        // Categorize based on topic ID prefixes (e.g. A1-1, B3-2)
+        if (partATopics.some(p => lower.startsWith(p)) || lower.startsWith('a')) {
           hasA = true;
           partATotalTime += seconds;
-        }
-        if (partBTopics.some(p => lower.includes(p)) || lower.startsWith('b')) {
+        } else if (partBTopics.some(p => lower.startsWith(p)) || lower.startsWith('b')) {
           hasB = true;
           partBTotalTime += seconds;
         }
@@ -112,8 +120,8 @@ const AdminUserInsights: React.FC<AdminUserInsightsProps> = ({ users }) => {
       if (hasB) partBCount++;
     });
 
-    // Inactive users (last login > 3 days ago or no session at all)
-    const activeUserIds = new Set(sessions.filter(s => new Date(s.last_active_at) >= threeDaysAgo).map(s => s.user_id));
+    // Inactive users (last active > 3 days ago or no session record)
+    const activeUserIds = new Set(sessions.filter(s => s.last_active_at && new Date(s.last_active_at) >= threeDaysAgo).map(s => s.user_id));
     const inactiveUsers = users.filter(u => !activeUserIds.has(u.id));
 
     // Daily login chart (last 7 days)
