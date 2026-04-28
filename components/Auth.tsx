@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Mail, Lock, User, ArrowRight, Loader2, GraduationCap, Eye, EyeOff, MapPin, Hash, CalendarDays } from 'lucide-react';
+import { Mail, Lock, User, ArrowRight, Loader2, GraduationCap, Eye, EyeOff, MapPin, Hash, CalendarDays, AlertTriangle, X } from 'lucide-react';
 import { authService, User as AuthUser } from '../services/authService';
 import { contentService } from '../services/contentService';
 import { EXAM_COUNT_OPTIONS, GENDER_OPTIONS, MAJORS, PROVINCES } from '../constants/profileOptions';
