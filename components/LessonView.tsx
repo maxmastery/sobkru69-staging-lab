@@ -91,23 +91,15 @@ const LessonView: React.FC<LessonViewProps> = ({ topic, onBack }) => {
       
       if (timeSpentSeconds > 0) {
         try {
-          // Use topic.id instead of chapterId for better aggregation in admin stats
-          await userActivityService.incrementStudyTime(user.id, topic.id, timeSpentSeconds);
+          await userActivityService.incrementStudyTime(user.id, chapterId, timeSpentSeconds);
           lastSaveTime = now;
         } catch (error) {
           console.error('Error saving learning time', error);
         }
       }
-
-      // Heartbeat to track online status
-      try {
-        await userActivityService.updateUserSession(user.id, user.name, `learning:${topic.title}`);
-      } catch (err) {
-        // ignore
-      }
     };
 
-    const interval = setInterval(saveTime, 10000); // Save every 10 seconds (reduced frequency)
+    const interval = setInterval(saveTime, 5000); // Save every 5 seconds
 
     return () => {
       clearInterval(interval);

@@ -209,32 +209,6 @@ const App: React.FC = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Heartbeat to track online status
-  useEffect(() => {
-    if (!user) return;
-
-    const updateSession = async () => {
-      try {
-        // Track the current view for admin monitoring
-        let view = currentPage as string;
-        if (showAdminPanel) view = 'admin';
-        else if (showLearningStats) view = 'learning-stats';
-        else if (showEditProfile) view = 'edit-profile';
-        else if (currentTopic) view = `lesson:${currentTopic.title}`;
-        else if (currentPart) view = `topics:${currentPart.title}`;
-
-        await userActivityService.updateUserSession(user.id, user.name, view);
-      } catch (err) {
-        // ignore
-      }
-    };
-
-    updateSession();
-    const interval = setInterval(updateSession, 30000); // Every 30 seconds
-
-    return () => clearInterval(interval);
-  }, [user, currentPage, currentPart, currentTopic, showAdminPanel, showLearningStats, showEditProfile]);
-
 
   // Scroll to top when page changes
   useEffect(() => {
