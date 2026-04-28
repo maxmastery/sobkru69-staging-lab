@@ -321,15 +321,15 @@ const AdminNews: React.FC = () => {
 
       <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
+          <table className="w-full text-left border-collapse table-fixed">
             <thead>
               <tr className="bg-slate-50 border-b border-slate-200">
-                <th className="px-6 py-4 text-sm font-semibold text-slate-600 w-16">รูปภาพ</th>
-                <th className="px-6 py-4 text-sm font-semibold text-slate-600">หัวข้อข่าว</th>
-                <th className="px-6 py-4 text-sm font-semibold text-slate-600">ผู้โพสต์</th>
-                <th className="px-6 py-4 text-sm font-semibold text-slate-600">วันที่</th>
-                <th className="px-6 py-4 text-sm font-semibold text-slate-600">สถานะ</th>
-                <th className="px-6 py-4 text-sm font-semibold text-slate-600 text-right">จัดการ</th>
+                <th className="px-6 py-4 text-sm font-semibold text-slate-600 w-24">รูปภาพ</th>
+                <th className="px-6 py-4 text-sm font-semibold text-slate-600 w-auto">หัวข้อข่าว</th>
+                <th className="px-6 py-4 text-sm font-semibold text-slate-600 w-32">ผู้โพสต์</th>
+                <th className="px-6 py-4 text-sm font-semibold text-slate-600 w-32">วันที่</th>
+                <th className="px-6 py-4 text-sm font-semibold text-slate-600 w-28">สถานะ</th>
+                <th className="px-6 py-4 text-sm font-semibold text-slate-600 w-24 text-right">จัดการ</th>
               </tr>
             </thead>
             <tbody>
@@ -351,9 +351,9 @@ const AdminNews: React.FC = () => {
                       )}
                     </div>
                   </td>
-                  <td className="px-6 py-4">
-                    <div className="font-medium text-slate-900 line-clamp-1">{item.title}</div>
-                    <div className="text-xs text-slate-500 line-clamp-1 mt-1">{item.source}</div>
+                  <td className="px-6 py-4 align-top">
+                    <div className="font-medium text-slate-900 line-clamp-2 break-words">{item.title}</div>
+                    <div className="text-[10px] text-slate-400 mt-1 break-all line-clamp-1">{item.source}</div>
                   </td>
                   <td className="px-6 py-4 text-sm text-slate-600">{item.author}</td>
                   <td className="px-6 py-4 text-sm text-slate-600">{item.date}</td>
@@ -364,11 +364,11 @@ const AdminNews: React.FC = () => {
                       {item.status === 'published' ? 'เผยแพร่แล้ว' : 'ฉบับร่าง'}
                     </span>
                   </td>
-                  <td className="px-6 py-4 text-right space-x-2 transition-opacity">
-                    <button onClick={() => handleEdit(item)} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="แก้ไข">
+                  <td className="px-6 py-4 text-right space-x-1">
+                    <button onClick={() => handleEdit(item)} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors inline-flex" title="แก้ไข">
                       <Edit2 className="w-4 h-4" />
                     </button>
-                    <button onClick={() => handleDelete(item.id)} className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="ลบ">
+                    <button onClick={() => handleDelete(item.id)} className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors inline-flex" title="ลบ">
                       <Trash2 className="w-4 h-4" />
                     </button>
                   </td>
