@@ -1,5 +1,6 @@
 import { isSupabaseConfigured, supabaseRest } from './supabaseRest';
 import { User } from './authService';
+import { getSupabaseClient } from './supabaseClient';
 
 type LessonProgressRow = {
   id: string;
@@ -77,33 +78,53 @@ export const userActivityService = {
 
   async getStudyTimeMap(userId: string): Promise<Record<string, number>> {
     ensureSupabase();
-    console.log('getStudyTimeMap query for userId:', userId);
-    const rows = await supabaseRest.select<StudyTimeRow[]>('study_time', `select=topic_id,seconds&user_id=eq.${encodeValue(userId)}`);
-    console.log('getStudyTimeMap rows:', rows);
-    return rows.reduce<Record<string, number>>((acc, row) => {
+    const supabase = getSupabaseClient();
+    const { data, error } = await supabase
+      .from('study_time')
+      .select('topic_id, seconds')
+      .eq('user_id', userId);
+    
+    if (error) {
+      console.error('getStudyTimeMap error:', error);
+      return {};
+    }
+    return (data || []).reduce<Record<string, number>>((acc, row) => {
       acc[row.topic_id] = Number(row.seconds || 0);
       return acc;
     }, {});
   },
 
-  async incrementStudyTime(userId: string, chapterId: string, seconds: number) {
+  async incrementStudyTime(userId: string, topicId: string, seconds: number) {
     ensureSupabase();
-    const existing = await supabaseRest.select<StudyTimeRow[]>('study_time', `select=id,user_id,topic_id,seconds&user_id=eq.${encodeValue(userId)}&topic_id=eq.${encodeValue(chapterId)}&limit=1`);
-    if (existing.length > 0) {
-      await supabaseRest.update<StudyTimeRow[]>('study_time', `id=eq.${encodeValue(existing[0].id)}`, {
-        seconds: Number(existing[0].seconds || 0) + seconds,
-        updated_at: new Date().toISOString(),
-      });
-      return;
-    }
+    const supabase = getSupabaseClient();
+    
+    // Check existing
+    const { data: existing } = await supabase
+      .from('study_time')
+      .select('id, seconds')
+      .eq('user_id', userId)
+      .eq('topic_id', topicId)
+      .maybeSingle();
 
-    await supabaseRest.insert<StudyTimeRow[]>('study_time', {
-      id: createId(),
-      user_id: userId,
-      topic_id: chapterId,
-      seconds,
-      updated_at: new Date().toISOString(),
-    });
+    if (existing) {
+      await supabase
+        .from('study_time')
+        .update({
+          seconds: Number(existing.seconds || 0) + seconds,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', existing.id);
+    } else {
+      await supabase
+        .from('study_time')
+        .insert({
+          id: createId(),
+          user_id: userId,
+          topic_id: topicId,
+          seconds,
+          updated_at: new Date().toISOString(),
+        });
+    }
   },
 
   async resetStudyTime(userId: string, chapterIds: string[]) {
@@ -140,21 +161,33 @@ export const userActivityService = {
   async logDailyLogin(userId: string) {
     try {
       ensureSupabase();
+      const supabase = getSupabaseClient();
       const today = new Date().toISOString().split('T')[0];
-      await supabaseRest.upsert<any[]>('daily_login_log', {
+      await supabase.from('daily_login_log').upsert({
         id: `${userId}_${today}`,
         user_id: userId,
         login_date: today,
         created_at: new Date().toISOString(),
-      }, 'id');
-    } catch {
-      // silently fail
+      }, { onConflict: 'id' });
+    } catch (err) {
+      console.error('logDailyLogin error:', err);
     }
   },
 
-  async getDailyLoginLogs(): Promise<{ user_id: string; login_date: string; created_at: string }[]> {
+  async getDailyLoginLogs(): Promise<any[]> {
     ensureSupabase();
-    return supabaseRest.select<any[]>('daily_login_log', 'select=user_id,login_date,created_at&order=login_date.desc&limit=1000');
+    const supabase = getSupabaseClient();
+    const { data, error } = await supabase
+      .from('daily_login_log')
+      .select('user_id, login_date, created_at')
+      .order('login_date', { ascending: false })
+      .limit(1000);
+    
+    if (error) {
+      console.error('getDailyLoginLogs error:', error);
+      return [];
+    }
+    return data || [];
   },
 
   // ── Mock Exam Attempts (Win Rate + Leaderboard) ──────────────
@@ -264,13 +297,13 @@ export const userActivityService = {
   async updateUserSession(userId: string, userName: string, currentPage: string) {
     try {
       ensureSupabase();
-      console.log('updateUserSession:', { userId, userName, currentPage });
-      await supabaseRest.upsert<any[]>('user_sessions', {
+      const supabase = getSupabaseClient();
+      await supabase.from('user_sessions').upsert({
         user_id: userId,
         user_name: userName,
         current_page: currentPage,
         last_active_at: new Date().toISOString(),
-      }, 'user_id');
+      }, { onConflict: 'user_id' });
     } catch (err) {
       console.error('updateUserSession failed:', err);
     }
@@ -278,15 +311,31 @@ export const userActivityService = {
 
   async getOnlineSessions(): Promise<any[]> {
     ensureSupabase();
-    console.log('getOnlineSessions called');
-    const data = await supabaseRest.select<any[]>('user_sessions', 'select=user_id,user_name,current_page,last_active_at&order=last_active_at.desc');
-    console.log('getOnlineSessions result:', data?.length || 0, 'rows');
-    return data;
+    const supabase = getSupabaseClient();
+    const { data, error } = await supabase
+      .from('user_sessions')
+      .select('user_id, user_name, current_page, last_active_at')
+      .order('last_active_at', { ascending: false });
+    
+    if (error) {
+      console.error('getOnlineSessions error:', error);
+      return [];
+    }
+    return data || [];
   },
 
   async getAllStudyTimeRecords(): Promise<any[]> {
     ensureSupabase();
-    return supabaseRest.select<any[]>('study_time', 'select=user_id,topic_id,seconds');
+    const supabase = getSupabaseClient();
+    const { data, error } = await supabase
+      .from('study_time')
+      .select('user_id, topic_id, seconds');
+    
+    if (error) {
+      console.error('getAllStudyTimeRecords error:', error);
+      return [];
+    }
+    return data || [];
   },
 };
 
