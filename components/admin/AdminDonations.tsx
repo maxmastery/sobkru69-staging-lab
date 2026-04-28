@@ -30,8 +30,14 @@ const AdminDonations: React.FC = () => {
   const getSlipUrl = (path: string) => {
     if (!path) return '';
     if (path.startsWith('http')) return path;
-    return `${supabaseConfig.url}/storage/v1/object/public/${supabaseConfig.slipsBucket}/${path}`;
+    // Note: We'll fetch this with headers in the modal instead of a direct link
+    return path;
   };
+
+  const filteredByDate = useMemo(() => {
+    const startDate = new Date('2026-04-28T00:00:00');
+    return donations.filter(d => new Date(d.date) >= startDate);
+  }, [donations]);
 
   const summary = useMemo(() => {
     const now = new Date();
@@ -53,7 +59,7 @@ const AdminDonations: React.FC = () => {
     let totalMonth = 0;
     let countAll = 0;
 
-    donations.forEach(d => {
+    filteredByDate.forEach(d => {
       const amount = Number(d.amount || 0);
       const dDate = new Date(d.date);
       const dDateStr = d.date.split('T')[0];
@@ -69,8 +75,39 @@ const AdminDonations: React.FC = () => {
     return { totalAll, totalToday, totalWeek, totalMonth, countAll };
   }, [donations]);
 
-  const totalPages = Math.ceil(donations.length / itemsPerPage);
-  const paginatedDonations = donations.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+  const totalPages = Math.ceil(filteredByDate.length / itemsPerPage);
+  const paginatedDonations = filteredByDate.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+
+  const [isFetchingSlip, setIsFetchingSlip] = useState(false);
+  const [slipDataUrl, setSlipDataUrl] = useState<string | null>(null);
+
+  const handleViewSlip = async (path: string) => {
+    setIsFetchingSlip(true);
+    setSelectedSlip(path);
+    try {
+      const res = await fetch(`${supabaseConfig.url}/storage/v1/object/authenticated/${supabaseConfig.slipsBucket}/${path}`, {
+        headers: {
+          'apikey': supabaseConfig.anonKey,
+          'Authorization': `Bearer ${supabaseConfig.anonKey}`
+        }
+      });
+      if (!res.ok) throw new Error('Failed to fetch slip');
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      setSlipDataUrl(url);
+    } catch (error) {
+      console.error('Error fetching slip:', error);
+      setSlipDataUrl(null);
+    } finally {
+      setIsFetchingSlip(false);
+    }
+  };
+
+  useEffect(() => {
+    return () => {
+      if (slipDataUrl) URL.revokeObjectURL(slipDataUrl);
+    };
+  }, [slipDataUrl]);
 
   if (isLoading) {
     return (
@@ -136,10 +173,10 @@ const AdminDonations: React.FC = () => {
         <div className="p-6 border-b border-slate-200 bg-slate-50/50">
           <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
             <Coffee className="w-5 h-5 text-amber-500" />
-            ประวัติการเลี้ยงกาแฟทั้งหมด ({donations.length} รายการ)
+            ประวัติการเลี้ยงกาแฟทั้งหมด ({filteredByDate.length} รายการ)
           </h3>
         </div>
-        {donations.length === 0 ? (
+        {filteredByDate.length === 0 ? (
           <div className="p-12 text-center">
             <div className="w-16 h-16 bg-amber-50 rounded-full flex items-center justify-center mx-auto mb-4">
               <Coffee className="w-8 h-8 text-amber-300" />
@@ -175,7 +212,7 @@ const AdminDonations: React.FC = () => {
                     <td className="px-6 py-4">
                       {d.slip ? (
                         <button 
-                          onClick={() => setSelectedSlip(getSlipUrl(d.slip))}
+                          onClick={() => handleViewSlip(d.slip)}
                           className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors text-xs font-semibold"
                         >
                           <Eye className="w-3.5 h-3.5" />
@@ -230,32 +267,47 @@ const AdminDonations: React.FC = () => {
       {/* Slip Preview Modal */}
       {selectedSlip && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="relative max-w-lg w-full bg-white rounded-3xl overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200">
+          <div className="relative max-w-[400px] w-full bg-white rounded-3xl overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200">
             <div className="flex items-center justify-between p-4 border-b border-slate-100">
               <h4 className="font-bold text-slate-800 flex items-center gap-2">
                 <ImageIcon className="w-5 h-5 text-blue-500" />
                 หลักฐานการโอนเงิน
               </h4>
               <button 
-                onClick={() => setSelectedSlip(null)}
+                onClick={() => {
+                  setSelectedSlip(null);
+                  setSlipDataUrl(null);
+                }}
                 className="p-2 hover:bg-slate-100 rounded-full text-slate-400 transition-colors"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
             <div className="p-4 bg-slate-50 flex items-center justify-center min-h-[300px]">
-              <img 
-                src={selectedSlip} 
-                alt="Donation Slip" 
-                className="max-w-full max-h-[70vh] rounded-xl shadow-md"
-                onError={(e) => {
-                  e.currentTarget.src = 'https://placehold.co/400x600?text=Slip+Not+Found';
-                }}
-              />
+              {isFetchingSlip ? (
+                <div className="flex flex-col items-center gap-2 text-slate-400 text-sm">
+                  <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+                  กำลังโหลดรูปภาพ...
+                </div>
+              ) : slipDataUrl ? (
+                <img 
+                  src={slipDataUrl} 
+                  alt="Donation Slip" 
+                  className="max-w-full max-h-[70vh] rounded-xl shadow-md"
+                />
+              ) : (
+                <div className="flex flex-col items-center gap-2 text-slate-400 text-sm">
+                  <X className="w-8 h-8 text-red-400" />
+                  ไม่สามารถโหลดรูปภาพได้
+                </div>
+              )}
             </div>
             <div className="p-4 bg-white border-t border-slate-100 text-center">
               <button 
-                onClick={() => setSelectedSlip(null)}
+                onClick={() => {
+                  setSelectedSlip(null);
+                  setSlipDataUrl(null);
+                }}
                 className="px-8 py-2.5 rounded-xl bg-slate-900 text-white font-bold hover:bg-slate-800 transition-colors"
               >
                 ปิดหน้าต่าง
