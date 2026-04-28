@@ -9,6 +9,41 @@ interface AuthProps {
   initialError?: string;
 }
 
+const InAppBrowserWarning: React.FC = () => {
+  const [show, setShow] = useState(false);
+
+  useEffect(() => {
+    const ua = navigator.userAgent || navigator.vendor || (window as any).opera;
+    const isInApp = /Line|FBAN|FBAV|Instagram|Messenger|WhatsApp/i.test(ua);
+    setShow(isInApp);
+  }, []);
+
+  if (!show) return null;
+
+  return (
+    <div className="fixed top-4 left-4 right-4 z-[100] animate-in fade-in slide-in-from-top duration-500">
+      <div className="bg-amber-600 text-white p-4 rounded-2xl shadow-2xl flex items-center gap-4 border border-amber-500/50 backdrop-blur-md bg-opacity-95">
+        <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center shrink-0">
+          <AlertTriangle className="w-6 h-6 text-white" />
+        </div>
+        <div className="flex-1">
+          <p className="font-bold text-sm mb-0.5">ตรวจพบการใช้งานผ่านเบราว์เซอร์ในแอป (เช่น LINE, FB)</p>
+          <p className="text-xs opacity-90 leading-relaxed">
+            Google อาจไม่อนุญาตให้ล็อกอินผ่านเบราว์เซอร์นี้ 
+            <span className="block mt-1 font-bold">กรุณากดปุ่ม 3 จุด (หรือแชร์) แล้วเลือก "เปิดด้วยเบราว์เซอร์เริ่มต้น" (Safari/Chrome)</span>
+          </p>
+        </div>
+        <button 
+          onClick={() => setShow(false)}
+          className="p-2 hover:bg-white/10 rounded-full transition-colors"
+        >
+          <X className="w-5 h-5" />
+        </button>
+      </div>
+    </div>
+  );
+};
+
 const Auth: React.FC<AuthProps> = ({ onLogin, initialError = '' }) => {
   const [isLogin, setIsLogin] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
@@ -184,6 +219,7 @@ const Auth: React.FC<AuthProps> = ({ onLogin, initialError = '' }) => {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-slate-100 p-4 sm:p-8 font-sans relative overflow-hidden">
+      <InAppBrowserWarning />
       {/* Doodle Pattern Background */}
       <div 
         className="absolute inset-0 z-0 opacity-25 pointer-events-none"
