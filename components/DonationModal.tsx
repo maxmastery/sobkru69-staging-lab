@@ -132,6 +132,35 @@ const extractTransactionRef = (text: string) => {
   return numericCandidates.sort((a, b) => b.length - a.length)[0] || '';
 };
 
+const extractAmount = (text: string): number | null => {
+  const normalized = text.replace(/\s+/g, ' ').toLowerCase();
+  
+  // Look for keywords like "จำนวนเงิน", "ยอดเงิน", "amount" and the number that follows
+  // Thai pattern: จำนวนเงิน 10.00 บาท
+  const thaiMatch = normalized.match(/(?:จำนวนเงิน|ยอดเงิน|เงิน|ยอด)[^\d]{0,10}(\d{1,7}(?:[.,]\d{2})?)/i);
+  if (thaiMatch?.[1]) {
+    return parseFloat(thaiMatch[1].replace(',', ''));
+  }
+
+  // English pattern: Amount 10.00
+  const engMatch = normalized.match(/(?:amount|total)[^\d]{0,10}(\d{1,7}(?:[.,]\d{2})?)/i);
+  if (engMatch?.[1]) {
+    return parseFloat(engMatch[1].replace(',', ''));
+  }
+
+  // Fallback: If no label found, look for the largest number that looks like an amount (e.g. 10.00, 100.00)
+  const allNumbers = normalized.match(/\d{1,7}[.,]\d{2}/g);
+  if (allNumbers && allNumbers.length > 0) {
+    const amounts = allNumbers.map(n => parseFloat(n.replace(',', ''))).filter(n => n > 0);
+    if (amounts.length > 0) {
+      // Often the first "amount-like" number is the actual transfer amount
+      return amounts[0];
+    }
+  }
+
+  return null;
+};
+
 const DonationModal: React.FC<DonationModalProps> = ({ onClose, initialView = 'intro' }) => {
   const [view, setView] = useState<ViewState>(initialView);
   const [selectedTier, setSelectedTier] = useState<Tier | null>(null);
@@ -165,7 +194,7 @@ const DonationModal: React.FC<DonationModalProps> = ({ onClose, initialView = 'i
 
   const saveDonation = async (
     tier: Tier,
-    verification?: Pick<DonationRecord, 'slipHash' | 'slipTextHash' | 'transactionRef'>,
+    verification?: Pick<DonationRecord, 'slipHash' | 'slipTextHash' | 'transactionRef'> & { extractedAmount?: number },
     slipPath?: string,
   ) => {
     const newRecord = await contentService.saveDonationRecord({
@@ -173,7 +202,7 @@ const DonationModal: React.FC<DonationModalProps> = ({ onClose, initialView = 'i
       userEmail: currentUser?.email,
       tierId: tier.id,
       tierName: tier.name,
-      amount: tier.price,
+      amount: verification?.extractedAmount || tier.price,
       slipPath,
       slipHash: verification?.slipHash,
       slipTextHash: verification?.slipTextHash,
@@ -231,6 +260,7 @@ const DonationModal: React.FC<DonationModalProps> = ({ onClose, initialView = 'i
         const cleanedText = normalizeSlipText(text);
         const slipTextHash = await getSha256(cleanedText);
         const transactionRef = extractTransactionRef(text);
+        const extractedAmount = extractAmount(text);
         
         // Check for specific keywords (correct spelling: ธนิต)
         const nameKeywords = ['coolcom', 'คูลคอม', 'ธนิต', 'ธนิพัฒน์', 'นิรัชกุล', 'thanit'];
@@ -238,17 +268,6 @@ const DonationModal: React.FC<DonationModalProps> = ({ onClose, initialView = 'i
         const slipKeywords = ['promptpay', 'thaiqr', 'payment', 'ธนาคาร', 'รายการ', 'อ้างอิง', 'บัญชี', 'baht', 'บาท'];
         const hasSlipSignal = slipKeywords.some(kw => cleanedText.includes(kw));
         
-        // Extract all numbers to check if any amount exists (any amount is fine as per user request)
-        const numbersMatch = text.match(/\d+[.,]?\d*/g) || [];
-        let anyAmountFound = false;
-        for (const numStr of numbersMatch) {
-            const val = parseFloat(numStr.replace(',', '.'));
-            if (val > 0) {
-                anyAmountFound = true;
-                break;
-            }
-        }
-
         const conflicts = await contentService.findDonationConflicts({ slipHash, slipTextHash, transactionRef });
         if (conflicts.bySlipTextHash || donationHistory.some(record => record.slipTextHash === slipTextHash)) {
           setVerificationError('ตรวจพบว่าสลิปมีข้อมูลซ้ำกับสลิปที่เคยใช้แล้ว กรุณาใช้สลิปใหม่');
@@ -263,10 +282,10 @@ const DonationModal: React.FC<DonationModalProps> = ({ onClose, initialView = 'i
         }
 
         // Logic: Must have Merchant Name/Store and must have some kind of transaction signal
-        // We no longer require the amount to match the tier price exactly
+        // We now use the extracted amount if found, otherwise fallback to tier price
         if (hasName && (hasSlipSignal || transactionRef)) {
              const uploadedSlip = await contentService.uploadDonationSlip(file);
-             await saveDonation(selectedTier, { slipHash, slipTextHash, transactionRef }, uploadedSlip.path);
+             await saveDonation(selectedTier, { slipHash, slipTextHash, transactionRef, extractedAmount: extractedAmount || undefined }, uploadedSlip.path);
              setView('success');
         } else {
              setVerificationError('ข้อมูลในสลิปไม่ครบถ้วน กรุณาใช้สลิปฉบับเต็มที่เห็นชื่อบัญชี CoolCom หรือ นายธนิท และข้อมูลธุรกรรมชัดเจน');
