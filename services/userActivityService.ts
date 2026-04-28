@@ -51,51 +51,30 @@ export const userActivityService = {
   // --- Lesson Progress ---
   async getCompletedChapterIds(userId: string, topicId: string): Promise<string[]> {
     ensureSupabase();
-    const supabase = getSupabaseClient();
-    const { data, error } = await supabase
-      .from('lesson_progress')
-      .select('chapter_id')
-      .eq('user_id', userId)
-      .eq('topic_id', topicId);
-    
-    if (error) {
-      console.error('getCompletedChapterIds error:', error);
-      return [];
-    }
-    return (data || []).map(row => row.chapter_id);
+    const rows = await supabaseRest.select<LessonProgressRow[]>('lesson_progress', `select=chapter_id&user_id=eq.${encodeURIComponent(userId)}&topic_id=eq.${encodeURIComponent(topicId)}`);
+    return (rows || []).map(row => row.chapter_id);
   },
 
   async markChapterCompleted(userId: string, topicId: string, chapterId: string) {
     ensureSupabase();
-    const supabase = getSupabaseClient();
-    await supabase.from('lesson_progress').upsert({
+    await supabaseRest.upsert('lesson_progress', {
       user_id: userId,
       topic_id: topicId,
       chapter_id: chapterId,
       completed_at: new Date().toISOString(),
-    }, { onConflict: 'user_id,topic_id,chapter_id' });
+    }, 'user_id,topic_id,chapter_id');
   },
 
   async resetTopicProgress(userId: string, topicId: string) {
     ensureSupabase();
-    const supabase = getSupabaseClient();
-    await supabase.from('lesson_progress').delete().eq('user_id', userId).eq('topic_id', topicId);
+    await supabaseRest.delete('lesson_progress', `user_id=eq.${encodeURIComponent(userId)}&topic_id=eq.${encodeURIComponent(topicId)}`);
   },
 
   // --- Study Time ---
   async getStudyTimeMap(userId: string): Promise<Record<string, number>> {
     ensureSupabase();
-    const supabase = getSupabaseClient();
-    const { data, error } = await supabase
-      .from('study_time')
-      .select('topic_id, seconds')
-      .eq('user_id', userId);
-    
-    if (error) {
-      console.error('getStudyTimeMap error:', error);
-      return {};
-    }
-    return (data || []).reduce<Record<string, number>>((acc, row) => {
+    const rows = await supabaseRest.select<StudyTimeRow[]>('study_time', `select=topic_id,seconds&user_id=eq.${encodeURIComponent(userId)}`);
+    return (rows || []).reduce<Record<string, number>>((acc, row) => {
       acc[row.topic_id] = Number(row.seconds || 0);
       return acc;
     }, {});
@@ -103,65 +82,33 @@ export const userActivityService = {
 
   async incrementStudyTime(userId: string, topicId: string, seconds: number) {
     ensureSupabase();
-    const supabase = getSupabaseClient();
+    const existing = await supabaseRest.select<StudyTimeRow[]>('study_time', `select=id,user_id,topic_id,seconds&user_id=eq.${encodeURIComponent(userId)}&topic_id=eq.${encodeURIComponent(topicId)}&limit=1`);
     
-    // First, try to get existing record
-    const { data: existing, error: fetchError } = await supabase
-      .from('study_time')
-      .select('id, seconds')
-      .eq('user_id', userId)
-      .eq('topic_id', topicId)
-      .maybeSingle();
-
-    if (fetchError) {
-      console.error('incrementStudyTime fetch error:', fetchError);
-      return;
-    }
-
-    if (existing) {
-      const { error: updateError } = await supabase
-        .from('study_time')
-        .update({
-          seconds: Number(existing.seconds || 0) + seconds,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', existing.id);
-      
-      if (updateError) console.error('incrementStudyTime update error:', updateError);
+    if (existing && existing.length > 0) {
+      await supabaseRest.update('study_time', `id=eq.${encodeURIComponent(existing[0].id)}`, {
+        seconds: Number(existing[0].seconds || 0) + seconds,
+        updated_at: new Date().toISOString(),
+      });
     } else {
-      const { error: insertError } = await supabase
-        .from('study_time')
-        .insert({
-          id: createId(),
-          user_id: userId,
-          topic_id: topicId,
-          seconds: seconds,
-          updated_at: new Date().toISOString(),
-        });
-      
-      if (insertError) console.error('incrementStudyTime insert error:', insertError);
+      await supabaseRest.insert('study_time', {
+        id: createId(),
+        user_id: userId,
+        topic_id: topicId,
+        seconds,
+        updated_at: new Date().toISOString(),
+      });
     }
   },
 
   async getAllStudyTimeRecords(): Promise<any[]> {
     ensureSupabase();
-    const supabase = getSupabaseClient();
-    const { data, error } = await supabase
-      .from('study_time')
-      .select('user_id, topic_id, seconds');
-    
-    if (error) {
-      console.error('getAllStudyTimeRecords error:', error);
-      return [];
-    }
-    return data || [];
+    return supabaseRest.select<any[]>('study_time', 'select=user_id,topic_id,seconds');
   },
 
   // --- Quiz & Exam ---
   async recordQuizAttempt(userId: string, topicId: string | null, score: number, total: number, answers: unknown[]) {
     ensureSupabase();
-    const supabase = getSupabaseClient();
-    await supabase.from('quiz_attempts').insert({
+    await supabaseRest.insert('quiz_attempts', {
       id: createId(),
       user_id: userId,
       quiz_id: `generated-${Date.now()}`,
@@ -175,8 +122,7 @@ export const userActivityService = {
 
   async saveMockExamAttempt(data: any) {
     ensureSupabase();
-    const supabase = getSupabaseClient();
-    await supabase.from('mock_exam_attempts').insert({
+    await supabaseRest.insert('mock_exam_attempts', {
       id: createId(),
       user_id: data.userId,
       user_name: data.userName,
@@ -195,19 +141,12 @@ export const userActivityService = {
     if (!userId) return;
     try {
       ensureSupabase();
-      const supabase = getSupabaseClient();
-      
-      // We use upsert for user_id (primary key)
-      const { error } = await supabase.from('user_sessions').upsert({
+      await supabaseRest.upsert('user_sessions', {
         user_id: userId,
         user_name: userName || 'Anonymous',
         current_page: currentPage || 'dashboard',
         last_active_at: new Date().toISOString(),
-      }, { onConflict: 'user_id' });
-      
-      if (error) {
-        console.error('updateUserSession upsert error:', error);
-      }
+      }, 'user_id');
     } catch (err) {
       console.error('updateUserSession failed:', err);
     }
@@ -215,17 +154,7 @@ export const userActivityService = {
 
   async getOnlineSessions(): Promise<UserSessionRow[]> {
     ensureSupabase();
-    const supabase = getSupabaseClient();
-    const { data, error } = await supabase
-      .from('user_sessions')
-      .select('user_id, user_name, current_page, last_active_at')
-      .order('last_active_at', { ascending: false });
-    
-    if (error) {
-      console.error('getOnlineSessions error:', error);
-      return [];
-    }
-    return (data || []) as UserSessionRow[];
+    return supabaseRest.select<UserSessionRow[]>('user_sessions', 'select=user_id,user_name,current_page,last_active_at&order=last_active_at.desc');
   },
 
   // --- Daily Log ---
@@ -233,14 +162,13 @@ export const userActivityService = {
     if (!userId) return;
     try {
       ensureSupabase();
-      const supabase = getSupabaseClient();
       const today = new Date().toISOString().split('T')[0];
-      await supabase.from('daily_login_log').upsert({
+      await supabaseRest.upsert('daily_login_log', {
         id: `${userId}_${today}`,
         user_id: userId,
         login_date: today,
         created_at: new Date().toISOString(),
-      }, { onConflict: 'id' });
+      }, 'id');
     } catch (err) {
       console.error('logDailyLogin error:', err);
     }
@@ -248,17 +176,6 @@ export const userActivityService = {
 
   async getDailyLoginLogs(): Promise<any[]> {
     ensureSupabase();
-    const supabase = getSupabaseClient();
-    const { data, error } = await supabase
-      .from('daily_login_log')
-      .select('user_id, login_date, created_at')
-      .order('login_date', { ascending: false })
-      .limit(1000);
-    
-    if (error) {
-      console.error('getDailyLoginLogs error:', error);
-      return [];
-    }
-    return data || [];
+    return supabaseRest.select<any[]>('daily_login_log', 'select=user_id,login_date,created_at&order=login_date.desc&limit=1000');
   },
 };
