@@ -11,9 +11,10 @@ interface DashboardProps {
   onNavigateToShop: () => void;
   onNavigateToMockExam: () => void;
   onNavigateToLeaderboard?: () => void;
+  showShopButton?: boolean;
 }
 
-const Dashboard: React.FC<DashboardProps> = ({ onSelectPart, onNavigateToNews, onNavigateToDiscussion, onNavigateToShop, onNavigateToMockExam, onNavigateToLeaderboard }) => {
+const Dashboard: React.FC<DashboardProps> = ({ onSelectPart, onNavigateToNews, onNavigateToDiscussion, onNavigateToShop, onNavigateToMockExam, onNavigateToLeaderboard, showShopButton = true }) => {
   const getIcon = (id: PartId) => {
     switch (id) {
       case PartId.PART_A: return <BookOpen className="w-12 h-12 text-white mb-4" />;
@@ -148,18 +149,20 @@ const Dashboard: React.FC<DashboardProps> = ({ onSelectPart, onNavigateToNews, o
         </div>
 
         {/* Slim Shop Button */}
-        <div className="flex justify-center px-1">
-          <button onClick={onNavigateToShop} className="group relative flex min-h-[46px] w-full max-w-[420px] items-center justify-center overflow-hidden rounded-2xl border border-amber-200 bg-white/80 px-5 py-2 text-left shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-amber-400 hover:bg-amber-50 hover:shadow-lg hover:shadow-amber-900/10">
-            <div className="absolute inset-x-8 bottom-0 h-px bg-gradient-to-r from-transparent via-amber-300 to-transparent opacity-70"></div>
-            <div className="mr-3 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-amber-100 transition-all duration-300 group-hover:bg-amber-500">
-              <ShoppingCart className="w-4 h-4 text-amber-700 transition-colors group-hover:text-white" />
-            </div>
-            <div className="min-w-0">
-              <h4 className="truncate text-sm font-black text-slate-800 transition-colors group-hover:text-amber-700">จัดการสินค้า (ชีทสรุป)</h4>
-              <p className="truncate text-[11px] font-medium text-slate-500">เปิดดูสินค้าและรายละเอียดชีทสรุป</p>
-            </div>
-          </button>
-        </div>
+        {showShopButton && (
+          <div className="flex justify-center px-1">
+            <button onClick={onNavigateToShop} className="group relative flex min-h-[46px] w-full max-w-[420px] items-center justify-center overflow-hidden rounded-2xl border border-amber-200 bg-white/80 px-5 py-2 text-left shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-amber-400 hover:bg-amber-50 hover:shadow-lg hover:shadow-amber-900/10">
+              <div className="absolute inset-x-8 bottom-0 h-px bg-gradient-to-r from-transparent via-amber-300 to-transparent opacity-70"></div>
+              <div className="mr-3 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-amber-100 transition-all duration-300 group-hover:bg-amber-500">
+                <ShoppingCart className="w-4 h-4 text-amber-700 transition-colors group-hover:text-white" />
+              </div>
+              <div className="min-w-0">
+                <h4 className="truncate text-sm font-black text-slate-800 transition-colors group-hover:text-amber-700">ไฟล์ E-book สรุปเนื้อหา</h4>
+                <p className="truncate text-[11px] font-medium text-slate-500">เปิดดูไฟล์สรุปเนื้อหาและรายละเอียดสินค้า</p>
+              </div>
+            </button>
+          </div>
+        )}
         
 
       </div>

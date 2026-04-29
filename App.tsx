@@ -20,6 +20,7 @@ import UserStatistics from './components/UserStatistics';
 import { ExamPart, SubTopic } from './types';
 import { authService, User, BellNotification, UserUiState, MaintenanceModeState } from './services/authService';
 import { userActivityService } from './services/userActivityService';
+import { contentService } from './services/contentService';
 import { LogOut, AlertTriangle, Bell, X, Settings, User as UserIcon, BarChart3, Megaphone, MessageSquare, Loader2, Lock } from 'lucide-react';
 
 type PageState = 'dashboard' | 'news' | 'discussion' | 'shop' | 'mock-exam' | 'contact-support' | 'leaderboard' | 'user-stats';
@@ -92,6 +93,7 @@ const App: React.FC = () => {
   const [maintenanceMode, setMaintenanceMode] = useState<MaintenanceModeState>(DEFAULT_MAINTENANCE_MODE);
   const [showMaintenanceAdminLogin, setShowMaintenanceAdminLogin] = useState(false);
   const [onlineUsersCount, setOnlineUsersCount] = useState(0);
+  const [showShopButton, setShowShopButton] = useState(true);
   const menuRef = useRef<HTMLDivElement>(null);
 
   // Bell Notifications
@@ -131,6 +133,16 @@ const App: React.FC = () => {
     }
   };
 
+  const loadShopButtonSettings = async () => {
+    try {
+      const settings = await contentService.getShopButtonSettings();
+      setShowShopButton(settings.isVisible);
+    } catch (error) {
+      console.error('Failed to fetch shop button settings', error);
+      setShowShopButton(true);
+    }
+  };
+
   useEffect(() => {
     let isMounted = true;
 
@@ -138,7 +150,10 @@ const App: React.FC = () => {
       setIsBootstrapping(true);
       setAuthBootstrapError('');
       try {
-        await loadMaintenanceMode();
+        await Promise.all([
+          loadMaintenanceMode(),
+          loadShopButtonSettings(),
+        ]);
         const restored = await authService.restoreSession();
         if (!isMounted) return;
 
@@ -298,10 +313,10 @@ const App: React.FC = () => {
         const sessions = await userActivityService.getOnlineSessions();
         const threshold = Date.now() - (5 * 60 * 1000);
         const activeSessions = (sessions || []).filter(item => new Date(item.last_active_at).getTime() >= threshold);
-        setOnlineUsersCount(Math.max(activeSessions.length, 1));
+        setOnlineUsersCount(activeSessions.length);
       } catch (error) {
         console.error('loadOnlineUsers error:', error);
-        setOnlineUsersCount(1);
+        setOnlineUsersCount(0);
       }
     };
 
@@ -563,7 +578,19 @@ const App: React.FC = () => {
   }
 
   if (showAdminPanel && user.email === 'Krumax') {
-    return <AdminDashboard onClose={() => setShowAdminPanel(false)} />;
+    return (
+      <AdminDashboard
+        onClose={() => setShowAdminPanel(false)}
+        onPreviewShop={() => {
+          setShowAdminPanel(false);
+          setCurrentPage('shop');
+          setCurrentPart(null);
+          setCurrentTopic(null);
+          setShowLearningStats(false);
+        }}
+        onShopButtonVisibilityChange={setShowShopButton}
+      />
+    );
   }
 
   const renderMainContent = () => {
@@ -606,6 +633,7 @@ const App: React.FC = () => {
           onNavigateToShop={() => setCurrentPage('shop')}
           onNavigateToMockExam={() => setCurrentPage('mock-exam')}
           onNavigateToLeaderboard={() => setCurrentPage('user-stats')}
+          showShopButton={showShopButton}
         />
       );
     }

@@ -534,7 +534,8 @@ insert into public.app_settings (key, value)
 values
   ('marquee', '{"text":"ยินดีต้อนรับสู่ SOBKRU 69 ระบบติวสอบออนไลน์อัจฉริยะ","isActive":true}'::jsonb),
   ('popup_notification', '{"title":"","message":"","isActive":false,"imageUrl":"","updatedAt":""}'::jsonb),
-  ('maintenance_mode', '{"isActive":false,"title":"ปิดปรับปรุงระบบชั่วคราว","message":"ระบบอยู่ระหว่างอัปเดตและปรับปรุงประสิทธิภาพ ขออภัยในความไม่สะดวก","startAt":"","endAt":""}'::jsonb)
+  ('maintenance_mode', '{"isActive":false,"title":"ปิดปรับปรุงระบบชั่วคราว","message":"ระบบอยู่ระหว่างอัปเดตและปรับปรุงประสิทธิภาพ ขออภัยในความไม่สะดวก","startAt":"","endAt":""}'::jsonb),
+  ('shop_button_visibility', '{"isVisible":true,"updatedAt":""}'::jsonb)
 on conflict (key) do nothing;
 
 -- ---------------------------------------------------------------------------

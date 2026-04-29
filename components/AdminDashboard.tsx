@@ -15,9 +15,11 @@ import { getStoredUser, userActivityService } from '../services/userActivityServ
 
 interface AdminDashboardProps {
   onClose: () => void;
+  onPreviewShop?: () => void;
+  onShopButtonVisibilityChange?: (isVisible: boolean) => void;
 }
 
-const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
+const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, onPreviewShop, onShopButtonVisibilityChange }) => {
   const viteEnv = (import.meta as any).env || {};
   const [activeTab, setActiveTab] = useState<'settings' | 'users' | 'notification' | 'bell' | 'messages' | 'marquee' | 'news' | 'discussion' | 'shop' | 'statistics' | 'reports' | 'user-insights' | 'donations'>('settings');
   const normalizeSupabaseUrl = (rawValue: string) => {
@@ -522,7 +524,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
             }`}
           >
             <ShoppingCart className="w-5 h-5" />
-            จัดการสินค้า (ชีทสรุป)
+            ไฟล์ E-book สรุปเนื้อหา
           </button>
         </nav>
         <div className="p-4 border-t border-slate-200">
@@ -1011,10 +1013,13 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
               <div className="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center">
                 <ShoppingCart className="w-6 h-6 text-amber-600" />
               </div>
-              จัดการสินค้า (ชีทสรุป)
+              ไฟล์ E-book สรุปเนื้อหา
               {liveStatusPill}
             </h3>
-            <AdminShop />
+            <AdminShop
+              onPreviewShop={onPreviewShop}
+              onShopButtonVisibilityChange={onShopButtonVisibilityChange}
+            />
           </div>
         )}
 

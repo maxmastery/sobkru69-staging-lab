@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Edit2, Trash2, Image as ImageIcon, Search, DollarSign, Package, X, Save, CheckCircle2, ShoppingCart } from 'lucide-react';
+import { Plus, Edit2, Trash2, Image as ImageIcon, Search, DollarSign, Package, X, Save, CheckCircle2, ShoppingCart, Eye, EyeOff, Store } from 'lucide-react';
 import { contentService } from '../../services/contentService';
 
 export interface ProductItem {
@@ -13,7 +13,12 @@ export interface ProductItem {
   viewCount: number;
 }
 
-const AdminShop: React.FC = () => {
+interface AdminShopProps {
+  onPreviewShop?: () => void;
+  onShopButtonVisibilityChange?: (isVisible: boolean) => void;
+}
+
+const AdminShop: React.FC<AdminShopProps> = ({ onPreviewShop, onShopButtonVisibilityChange }) => {
   const [products, setProducts] = useState<ProductItem[]>([]);
   const [isEditing, setIsEditing] = useState(false);
   const [currentProduct, setCurrentProduct] = useState<Partial<ProductItem>>({});
@@ -22,10 +27,24 @@ const AdminShop: React.FC = () => {
   const [featureInput, setFeatureInput] = useState('');
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isShopButtonVisible, setIsShopButtonVisible] = useState(true);
+  const [isSavingVisibility, setIsSavingVisibility] = useState(false);
 
   useEffect(() => {
     loadProducts();
+    loadShopButtonSettings();
   }, []);
+
+  const loadShopButtonSettings = async () => {
+    try {
+      const settings = await contentService.getShopButtonSettings();
+      setIsShopButtonVisible(settings.isVisible);
+      onShopButtonVisibilityChange?.(settings.isVisible);
+    } catch (error) {
+      console.error('Failed to load shop button settings', error);
+      setIsShopButtonVisible(true);
+    }
+  };
 
   const loadProducts = async () => {
     setIsLoading(true);
@@ -114,6 +133,26 @@ const AdminShop: React.FC = () => {
       setTimeout(() => setSaveMessage(''), 3000);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleToggleShopButton = async (nextVisible: boolean) => {
+    const previousVisible = isShopButtonVisible;
+    setIsShopButtonVisible(nextVisible);
+    onShopButtonVisibilityChange?.(nextVisible);
+    setIsSavingVisibility(true);
+    try {
+      await contentService.setShopButtonSettings({ isVisible: nextVisible });
+      setSaveMessage(nextVisible ? 'แสดงปุ่มไฟล์ E-book ที่หน้าหลักแล้ว' : 'ซ่อนปุ่มไฟล์ E-book จากหน้าหลักแล้ว');
+      setTimeout(() => setSaveMessage(''), 3000);
+    } catch (error) {
+      console.error('Failed to save shop button settings', error);
+      setIsShopButtonVisible(previousVisible);
+      onShopButtonVisibilityChange?.(previousVisible);
+      setSaveMessage('บันทึกสถานะปุ่มไม่สำเร็จ กรุณาตรวจสอบ Supabase app_settings');
+      setTimeout(() => setSaveMessage(''), 3500);
+    } finally {
+      setIsSavingVisibility(false);
     }
   };
 
@@ -286,6 +325,50 @@ const AdminShop: React.FC = () => {
           <Plus className="w-5 h-5" />
           เพิ่มสินค้าใหม่
         </button>
+      </div>
+
+      <div className="relative overflow-hidden rounded-[28px] border border-amber-100 bg-gradient-to-br from-white via-amber-50/60 to-white p-5 shadow-sm">
+        <div className="absolute -right-10 -top-14 h-40 w-40 rounded-full bg-amber-200/40 blur-2xl"></div>
+        <div className="relative flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex items-start gap-4">
+            <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl ${
+              isShopButtonVisible ? 'bg-amber-500 text-white shadow-lg shadow-amber-500/20' : 'bg-slate-100 text-slate-500'
+            }`}>
+              {isShopButtonVisible ? <Eye className="h-6 w-6" /> : <EyeOff className="h-6 w-6" />}
+            </div>
+            <div>
+              <p className="text-xs font-black uppercase tracking-[0.18em] text-amber-600">Homepage Visibility</p>
+              <h4 className="mt-1 text-xl font-black text-slate-900">ปุ่มไฟล์ E-book สรุปเนื้อหา</h4>
+              <p className="mt-1 max-w-2xl text-sm leading-6 text-slate-500">
+                เปิดเพื่อให้ผู้ใช้งานเห็นปุ่ม E-book ใต้ 3 ปุ่มหลักที่หน้าหลัก หรือปิดเพื่อซ่อนชั่วคราวโดยไม่กระทบข้อมูลสินค้า
+              </p>
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+            <button
+              type="button"
+              onClick={onPreviewShop}
+              className="inline-flex items-center justify-center gap-2 rounded-2xl border border-amber-200 bg-white px-5 py-3 text-sm font-black text-amber-700 shadow-sm transition-all hover:-translate-y-0.5 hover:border-amber-400 hover:bg-amber-50"
+            >
+              <Store className="h-4 w-4" />
+              ดูหน้าร้านค้า
+            </button>
+            <label className="flex cursor-pointer items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
+              <span className="text-sm font-bold text-slate-700">
+                {isShopButtonVisible ? 'แสดงอยู่' : 'ซ่อนอยู่'}
+              </span>
+              <input
+                type="checkbox"
+                className="sr-only peer"
+                checked={isShopButtonVisible}
+                disabled={isSavingVisibility}
+                onChange={(e) => void handleToggleShopButton(e.target.checked)}
+              />
+              <span className="relative h-7 w-14 rounded-full bg-slate-300 transition-colors peer-checked:bg-amber-500 peer-disabled:opacity-60 after:absolute after:left-1 after:top-1 after:h-5 after:w-5 after:rounded-full after:bg-white after:shadow-sm after:transition-transform peer-checked:after:translate-x-7"></span>
+            </label>
+          </div>
+        </div>
       </div>
 
       <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">

@@ -94,6 +94,12 @@ type DonationRow = {
   created_at: string;
 };
 
+type AppSettingRow = {
+  key: string;
+  value: Record<string, any>;
+  updated_at?: string;
+};
+
 export interface ContentNewsItem {
   id: string;
   title: string;
@@ -173,6 +179,10 @@ export interface ContentDonationRecord {
   slipHash?: string;
   slipTextHash?: string;
   transactionRef?: string;
+}
+
+export interface ShopButtonSettings {
+  isVisible: boolean;
 }
 
 const SUPABASE_NOT_CONFIGURED_MESSAGE = 'ยังไม่ได้ตั้งค่า Supabase';
@@ -321,6 +331,33 @@ const toDonationRecord = (row: DonationRow): ContentDonationRecord => ({
 });
 
 export const contentService = {
+  async getShopButtonSettings(): Promise<ShopButtonSettings> {
+    ensureSupabase();
+    try {
+      const rows = await supabaseRest.select<AppSettingRow[]>('app_settings', `select=*&key=eq.${encodeValue('shop_button_visibility')}&limit=1`);
+      const value = rows?.[0]?.value || {};
+      return {
+        isVisible: value.isVisible !== false,
+      };
+    } catch (error) {
+      console.warn('Failed to load shop button settings', error);
+      return { isVisible: true };
+    }
+  },
+
+  async setShopButtonSettings(settings: ShopButtonSettings): Promise<ShopButtonSettings> {
+    ensureSupabase();
+    await supabaseRest.upsert<AppSettingRow[]>('app_settings', {
+      key: 'shop_button_visibility',
+      value: {
+        isVisible: settings.isVisible,
+        updatedAt: new Date().toISOString(),
+      },
+      updated_at: new Date().toISOString(),
+    }, 'key');
+    return settings;
+  },
+
   async getViewCounts(contentType: ContentViewRow['content_type'], contentIds: string[]): Promise<Record<string, Set<string>>> {
     ensureSupabase();
     const validIds = contentIds.filter(Boolean);
