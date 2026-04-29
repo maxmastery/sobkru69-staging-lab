@@ -9,6 +9,77 @@ export interface SupabaseRuntimeConfig {
 const DEFAULT_IMAGES_BUCKET = 'sobkru-images';
 const DEFAULT_SLIPS_BUCKET = 'sobkru-slips';
 const DEFAULT_FILES_BUCKET = 'sobkru-files';
+const DEFAULT_READ_CACHE_TTL_MS = 45_000;
+const STATIC_READ_CACHE_TTL_MS = 5 * 60_000;
+
+type CacheEntry = {
+  expiresAt: number;
+  value: unknown;
+};
+
+const readCache = new Map<string, CacheEntry>();
+const pendingReads = new Map<string, Promise<unknown>>();
+
+const getCacheTtl = (resource: string) => {
+  if (['app_settings', 'news_posts', 'discussion_threads', 'discussion_replies', 'products', 'bell_notifications'].includes(resource)) {
+    return STATIC_READ_CACHE_TTL_MS;
+  }
+
+  return DEFAULT_READ_CACHE_TTL_MS;
+};
+
+const CACHEABLE_RPC_FUNCTIONS = new Set([
+  'list_user_profiles',
+  'list_app_users',
+]);
+
+const getCachedRead = <T>(key: string): T | null => {
+  const entry = readCache.get(key);
+  if (!entry) return null;
+
+  if (Date.now() >= entry.expiresAt) {
+    readCache.delete(key);
+    return null;
+  }
+
+  return entry.value as T;
+};
+
+const setCachedRead = (key: string, value: unknown, ttlMs: number) => {
+  readCache.set(key, {
+    value,
+    expiresAt: Date.now() + ttlMs,
+  });
+};
+
+const clearReadCache = () => {
+  readCache.clear();
+  pendingReads.clear();
+};
+
+const cachedRequest = async <T>(key: string, ttlMs: number, request: () => Promise<T>): Promise<T> => {
+  const cached = getCachedRead<T>(key);
+  if (cached !== null) {
+    return cached;
+  }
+
+  const pending = pendingReads.get(key);
+  if (pending) {
+    return pending as Promise<T>;
+  }
+
+  const promise = request()
+    .then((value) => {
+      setCachedRead(key, value, ttlMs);
+      return value;
+    })
+    .finally(() => {
+      pendingReads.delete(key);
+    });
+
+  pendingReads.set(key, promise);
+  return promise;
+};
 
 const getEnvValue = (key: string) => {
   const viteEnv = (import.meta as any).env;
@@ -84,12 +155,16 @@ export const supabaseRest = {
   async select<T>(table: string, query = '', authToken?: string): Promise<T> {
     const config = requireConfig();
     const url = `${config.url}/rest/v1/${table}${query ? `?${query}` : ''}`;
-    const response = await fetch(url, {
-      method: 'GET',
-      headers: getHeaders(config, undefined, authToken),
-    });
+    const cacheKey = `select:${authToken ? 'auth' : 'anon'}:${url}`;
 
-    return readResponse<T>(response);
+    return cachedRequest(cacheKey, getCacheTtl(table), async () => {
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: getHeaders(config, undefined, authToken),
+      });
+
+      return readResponse<T>(response);
+    });
   },
 
   async insert<T>(table: string, data: Record<string, unknown>, authToken?: string): Promise<T> {
@@ -103,7 +178,9 @@ export const supabaseRest = {
       body: JSON.stringify(data),
     });
 
-    return readResponse<T>(response);
+    const result = await readResponse<T>(response);
+    clearReadCache();
+    return result;
   },
 
   async upsert<T>(table: string, data: Record<string, unknown>, onConflict: string, authToken?: string): Promise<T> {
@@ -117,7 +194,9 @@ export const supabaseRest = {
       body: JSON.stringify(data),
     });
 
-    return readResponse<T>(response);
+    const result = await readResponse<T>(response);
+    clearReadCache();
+    return result;
   },
 
   async update<T>(table: string, query: string, data: Record<string, unknown>, authToken?: string): Promise<T> {
@@ -131,7 +210,9 @@ export const supabaseRest = {
       body: JSON.stringify(data),
     });
 
-    return readResponse<T>(response);
+    const result = await readResponse<T>(response);
+    clearReadCache();
+    return result;
   },
 
   async delete<T>(table: string, query: string, authToken?: string): Promise<T> {
@@ -143,20 +224,33 @@ export const supabaseRest = {
       }, authToken),
     });
 
-    return readResponse<T>(response);
+    const result = await readResponse<T>(response);
+    clearReadCache();
+    return result;
   },
 
   async rpc<T>(functionName: string, data: Record<string, unknown>, authToken?: string): Promise<T> {
     const config = requireConfig();
-    const response = await fetch(`${config.url}/rest/v1/rpc/${functionName}`, {
-      method: 'POST',
-      headers: getHeaders(config, {
-        'Content-Type': 'application/json',
-      }, authToken),
-      body: JSON.stringify(data),
-    });
+    const cacheKey = `rpc:${authToken ? 'auth' : 'anon'}:${functionName}:${JSON.stringify(data)}`;
+    const runRequest = async () => {
+      const response = await fetch(`${config.url}/rest/v1/rpc/${functionName}`, {
+        method: 'POST',
+        headers: getHeaders(config, {
+          'Content-Type': 'application/json',
+        }, authToken),
+        body: JSON.stringify(data),
+      });
 
-    return readResponse<T>(response);
+      return readResponse<T>(response);
+    };
+
+    if (CACHEABLE_RPC_FUNCTIONS.has(functionName)) {
+      return cachedRequest(cacheKey, getCacheTtl(functionName), runRequest);
+    }
+
+    const result = await runRequest();
+    clearReadCache();
+    return result;
   },
 };
 

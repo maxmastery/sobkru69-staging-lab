@@ -3,6 +3,9 @@ import { authService, User } from '../services/authService';
 import { ArrowRight, CalendarDays, GraduationCap, Hash, Loader2, Mail, MapPin, User as UserIcon } from 'lucide-react';
 import { EXAM_COUNT_OPTIONS, GENDER_OPTIONS, MAJORS, PROVINCES } from '../constants/profileOptions';
 
+const LOGIN_HERO_IMAGE_URL = 'https://cribfrwvdpshvdpxgnuc.supabase.co/storage/v1/object/public/sobkru-images/bannner.png';
+const COOLCOM_LOGO_URL = 'https://cribfrwvdpshvdpxgnuc.supabase.co/storage/v1/object/public/sobkru-images/cc2.png';
+
 interface CompleteGoogleProfileProps {
   user: User;
   onComplete: (user: User) => void | Promise<void>;
@@ -83,20 +86,13 @@ const CompleteGoogleProfile: React.FC<CompleteGoogleProfileProps> = ({ user, onC
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-slate-100 p-4 sm:p-8 font-sans relative overflow-hidden">
-      <div
-        className="absolute inset-0 z-0 opacity-25 pointer-events-none"
-        style={{
-          backgroundImage: `url('https://cribfrwvdpshvdpxgnuc.supabase.co/storage/v1/object/public/sobkru-images/doodle%20(1).png')`,
-          backgroundSize: '300px',
-          backgroundRepeat: 'repeat'
-        }}
-      />
+      <div className="absolute inset-0 z-0 bg-[radial-gradient(circle_at_top,_rgba(226,232,240,.85),_rgba(248,250,252,.92)_42%,_#eef2f7)] pointer-events-none" />
 
       <div className="relative w-full max-w-5xl min-h-[750px] bg-white backdrop-blur-sm shadow-2xl rounded-3xl overflow-hidden z-10 grid lg:grid-cols-2">
         <div
           className="relative min-h-[300px] lg:min-h-full bg-slate-900 overflow-hidden"
           style={{
-            backgroundImage: "linear-gradient(rgba(15,23,42,0.62), rgba(15,23,42,0.78)), url('https://cribfrwvdpshvdpxgnuc.supabase.co/storage/v1/object/public/sobkru-images/Gemini_Generated_Image_ysf3jkysf3jkysf3%20(1).png')",
+            backgroundImage: `linear-gradient(rgba(15,23,42,0.62), rgba(15,23,42,0.78)), url('${LOGIN_HERO_IMAGE_URL}')`,
             backgroundSize: 'cover',
             backgroundPosition: 'center'
           }}
@@ -110,10 +106,11 @@ const CompleteGoogleProfile: React.FC<CompleteGoogleProfileProps> = ({ user, onC
           </div>
           <div className="absolute bottom-8 left-1/2 -translate-x-1/2">
             <img
-              src="https://cribfrwvdpshvdpxgnuc.supabase.co/storage/v1/object/public/sobkru-images/CC%20logo%20(1).png"
+              src={COOLCOM_LOGO_URL}
               alt="Cool Com"
               className="h-6 object-contain"
               referrerPolicy="no-referrer"
+              loading="lazy"
             />
           </div>
         </div>

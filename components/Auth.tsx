@@ -4,6 +4,9 @@ import { authService, MaintenanceModeState, User as AuthUser } from '../services
 import { contentService } from '../services/contentService';
 import { EXAM_COUNT_OPTIONS, GENDER_OPTIONS, MAJORS, PROVINCES } from '../constants/profileOptions';
 
+const LOGIN_HERO_IMAGE_URL = 'https://cribfrwvdpshvdpxgnuc.supabase.co/storage/v1/object/public/sobkru-images/bannner.png';
+const COOLCOM_LOGO_URL = 'https://cribfrwvdpshvdpxgnuc.supabase.co/storage/v1/object/public/sobkru-images/cc2.png';
+
 interface AuthProps {
   onLogin: (user: AuthUser) => void | Promise<void>;
   initialError?: string;
@@ -235,15 +238,7 @@ const Auth: React.FC<AuthProps> = ({ onLogin, initialError = '', maintenanceMode
   return (
     <div className="min-h-screen flex items-center justify-center bg-slate-100 p-4 sm:p-8 font-sans relative overflow-hidden">
       <InAppBrowserWarning />
-      {/* Doodle Pattern Background */}
-      <div 
-        className="absolute inset-0 z-0 opacity-25 pointer-events-none"
-        style={{
-          backgroundImage: `url('https://cribfrwvdpshvdpxgnuc.supabase.co/storage/v1/object/public/sobkru-images/doodle%20(1).png')`,
-          backgroundSize: '300px',
-          backgroundRepeat: 'repeat'
-        }}
-      />
+      <div className="absolute inset-0 z-0 bg-[radial-gradient(circle_at_top,_rgba(226,232,240,.85),_rgba(248,250,252,.92)_42%,_#eef2f7)] pointer-events-none" />
       
       {/* โครงสร้างหลัก: บังคับความกว้างและส่วนสูง */}
       <div className="relative w-full max-w-5xl h-[750px] bg-white backdrop-blur-sm shadow-2xl rounded-3xl overflow-hidden z-10 flex">
@@ -613,10 +608,11 @@ const Auth: React.FC<AuthProps> = ({ onLogin, initialError = '', maintenanceMode
         >
           {/* Background Image */}
           <img 
-            src="https://cribfrwvdpshvdpxgnuc.supabase.co/storage/v1/object/public/sobkru-images/Gemini_Generated_Image_ysf3jkysf3jkysf3%20(1).png" 
+            src={LOGIN_HERO_IMAGE_URL} 
             alt="Background" 
             className="absolute inset-0 w-full h-full object-cover"
             referrerPolicy="no-referrer"
+            fetchPriority="high"
           />
           {/* Overlay สีดำ */}
           <div className="absolute inset-0 bg-slate-900/75 backdrop-blur-[2px]"></div>
@@ -643,10 +639,11 @@ const Auth: React.FC<AuthProps> = ({ onLogin, initialError = '', maintenanceMode
 
             <div className="text-slate-400 text-sm mt-auto flex flex-col items-center gap-3">
               <img 
-                src="https://cribfrwvdpshvdpxgnuc.supabase.co/storage/v1/object/public/sobkru-images/CC%20logo%20(1).png" 
+                src={COOLCOM_LOGO_URL} 
                 alt="CoolCom Logo" 
                 className="h-6 object-contain opacity-100"
                 referrerPolicy="no-referrer"
+                loading="lazy"
               />
               <div className="flex flex-col items-center gap-1">
                 <span>© {new Date().getFullYear()} SobKru69 All Rights Reserved.</span>
@@ -677,10 +674,11 @@ const Auth: React.FC<AuthProps> = ({ onLogin, initialError = '', maintenanceMode
 
             <div className="text-slate-400 text-sm mt-auto flex flex-col items-center gap-3">
               <img 
-                src="https://cribfrwvdpshvdpxgnuc.supabase.co/storage/v1/object/public/sobkru-images/CC%20logo%20(1).png" 
+                src={COOLCOM_LOGO_URL} 
                 alt="CoolCom Logo" 
                 className="h-6 object-contain opacity-100"
                 referrerPolicy="no-referrer"
+                loading="lazy"
               />
               <div className="flex flex-col items-center gap-1">
                 <span>© {new Date().getFullYear()} SobKru69 All Rights Reserved.</span>

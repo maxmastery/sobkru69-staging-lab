@@ -24,6 +24,7 @@ import { LogOut, AlertTriangle, Bell, X, Settings, User as UserIcon, BarChart3, 
 
 type PageState = 'dashboard' | 'news' | 'discussion' | 'shop' | 'mock-exam' | 'contact-support' | 'leaderboard' | 'user-stats';
 const SHOW_DONATION_HISTORY_SHORTCUT = false;
+const FOOTER_LOGO_URL = 'https://cribfrwvdpshvdpxgnuc.supabase.co/storage/v1/object/public/sobkru-images/cc1.png';
 
 const FloatingCoffeeCup: React.FC = () => (
   <span className="sobkru-coffee-wrap" aria-hidden="true">
@@ -722,9 +723,11 @@ const App: React.FC = () => {
       <footer className="py-8 mt-auto pb-12">
         <div className="max-w-[1200px] mx-auto px-6 flex flex-col items-center justify-center">
           <img 
-            src="https://cribfrwvdpshvdpxgnuc.supabase.co/storage/v1/object/public/sobkru-images/Cool%20(1).png" 
+            src={FOOTER_LOGO_URL} 
             alt="Cool Com Logo" 
             className="h-5 object-contain mb-3 opacity-80 hover:opacity-100 transition-opacity"
+            loading="lazy"
+            referrerPolicy="no-referrer"
           />
           <p className="text-sm text-slate-500 text-center">
             &copy; 2026 SobKru69 All Rights Reserved.<br/>

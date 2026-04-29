@@ -281,18 +281,20 @@ const getStoredAdminSession = (): User | null => {
 
 const storeCurrentUser = (user: User) => {
   safeStorage.setSession(USER_CACHE_STORAGE_KEY, JSON.stringify(user));
+  safeStorage.setLocal(USER_CACHE_STORAGE_KEY, JSON.stringify(user));
   safeStorage.removeLocal('sobkru69_user');
   safeStorage.removeLocal('user');
 };
 
 const clearCurrentUser = () => {
   safeStorage.removeSession(USER_CACHE_STORAGE_KEY);
+  safeStorage.removeLocal(USER_CACHE_STORAGE_KEY);
   safeStorage.removeLocal('sobkru69_user');
   safeStorage.removeLocal('user');
 };
 
 const getCurrentUser = (): User | null => {
-  const raw = safeStorage.getSession(USER_CACHE_STORAGE_KEY) || safeStorage.getLocal('sobkru69_user') || safeStorage.getLocal('user');
+  const raw = safeStorage.getSession(USER_CACHE_STORAGE_KEY) || safeStorage.getLocal(USER_CACHE_STORAGE_KEY) || safeStorage.getLocal('sobkru69_user') || safeStorage.getLocal('user');
   if (!raw) return null;
   try {
     return JSON.parse(raw) as User;
