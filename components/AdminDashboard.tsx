@@ -46,6 +46,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
   const [saveMessage, setSaveMessage] = useState('');
   const [unreadMessagesCount, setUnreadMessagesCount] = useState(0);
   const [onlineUsersCount, setOnlineUsersCount] = useState(0);
+  const [showMaintenanceConfirm, setShowMaintenanceConfirm] = useState(false);
+  const [isMaintenanceActivating, setIsMaintenanceActivating] = useState(false);
 
   // Users Table State
   const [searchQuery, setSearchQuery] = useState('');
@@ -214,16 +216,49 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
   };
 
   const handleSaveMaintenanceMode = async () => {
+    if (maintenanceMode.isActive && (!maintenanceMode.title.trim() || !maintenanceMode.message.trim() || !maintenanceMode.startAt || !maintenanceMode.endAt)) {
+      setSaveMessage('กรุณากรอกหัวข้อประกาศ คำอธิบาย วันและเวลาให้ครบก่อนเปิดโหมดปรับปรุงระบบ');
+      setTimeout(() => setSaveMessage(''), 3500);
+      return;
+    }
+
+    if (maintenanceMode.isActive) {
+      setShowMaintenanceConfirm(true);
+      return;
+    }
+
     setIsLoading(true);
     try {
       const res = await authService.setMaintenanceMode(maintenanceMode);
       if (res.success) {
-        setSaveMessage(maintenanceMode.isActive ? 'เปิดโหมดปิดปรับปรุงระบบแล้ว' : 'ปิดโหมดปิดปรับปรุงระบบแล้ว');
+        await fetchMaintenanceMode();
+        setSaveMessage('ปิดโหมดปรับปรุงระบบแล้ว ระบบกลับมาใช้งานปกติ');
         setTimeout(() => setSaveMessage(''), 3000);
       }
     } catch (error) {
       console.error("Failed to save maintenance mode", error);
     } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const confirmActivateMaintenance = async () => {
+    setShowMaintenanceConfirm(false);
+    setIsMaintenanceActivating(true);
+    setIsLoading(true);
+    try {
+      const res = await authService.setMaintenanceMode({ ...maintenanceMode, isActive: true });
+      if (res.success) {
+        await fetchMaintenanceMode();
+        setSaveMessage('เปิดโหมดปรับปรุงระบบแล้ว ผู้ใช้ทั่วไปจะถูกล็อกหน้าใช้งานเมื่อระบบตรวจสถานะรอบถัดไป');
+        setTimeout(() => setSaveMessage(''), 4000);
+      }
+    } catch (error) {
+      console.error("Failed to activate maintenance mode", error);
+      setSaveMessage('เปิดโหมดปรับปรุงระบบไม่สำเร็จ กรุณาลองใหม่อีกครั้ง');
+      setTimeout(() => setSaveMessage(''), 3500);
+    } finally {
+      window.setTimeout(() => setIsMaintenanceActivating(false), 900);
       setIsLoading(false);
     }
   };
@@ -335,7 +370,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
             }`}
           >
             <Settings className="w-5 h-5" />
-            ตั้งค่า Backend
+            โหมดปรับปรุงระบบ
           </button>
           <button
             onClick={() => setActiveTab('users')}
@@ -487,15 +522,28 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
         {activeTab === 'settings' && (
           <div className="max-w-4xl space-y-6">
             <div className="bg-white rounded-2xl border border-slate-200 p-6 md:p-8">
-              <h3 className="text-xl font-bold text-slate-800 mb-6 flex items-center gap-2">
-                <Settings className="w-6 h-6 text-emerald-500" />
-                โหมดปิดปรับปรุงระบบ
-              </h3>
+              <div className="flex flex-col items-center text-center mb-8">
+                <div className={`mb-4 inline-flex h-16 w-16 items-center justify-center rounded-3xl ${maintenanceMode.isActive ? 'bg-red-100 text-red-600' : 'bg-slate-100 text-slate-500'}`}>
+                  <Settings className={`w-8 h-8 ${maintenanceMode.isActive ? 'animate-spin [animation-duration:3s]' : ''}`} />
+                </div>
+                <h3 className="text-2xl font-black text-slate-900">โหมดปรับปรุงระบบ</h3>
+                <p className="mt-2 max-w-xl text-sm text-slate-500">
+                  เปิดโหมดนี้เพื่อกันผู้ใช้ทั่วไปออกจากระบบชั่วคราว ผู้ดูแลระบบยังเข้าใช้งานหลังบ้านได้
+                </p>
+              </div>
               <div className="space-y-5">
-                <div className="flex items-center justify-between p-4 bg-emerald-50 rounded-2xl border border-emerald-200">
-                  <div>
-                    <p className="font-medium text-slate-900">เปิดใช้งาน Maintenance Mode</p>
-                    <p className="text-sm text-slate-500">เมื่อเปิด ผู้ใช้ทั่วไปจะเข้าใช้งานไม่ได้ชั่วคราว แต่ผู้ดูแลระบบยังเข้าได้</p>
+                <div className={`mx-auto flex max-w-xl flex-col items-center gap-5 rounded-[28px] border p-6 transition-all ${
+                  maintenanceMode.isActive
+                    ? 'border-red-200 bg-red-50 shadow-[0_18px_50px_rgba(239,68,68,.16)]'
+                    : 'border-slate-200 bg-slate-50'
+                }`}>
+                  <div className="text-center">
+                    <p className={`text-lg font-black ${maintenanceMode.isActive ? 'text-red-700' : 'text-slate-600'}`}>
+                      {maintenanceMode.isActive ? 'กำลังเปิดโหมดปรับปรุงระบบ' : 'โหมดปรับปรุงระบบปิดอยู่'}
+                    </p>
+                    <p className="mt-1 text-sm text-slate-500">
+                      {maintenanceMode.isActive ? 'ผู้ใช้ทั่วไปจะเห็นหน้าประกาศปิดปรับปรุง' : 'ระบบใช้งานได้ตามปกติ ไม่มีแสงแจ้งเตือน'}
+                    </p>
                   </div>
                   <label className="relative inline-flex items-center cursor-pointer">
                     <input
@@ -504,59 +552,67 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
                       checked={maintenanceMode.isActive}
                       onChange={(e) => setMaintenanceMode({ ...maintenanceMode, isActive: e.target.checked })}
                     />
-                    <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
+                    <div className="h-12 w-24 rounded-full bg-slate-300 transition-colors after:absolute after:left-1.5 after:top-1.5 after:h-9 after:w-9 after:rounded-full after:bg-white after:shadow-sm after:transition-all peer-checked:bg-red-600 peer-checked:after:translate-x-12"></div>
                   </label>
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">หัวข้อประกาศ</label>
-                  <input
-                    type="text"
-                    value={maintenanceMode.title}
-                    onChange={(e) => setMaintenanceMode({ ...maintenanceMode, title: e.target.value })}
-                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all"
-                    placeholder="เช่น ปิดปรับปรุงระบบชั่วคราว"
-                  />
-                </div>
+                {maintenanceMode.isActive && (
+                  <div className="animate-in fade-in slide-in-from-top-3 duration-300 space-y-5 rounded-[28px] border border-red-100 bg-white p-5">
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-2">หัวข้อประกาศ</label>
+                      <input
+                        type="text"
+                        value={maintenanceMode.title}
+                        onChange={(e) => setMaintenanceMode({ ...maintenanceMode, title: e.target.value })}
+                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition-all"
+                        placeholder="เช่น ปิดปรับปรุงระบบชั่วคราว"
+                      />
+                    </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">ข้อความอธิบาย</label>
-                  <textarea
-                    value={maintenanceMode.message}
-                    onChange={(e) => setMaintenanceMode({ ...maintenanceMode, message: e.target.value })}
-                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all min-h-[120px] resize-none"
-                    placeholder="เช่น ระบบจะปิดปรับปรุงชั่วคราวเพื่ออัปเดตและเพิ่มประสิทธิภาพการใช้งาน"
-                  />
-                </div>
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-2">ข้อความอธิบาย</label>
+                      <textarea
+                        value={maintenanceMode.message}
+                        onChange={(e) => setMaintenanceMode({ ...maintenanceMode, message: e.target.value })}
+                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition-all min-h-[120px] resize-none"
+                        placeholder="เช่น ระบบจะปิดปรับปรุงชั่วคราวเพื่ออัปเดตและเพิ่มประสิทธิภาพการใช้งาน"
+                      />
+                    </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">เวลาเริ่มปิดปรับปรุง</label>
-                    <input
-                      type="datetime-local"
-                      value={maintenanceMode.startAt || ''}
-                      onChange={(e) => setMaintenanceMode({ ...maintenanceMode, startAt: e.target.value })}
-                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all"
-                    />
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-2">เวลาเริ่มปิดปรับปรุง</label>
+                        <input
+                          type="datetime-local"
+                          value={maintenanceMode.startAt || ''}
+                          onChange={(e) => setMaintenanceMode({ ...maintenanceMode, startAt: e.target.value })}
+                          className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition-all"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 mb-2">เวลาคาดว่าจะเปิดใช้งาน</label>
+                        <input
+                          type="datetime-local"
+                          value={maintenanceMode.endAt || ''}
+                          onChange={(e) => setMaintenanceMode({ ...maintenanceMode, endAt: e.target.value })}
+                          className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition-all"
+                        />
+                      </div>
+                    </div>
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">เวลาคาดว่าจะเปิดใช้งาน</label>
-                    <input
-                      type="datetime-local"
-                      value={maintenanceMode.endAt || ''}
-                      onChange={(e) => setMaintenanceMode({ ...maintenanceMode, endAt: e.target.value })}
-                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all"
-                    />
-                  </div>
-                </div>
+                )}
 
                 <button
                   onClick={handleSaveMaintenanceMode}
                   disabled={isLoading}
-                  className="px-6 py-3 bg-emerald-600 text-white rounded-xl font-medium hover:bg-emerald-700 transition-colors flex items-center gap-2"
+                  className={`w-full justify-center px-6 py-4 rounded-2xl font-bold transition-colors flex items-center gap-2 ${
+                    maintenanceMode.isActive
+                      ? 'bg-red-600 text-white hover:bg-red-700'
+                      : 'bg-slate-900 text-white hover:bg-slate-800'
+                  } disabled:opacity-70`}
                 >
                   {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
-                  บันทึกโหมดปิดปรับปรุง
+                  {maintenanceMode.isActive ? 'ปิดปรับปรุงระบบ' : 'บันทึกสถานะปิดโหมดปรับปรุง'}
                 </button>
               </div>
             </div>
@@ -1175,6 +1231,48 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
                 </button>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {showMaintenanceConfirm && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/60 backdrop-blur-sm p-4">
+          <div className="w-full max-w-md rounded-[28px] border border-red-100 bg-white p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-200">
+            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-red-100 text-red-600">
+              <ShieldAlert className="h-7 w-7" />
+            </div>
+            <h3 className="text-center text-xl font-black text-slate-900">ยืนยันเปิดโหมดปรับปรุงระบบ</h3>
+            <p className="mt-3 text-center text-sm leading-6 text-slate-500">
+              เมื่อยืนยัน ผู้ใช้ทั่วไปจะเข้าใช้งานไม่ได้ และจะเห็นหน้าประกาศปิดปรับปรุงตามข้อความที่กรอกไว้
+            </p>
+            <div className="mt-6 grid grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={() => setShowMaintenanceConfirm(false)}
+                className="rounded-2xl border border-slate-200 px-4 py-3 font-bold text-slate-700 hover:bg-slate-50"
+              >
+                ยกเลิก
+              </button>
+              <button
+                type="button"
+                onClick={confirmActivateMaintenance}
+                className="rounded-2xl bg-red-600 px-4 py-3 font-bold text-white hover:bg-red-700"
+              >
+                ยืนยัน
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {isMaintenanceActivating && (
+        <div className="fixed inset-0 z-[80] flex items-center justify-center bg-red-950/70 p-4 backdrop-blur-md">
+          <div className="text-center text-white">
+            <div className="mx-auto mb-6 flex h-24 w-24 items-center justify-center rounded-[32px] bg-white/15 ring-8 ring-white/10">
+              <Settings className="h-12 w-12 animate-spin [animation-duration:2.4s]" />
+            </div>
+            <div className="text-3xl font-black">กำลังเปิดระบบปรับปรุงระบบ</div>
+            <div className="mt-3 text-sm font-semibold text-red-100">กำลังบันทึกสถานะและล็อกระบบผู้ใช้ทั่วไป...</div>
           </div>
         </div>
       )}

@@ -52,7 +52,11 @@ const createId = () => {
 
 export const getStoredUser = (): User | null => {
   try {
-    const saved = sessionStorage.getItem('sobkru69_current_user') || localStorage.getItem('sobkru69_user') || localStorage.getItem('user');
+    const saved =
+      sessionStorage.getItem('sobkru69_current_user') ||
+      localStorage.getItem('sobkru69_current_user') ||
+      localStorage.getItem('sobkru69_user') ||
+      localStorage.getItem('user');
     return saved ? JSON.parse(saved) as User : null;
   } catch {
     return null;
@@ -99,13 +103,19 @@ export const userActivityService = {
 
   async getStudyTimeMap(userId: string): Promise<Record<string, number>> {
     ensureSupabase();
-    console.log('getStudyTimeMap query for userId:', userId);
     const rows = await supabaseRest.select<StudyTimeRow[]>('study_time', `select=topic_id,seconds&user_id=eq.${encodeValue(userId)}`);
-    console.log('getStudyTimeMap rows:', rows);
     return rows.reduce<Record<string, number>>((acc, row) => {
       acc[row.topic_id] = Number(row.seconds || 0);
       return acc;
     }, {});
+  },
+
+  async getAllStudyTimeRows(): Promise<Array<{ user_id: string; topic_id: string; seconds: number }>> {
+    ensureSupabase();
+    return supabaseRest.select<Array<{ user_id: string; topic_id: string; seconds: number }>>(
+      'study_time',
+      'select=user_id,topic_id,seconds&order=updated_at.desc&limit=20000'
+    );
   },
 
   async incrementStudyTime(userId: string, chapterId: string, seconds: number) {

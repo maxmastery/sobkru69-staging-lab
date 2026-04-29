@@ -91,6 +91,7 @@ const App: React.FC = () => {
   const [currentPage, setCurrentPage] = useState<PageState>('dashboard');
   const [maintenanceMode, setMaintenanceMode] = useState<MaintenanceModeState>(DEFAULT_MAINTENANCE_MODE);
   const [showMaintenanceAdminLogin, setShowMaintenanceAdminLogin] = useState(false);
+  const [onlineUsersCount, setOnlineUsersCount] = useState(0);
   const menuRef = useRef<HTMLDivElement>(null);
 
   // Bell Notifications
@@ -187,7 +188,7 @@ const App: React.FC = () => {
     void loadMaintenanceMode();
     const interval = window.setInterval(() => {
       void loadMaintenanceMode();
-    }, 30000);
+    }, 5000);
     return () => window.clearInterval(interval);
   }, []);
 
@@ -247,7 +248,7 @@ const App: React.FC = () => {
   }, [currentPage, currentPart, currentTopic, showLearningStats]);
 
   useEffect(() => {
-    if (!user || user.id === 'admin-001') {
+    if (!user) {
       return;
     }
 
@@ -285,6 +286,30 @@ const App: React.FC = () => {
       document.removeEventListener('visibilitychange', handleVisibility);
     };
   }, [currentPage, currentPart, currentTopic, showAdminPanel, showLearningStats, user]);
+
+  useEffect(() => {
+    if (!user) {
+      setOnlineUsersCount(0);
+      return;
+    }
+
+    const loadOnlineUsers = async () => {
+      try {
+        const sessions = await userActivityService.getOnlineSessions();
+        const threshold = Date.now() - (5 * 60 * 1000);
+        setOnlineUsersCount((sessions || []).filter(item => new Date(item.last_active_at).getTime() >= threshold).length);
+      } catch (error) {
+        console.error('loadOnlineUsers error:', error);
+      }
+    };
+
+    void loadOnlineUsers();
+    const interval = window.setInterval(() => {
+      void loadOnlineUsers();
+    }, 30000);
+
+    return () => window.clearInterval(interval);
+  }, [user]);
 
   const persistUserUiState = async (patch: Partial<UserUiState>) => {
     const nextState: UserUiState = {
@@ -966,6 +991,19 @@ const App: React.FC = () => {
               ประวัติการเลี้ยงกาแฟ
             </button>
           )}
+        </div>
+      )}
+
+      {!currentTopic && (
+        <div className="fixed bottom-6 left-6 z-40 rounded-2xl border border-emerald-200 bg-white/90 px-4 py-3 text-emerald-700 shadow-[0_14px_36px_rgba(16,185,129,.16)] backdrop-blur-md">
+          <div className="flex items-center gap-2 text-sm font-black">
+            <span className="relative flex h-3 w-3">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-60"></span>
+              <span className="relative inline-flex h-3 w-3 rounded-full bg-emerald-500"></span>
+            </span>
+            ออนไลน์ {onlineUsersCount} คน
+          </div>
+          <div className="mt-0.5 text-[11px] font-semibold text-slate-400">อัปเดตทุก 30 วินาที</div>
         </div>
       )}
 

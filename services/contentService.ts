@@ -292,6 +292,7 @@ const getViewerKey = () => {
   try {
     const currentUserRaw =
       sessionStorage.getItem('sobkru69_current_user') ||
+      localStorage.getItem('sobkru69_current_user') ||
       localStorage.getItem('sobkru69_user') ||
       localStorage.getItem('user');
     if (currentUserRaw) {
@@ -328,7 +329,8 @@ export const contentService = {
     }
 
     try {
-      const query = `select=content_id,viewer_key&content_type=eq.${encodeValue(contentType)}&content_id=in.(${validIds.map(encodeValue).join(',')})`;
+      const quotedIds = validIds.map(id => `"${id.replace(/"/g, '\\"')}"`).join(',');
+      const query = `select=content_id,viewer_key&content_type=eq.${encodeValue(contentType)}&content_id=in.(${quotedIds})`;
       const rows = await supabaseRest.select<Pick<ContentViewRow, 'content_id' | 'viewer_key'>[]>('content_views', query);
       const grouped = rows.reduce<Record<string, Set<string>>>((acc, row) => {
         if (!acc[row.content_id]) {
@@ -350,7 +352,7 @@ export const contentService = {
     try {
       const viewerKey = getViewerKey();
       await supabaseRest.upsert<ContentViewRow[]>('content_views', {
-        id: createId(),
+        id: `${contentType}_${contentId}_${viewerKey}`.replace(/[^a-zA-Z0-9._-]+/g, '-').slice(0, 260),
         content_type: contentType,
         content_id: contentId,
         viewer_key: viewerKey,

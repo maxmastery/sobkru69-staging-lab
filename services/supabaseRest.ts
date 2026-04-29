@@ -21,7 +21,11 @@ const readCache = new Map<string, CacheEntry>();
 const pendingReads = new Map<string, Promise<unknown>>();
 
 const getCacheTtl = (resource: string) => {
-  if (['app_settings', 'news_posts', 'discussion_threads', 'discussion_replies', 'products', 'bell_notifications'].includes(resource)) {
+  if (resource === 'app_settings') {
+    return 0;
+  }
+
+  if (['news_posts', 'discussion_threads', 'discussion_replies', 'products', 'bell_notifications'].includes(resource)) {
     return STATIC_READ_CACHE_TTL_MS;
   }
 
@@ -58,6 +62,10 @@ const clearReadCache = () => {
 };
 
 const cachedRequest = async <T>(key: string, ttlMs: number, request: () => Promise<T>): Promise<T> => {
+  if (ttlMs <= 0) {
+    return request();
+  }
+
   const cached = getCachedRead<T>(key);
   if (cached !== null) {
     return cached;

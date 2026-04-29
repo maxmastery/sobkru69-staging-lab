@@ -97,26 +97,22 @@ const AdminUserInsights: React.FC<AdminUserInsightsProps> = ({ users }) => {
     const load = async () => {
       setIsLoading(true);
       try {
-        const [sessionsData, logsData] = await Promise.all([
+        const [sessionsData, logsData, studyRows] = await Promise.all([
           userActivityService.getOnlineSessions(),
           userActivityService.getDailyLoginLogs(),
+          userActivityService.getAllStudyTimeRows(),
         ]);
         setSessions(sessionsData || []);
         setLoginLogs(logsData || []);
 
         const studyMap: Record<string, Record<string, number>> = {};
-        await Promise.all(
-          users.slice(0, 400).map(async (entry) => {
-            try {
-              const timeMap = await userActivityService.getStudyTimeMap(entry.id);
-              if (Object.keys(timeMap).length > 0) {
-                studyMap[entry.id] = timeMap;
-              }
-            } catch {
-              // ignore missing study rows
-            }
-          })
-        );
+        (studyRows || []).forEach((row) => {
+          if (!row.user_id || !row.topic_id) return;
+          if (!studyMap[row.user_id]) {
+            studyMap[row.user_id] = {};
+          }
+          studyMap[row.user_id][row.topic_id] = (studyMap[row.user_id][row.topic_id] || 0) + Number(row.seconds || 0);
+        });
         setStudyTimeMap(studyMap);
       } catch (error) {
         console.error('Failed to load user insights', error);
