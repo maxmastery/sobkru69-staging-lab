@@ -118,6 +118,14 @@ export const userActivityService = {
     );
   },
 
+  async getAllLessonProgressRows(): Promise<Array<{ user_id: string; topic_id: string; chapter_id: string; completed_at: string }>> {
+    ensureSupabase();
+    return supabaseRest.select<Array<{ user_id: string; topic_id: string; chapter_id: string; completed_at: string }>>(
+      'lesson_progress',
+      'select=user_id,topic_id,chapter_id,completed_at&order=completed_at.desc&limit=20000'
+    );
+  },
+
   async incrementStudyTime(userId: string, chapterId: string, seconds: number) {
     ensureSupabase();
     const existing = await supabaseRest.select<StudyTimeRow[]>('study_time', `select=id,user_id,topic_id,seconds&user_id=eq.${encodeValue(userId)}&topic_id=eq.${encodeValue(chapterId)}&limit=1`);

@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Activity, BookOpen, Clock, Loader2, TrendingUp, UserPlus, UserX, Users, Wifi } from 'lucide-react';
 import { User } from '../../services/authService';
-import { userActivityService } from '../../services/userActivityService';
+import { getStoredUser, userActivityService } from '../../services/userActivityService';
 
 interface AdminUserInsightsProps {
   users: User[];
@@ -18,6 +18,13 @@ interface LoginLogRow {
   user_id: string;
   login_date: string;
   created_at: string;
+}
+
+interface LessonProgressSummaryRow {
+  user_id: string;
+  topic_id: string;
+  chapter_id: string;
+  completed_at: string;
 }
 
 type SignupRange = 'daily' | 'weekly' | 'monthly';
@@ -59,7 +66,7 @@ const sessionLabel = (page: string) => {
   if (page === 'news') return 'กำลังอ่านข่าว';
   if (page === 'discussion') return 'กำลังใช้กระดานสนทนา';
   if (page === 'shop') return 'กำลังดูสินค้า';
-  if (page === 'admin') return 'อยู่ในระบบหลังบ้าน';
+  if (page.startsWith('admin')) return 'อยู่ในระบบหลังบ้าน';
   return 'กำลังใช้งานหน้าแดชบอร์ด';
 };
 
@@ -89,6 +96,7 @@ const buildAreaPath = (values: number[], width: number, height: number, padding:
 const AdminUserInsights: React.FC<AdminUserInsightsProps> = ({ users }) => {
   const [sessions, setSessions] = useState<SessionRow[]>([]);
   const [loginLogs, setLoginLogs] = useState<LoginLogRow[]>([]);
+  const [lessonProgressRows, setLessonProgressRows] = useState<LessonProgressSummaryRow[]>([]);
   const [studyTimeMap, setStudyTimeMap] = useState<Record<string, Record<string, number>>>({});
   const [signupRange, setSignupRange] = useState<SignupRange>('daily');
   const [isLoading, setIsLoading] = useState(true);
@@ -97,13 +105,15 @@ const AdminUserInsights: React.FC<AdminUserInsightsProps> = ({ users }) => {
     const load = async () => {
       setIsLoading(true);
       try {
-        const [sessionsData, logsData, studyRows] = await Promise.all([
+        const [sessionsData, logsData, studyRows, progressRows] = await Promise.all([
           userActivityService.getOnlineSessions(),
           userActivityService.getDailyLoginLogs(),
           userActivityService.getAllStudyTimeRows(),
+          userActivityService.getAllLessonProgressRows(),
         ]);
         setSessions(sessionsData || []);
         setLoginLogs(logsData || []);
+        setLessonProgressRows(progressRows || []);
 
         const studyMap: Record<string, Record<string, number>> = {};
         (studyRows || []).forEach((row) => {
@@ -130,6 +140,15 @@ const AdminUserInsights: React.FC<AdminUserInsightsProps> = ({ users }) => {
     const threeDaysAgo = new Date(now.getTime() - 3 * MS_PER_DAY);
     const totalUsers = users.length;
     const onlineUsers = sessions.filter(entry => new Date(entry.last_active_at) >= fiveMinutesAgo);
+    const currentUser = getStoredUser();
+    if (currentUser && !onlineUsers.some(entry => entry.user_id === currentUser.id)) {
+      onlineUsers.push({
+        user_id: currentUser.id,
+        user_name: currentUser.name,
+        current_page: 'admin:user-insights',
+        last_active_at: now.toISOString(),
+      });
+    }
     const learningUsers = onlineUsers.filter(entry => entry.current_page.startsWith('lesson') || entry.current_page.startsWith('topic'));
     const examUsers = onlineUsers.filter(entry => entry.current_page.includes('exam'));
     const usersWithStudyTime = Object.entries(studyTimeMap).filter(([, value]) =>
@@ -141,28 +160,39 @@ const AdminUserInsights: React.FC<AdminUserInsightsProps> = ({ users }) => {
     ).length;
     const over5MinPercent = totalUsers > 0 ? Math.round((usersOver5Min / totalUsers) * 100) : 0;
 
-    let partACount = 0;
-    let partBCount = 0;
+    const partAUserIds = new Set<string>();
+    const partBUserIds = new Set<string>();
     let partATotalTime = 0;
     let partBTotalTime = 0;
 
     Object.values(studyTimeMap).forEach((value) => {
-      let hasA = false;
-      let hasB = false;
       Object.entries(value).forEach(([topicId, seconds]) => {
         const lower = topicId.toLowerCase();
         if (lower.startsWith('a')) {
-          hasA = true;
           partATotalTime += Number(seconds || 0);
         }
         if (lower.startsWith('b')) {
-          hasB = true;
           partBTotalTime += Number(seconds || 0);
         }
       });
-      if (hasA) partACount += 1;
-      if (hasB) partBCount += 1;
     });
+
+    Object.entries(studyTimeMap).forEach(([userId, value]) => {
+      Object.keys(value).forEach((topicId) => {
+        const lower = topicId.toLowerCase();
+        if (lower.startsWith('a')) partAUserIds.add(userId);
+        if (lower.startsWith('b')) partBUserIds.add(userId);
+      });
+    });
+
+    lessonProgressRows.forEach((row) => {
+      const key = `${row.topic_id || row.chapter_id || ''}`.toLowerCase();
+      if (key.startsWith('a')) partAUserIds.add(row.user_id);
+      if (key.startsWith('b')) partBUserIds.add(row.user_id);
+    });
+
+    const partACount = partAUserIds.size;
+    const partBCount = partBUserIds.size;
 
     const recentSessionUserIds = new Set(
       sessions
@@ -268,7 +298,7 @@ const AdminUserInsights: React.FC<AdminUserInsightsProps> = ({ users }) => {
       maxSignupValue,
       dailyLogins,
     };
-  }, [loginLogs, sessions, signupRange, studyTimeMap, users]);
+  }, [lessonProgressRows, loginLogs, sessions, signupRange, studyTimeMap, users]);
 
   const formatTime = (seconds: number) => {
     if (seconds < 60) return `${seconds} วินาที`;

@@ -33,6 +33,13 @@ const NewsPage: React.FC<NewsPageProps> = ({ onBack }) => {
     setSelectedNews(item);
     try {
       await contentService.recordContentView('news', item.id);
+      setNews(current => current.map(entry =>
+        entry.id === item.id ? { ...entry, viewCount: Math.max(entry.viewCount || 0, item.viewCount || 0) + 1 } : entry
+      ));
+      setSelectedNews(current => current && current.id === item.id
+        ? { ...current, viewCount: Math.max(current.viewCount || 0, item.viewCount || 0) + 1 }
+        : current
+      );
     } catch (error) {
       console.error('Failed to record news view', error);
     }

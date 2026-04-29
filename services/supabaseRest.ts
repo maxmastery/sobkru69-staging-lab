@@ -21,7 +21,7 @@ const readCache = new Map<string, CacheEntry>();
 const pendingReads = new Map<string, Promise<unknown>>();
 
 const getCacheTtl = (resource: string) => {
-  if (resource === 'app_settings') {
+  if (['app_settings', 'user_sessions', 'study_time', 'lesson_progress', 'daily_login_log', 'content_views'].includes(resource)) {
     return 0;
   }
 

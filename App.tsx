@@ -20,7 +20,7 @@ import UserStatistics from './components/UserStatistics';
 import { ExamPart, SubTopic } from './types';
 import { authService, User, BellNotification, UserUiState, MaintenanceModeState } from './services/authService';
 import { userActivityService } from './services/userActivityService';
-import { LogOut, AlertTriangle, Bell, X, Settings, User as UserIcon, BarChart3, Megaphone, MessageSquare, Loader2 } from 'lucide-react';
+import { LogOut, AlertTriangle, Bell, X, Settings, User as UserIcon, BarChart3, Megaphone, MessageSquare, Loader2, Lock } from 'lucide-react';
 
 type PageState = 'dashboard' | 'news' | 'discussion' | 'shop' | 'mock-exam' | 'contact-support' | 'leaderboard' | 'user-stats';
 const SHOW_DONATION_HISTORY_SHORTCUT = false;
@@ -297,9 +297,11 @@ const App: React.FC = () => {
       try {
         const sessions = await userActivityService.getOnlineSessions();
         const threshold = Date.now() - (5 * 60 * 1000);
-        setOnlineUsersCount((sessions || []).filter(item => new Date(item.last_active_at).getTime() >= threshold).length);
+        const activeSessions = (sessions || []).filter(item => new Date(item.last_active_at).getTime() >= threshold);
+        setOnlineUsersCount(Math.max(activeSessions.length, 1));
       } catch (error) {
         console.error('loadOnlineUsers error:', error);
+        setOnlineUsersCount(1);
       }
     };
 
@@ -501,14 +503,6 @@ const App: React.FC = () => {
             </div>
           )}
           <div className="mt-8 flex flex-col sm:flex-row gap-3">
-            {allowAdminEntry && (
-              <button
-                onClick={() => setShowMaintenanceAdminLogin(true)}
-                className="px-5 py-3 rounded-2xl bg-slate-900 text-white font-semibold hover:bg-slate-800 transition-colors"
-              >
-                เข้าสู่ระบบผู้ดูแล
-              </button>
-            )}
             {showLogout && (
               <button
                 onClick={handleLogout}
@@ -520,6 +514,15 @@ const App: React.FC = () => {
           </div>
         </div>
       </div>
+      {allowAdminEntry && (
+        <button
+          onClick={() => setShowMaintenanceAdminLogin(true)}
+          aria-label="เข้าสู่ระบบผู้ดูแล"
+          className="fixed bottom-5 right-5 flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white/80 text-slate-500 shadow-sm backdrop-blur transition-colors hover:bg-slate-900 hover:text-white"
+        >
+          <Lock className="h-4 w-4" />
+        </button>
+      )}
     </div>
   );
 
@@ -995,15 +998,14 @@ const App: React.FC = () => {
       )}
 
       {!currentTopic && (
-        <div className="fixed bottom-6 left-6 z-40 rounded-2xl border border-emerald-200 bg-white/90 px-4 py-3 text-emerald-700 shadow-[0_14px_36px_rgba(16,185,129,.16)] backdrop-blur-md">
-          <div className="flex items-center gap-2 text-sm font-black">
+        <div className="fixed bottom-6 left-6 z-40 px-1 py-1 text-emerald-700">
+          <div className="flex items-center gap-2 text-sm font-black drop-shadow-[0_1px_0_rgba(255,255,255,.9)]">
             <span className="relative flex h-3 w-3">
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-60"></span>
               <span className="relative inline-flex h-3 w-3 rounded-full bg-emerald-500"></span>
             </span>
-            ออนไลน์ {onlineUsersCount} คน
+            {onlineUsersCount} Online
           </div>
-          <div className="mt-0.5 text-[11px] font-semibold text-slate-400">อัปเดตทุก 30 วินาที</div>
         </div>
       )}
 

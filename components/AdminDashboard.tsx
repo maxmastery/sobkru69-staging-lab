@@ -11,7 +11,7 @@ import AdminReports from './admin/AdminReports';
 import AdminUserInsights from './admin/AdminUserInsights';
 import AdminDonations from './admin/AdminDonations';
 import { contentService } from '../services/contentService';
-import { userActivityService } from '../services/userActivityService';
+import { getStoredUser, userActivityService } from '../services/userActivityService';
 
 interface AdminDashboardProps {
   onClose: () => void;
@@ -117,6 +117,28 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
   }, [activeTab]);
 
   useEffect(() => {
+    const adminUser = getStoredUser();
+    if (!adminUser) {
+      return;
+    }
+
+    const syncAdminPresence = async () => {
+      try {
+        await userActivityService.upsertSession(adminUser.id, adminUser.name, `admin:${activeTab}`);
+      } catch (error) {
+        console.error('Failed to sync admin presence', error);
+      }
+    };
+
+    void syncAdminPresence();
+    const interval = window.setInterval(() => {
+      void syncAdminPresence();
+    }, 15000);
+
+    return () => window.clearInterval(interval);
+  }, [activeTab]);
+
+  useEffect(() => {
     const shouldTrackLiveUsers = ['news', 'discussion', 'shop', 'user-insights'].includes(activeTab);
     if (!shouldTrackLiveUsers) {
       return;
@@ -126,12 +148,16 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
       try {
         const sessions = await userActivityService.getOnlineSessions();
         const threshold = Date.now() - (5 * 60 * 1000);
-        setOnlineUsersCount(
-          (sessions || []).filter(item => new Date(item.last_active_at).getTime() >= threshold).length
-        );
+        const activeSessions = (sessions || []).filter(item => new Date(item.last_active_at).getTime() >= threshold);
+        const adminUser = getStoredUser();
+        if (adminUser && !activeSessions.some(item => item.user_id === adminUser.id)) {
+          setOnlineUsersCount(activeSessions.length + 1);
+          return;
+        }
+        setOnlineUsersCount(activeSessions.length);
       } catch (error) {
         console.error('Failed to load online users count', error);
-        setOnlineUsersCount(0);
+        setOnlineUsersCount(getStoredUser() ? 1 : 0);
       }
     };
 

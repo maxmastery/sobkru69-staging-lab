@@ -357,7 +357,7 @@ export const contentService = {
         content_id: contentId,
         viewer_key: viewerKey,
         viewed_at: new Date().toISOString(),
-      }, 'content_type,content_id,viewer_key');
+      }, 'id');
     } catch (error) {
       console.warn(`Failed to record ${contentType} view`, error);
     }
