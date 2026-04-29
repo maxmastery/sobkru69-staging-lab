@@ -9,6 +9,7 @@ type NewsRow = {
   image_url: string | null;
   date: string;
   status: 'published' | 'draft';
+  view_count?: number | null;
 };
 
 type DiscussionThreadRow = {
@@ -21,6 +22,7 @@ type DiscussionThreadRow = {
   replies_count: number;
   status: 'active' | 'hidden' | 'deleted';
   is_highlighted: boolean;
+  view_count?: number | null;
 };
 
 type DiscussionReplyRow = {
@@ -64,6 +66,15 @@ type ProductRow = {
   image_url: string | null;
   features: string[] | null;
   status: 'in_stock' | 'out_of_stock';
+  view_count?: number | null;
+};
+
+type ContentViewRow = {
+  id: string;
+  content_type: 'news' | 'discussion' | 'product';
+  content_id: string;
+  viewer_key: string;
+  viewed_at: string;
 };
 
 type DonationRow = {
@@ -92,6 +103,7 @@ export interface ContentNewsItem {
   imageUrl: string;
   date: string;
   status: 'published' | 'draft';
+  viewCount: number;
 }
 
 export interface ContentDiscussionReply {
@@ -113,6 +125,7 @@ export interface ContentDiscussionThread {
   status: 'active' | 'closed';
   replies?: ContentDiscussionReply[];
   isHighlighted?: boolean;
+  viewCount: number;
 }
 
 export interface ContentReportItem {
@@ -147,6 +160,7 @@ export interface ContentProductItem {
   imageUrl: string;
   features: string[];
   status: 'in_stock' | 'out_of_stock';
+  viewCount: number;
 }
 
 export interface ContentDonationRecord {
@@ -189,6 +203,7 @@ const toNewsItem = (row: NewsRow): ContentNewsItem => ({
   imageUrl: row.image_url || '',
   date: row.date,
   status: row.status,
+  viewCount: Number(row.view_count || 0),
 });
 
 const toDiscussionReply = (row: DiscussionReplyRow): ContentDiscussionReply => ({
@@ -210,6 +225,7 @@ const toDiscussionThread = (row: DiscussionThreadRow, replies: ContentDiscussion
   status: row.status === 'active' ? 'active' : 'closed',
   replies,
   isHighlighted: row.is_highlighted,
+  viewCount: Number(row.view_count || 0),
 });
 
 const toReportStatus = (status: ReportRow['status']): ContentReportItem['status'] => {
@@ -256,7 +272,40 @@ const toProductItem = (row: ProductRow): ContentProductItem => ({
   imageUrl: row.image_url || '',
   features: Array.isArray(row.features) ? row.features : [],
   status: row.status,
+  viewCount: Number(row.view_count || 0),
 });
+
+const getAnonymousViewerKey = () => {
+  try {
+    const storageKey = 'sobkru69_anonymous_viewer_key';
+    const existing = localStorage.getItem(storageKey);
+    if (existing) return existing;
+    const next = createId();
+    localStorage.setItem(storageKey, next);
+    return next;
+  } catch {
+    return `guest-${createId()}`;
+  }
+};
+
+const getViewerKey = () => {
+  try {
+    const currentUserRaw =
+      sessionStorage.getItem('sobkru69_current_user') ||
+      localStorage.getItem('sobkru69_user') ||
+      localStorage.getItem('user');
+    if (currentUserRaw) {
+      const currentUser = JSON.parse(currentUserRaw) as { id?: string };
+      if (currentUser?.id) {
+        return currentUser.id;
+      }
+    }
+  } catch {
+    // ignore
+  }
+
+  return getAnonymousViewerKey();
+};
 
 const toDonationRecord = (row: DonationRow): ContentDonationRecord => ({
   id: row.id,
@@ -271,10 +320,56 @@ const toDonationRecord = (row: DonationRow): ContentDonationRecord => ({
 });
 
 export const contentService = {
+  async getViewCounts(contentType: ContentViewRow['content_type'], contentIds: string[]): Promise<Record<string, Set<string>>> {
+    ensureSupabase();
+    const validIds = contentIds.filter(Boolean);
+    if (validIds.length === 0) {
+      return {};
+    }
+
+    try {
+      const query = `select=content_id,viewer_key&content_type=eq.${encodeValue(contentType)}&content_id=in.(${validIds.map(encodeValue).join(',')})`;
+      const rows = await supabaseRest.select<Pick<ContentViewRow, 'content_id' | 'viewer_key'>[]>('content_views', query);
+      const grouped = rows.reduce<Record<string, Set<string>>>((acc, row) => {
+        if (!acc[row.content_id]) {
+          acc[row.content_id] = new Set<string>();
+        }
+        acc[row.content_id].add(row.viewer_key);
+        return acc;
+      }, {});
+      return grouped;
+    } catch (error) {
+      console.warn(`Failed to load ${contentType} view counts`, error);
+      return {};
+    }
+  },
+
+  async recordContentView(contentType: ContentViewRow['content_type'], contentId: string) {
+    ensureSupabase();
+
+    try {
+      const viewerKey = getViewerKey();
+      await supabaseRest.upsert<ContentViewRow[]>('content_views', {
+        id: createId(),
+        content_type: contentType,
+        content_id: contentId,
+        viewer_key: viewerKey,
+        viewed_at: new Date().toISOString(),
+      }, 'content_type,content_id,viewer_key');
+    } catch (error) {
+      console.warn(`Failed to record ${contentType} view`, error);
+    }
+  },
+
   async getNewsPosts(): Promise<ContentNewsItem[]> {
     ensureSupabase();
-    const rows = await supabaseRest.select<NewsRow[]>('news_posts', 'select=id,title,content,author,source,image_url,date,status&order=date.desc');
-    return rows.map(toNewsItem);
+    const rows = await supabaseRest.select<NewsRow[]>('news_posts', 'select=*&order=date.desc');
+    const items = rows.map(toNewsItem);
+    const viewCounts = await this.getViewCounts('news', items.map(item => item.id));
+    return items.map(item => ({
+      ...item,
+      viewCount: viewCounts[item.id] ? viewCounts[item.id].size : item.viewCount,
+    }));
   },
 
   async saveNewsPost(item: Partial<ContentNewsItem>): Promise<ContentNewsItem> {
@@ -305,7 +400,7 @@ export const contentService = {
 
   async getDiscussionThreads(options?: { includeInactive?: boolean }): Promise<ContentDiscussionThread[]> {
     ensureSupabase();
-    const threadRows = await supabaseRest.select<DiscussionThreadRow[]>('discussion_threads', 'select=id,title,content,author,tag,date,replies_count,status,is_highlighted&order=date.desc');
+    const threadRows = await supabaseRest.select<DiscussionThreadRow[]>('discussion_threads', 'select=*&order=date.desc');
     const activeRows = options?.includeInactive ? threadRows : threadRows.filter(row => row.status === 'active');
 
     if (activeRows.length === 0) return [];
@@ -314,11 +409,16 @@ export const contentService = {
     const repliesQuery = `select=id,thread_id,author,content,date,is_admin&thread_id=in.(${idList.map(encodeValue).join(',')})&order=date.asc`;
     const replyRows = await supabaseRest.select<DiscussionReplyRow[]>('discussion_replies', repliesQuery);
 
+    const viewCounts = await this.getViewCounts('discussion', activeRows.map(row => row.id));
+
     return activeRows.map(row => {
       const replies = replyRows
         .filter(reply => reply.thread_id === row.id)
         .map(toDiscussionReply);
-      return toDiscussionThread(row, replies);
+      return {
+        ...toDiscussionThread(row, replies),
+        viewCount: viewCounts[row.id] ? viewCounts[row.id].size : Number(row.view_count || 0),
+      };
     });
   },
 
@@ -448,8 +548,13 @@ export const contentService = {
 
   async getProducts(): Promise<ContentProductItem[]> {
     ensureSupabase();
-    const rows = await supabaseRest.select<ProductRow[]>('products', 'select=id,name,description,price,image_url,features,status&order=created_at.desc');
-    return rows.map(toProductItem);
+    const rows = await supabaseRest.select<ProductRow[]>('products', 'select=*&order=created_at.desc');
+    const items = rows.map(toProductItem);
+    const viewCounts = await this.getViewCounts('product', items.map(item => item.id));
+    return items.map(item => ({
+      ...item,
+      viewCount: viewCounts[item.id] ? viewCounts[item.id].size : item.viewCount,
+    }));
   },
 
   async saveProduct(product: Partial<ContentProductItem>): Promise<ContentProductItem> {
@@ -566,4 +671,3 @@ export const contentService = {
     });
   },
 };
-

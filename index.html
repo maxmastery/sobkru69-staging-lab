@@ -141,6 +141,44 @@
   <body class="bg-slate-50 text-slate-900">
     <div id="root"></div>
     <div id="print-portal"></div>
-  <script type="module" src="/index.tsx"></script>
+    <script>
+      (function () {
+        var renderStartupError = function (title, detail) {
+          var root = document.getElementById('root');
+          if (!root) return;
+          root.innerHTML =
+            '<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;background:#f8fafc;font-family:Sarabun,sans-serif;">' +
+              '<div style="width:100%;max-width:860px;background:#fff;border:1px solid #fecaca;border-radius:24px;padding:24px;box-shadow:0 20px 60px rgba(15,23,42,.08);">' +
+                '<div style="font-size:12px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:#b91c1c;margin-bottom:8px;">Runtime Error</div>' +
+                '<h1 style="margin:0 0 12px;font-size:28px;line-height:1.2;color:#0f172a;">' + title + '</h1>' +
+                '<pre style="white-space:pre-wrap;word-break:break-word;font-size:14px;line-height:1.6;color:#7f1d1d;background:#fef2f2;border-radius:16px;padding:16px;margin:0;">' + String(detail || '') + '</pre>' +
+              '</div>' +
+            '</div>';
+        };
+
+        window.addEventListener('error', function (event) {
+          renderStartupError('Application failed to start', event.error && event.error.stack ? event.error.stack : event.message);
+        });
+
+        window.addEventListener('unhandledrejection', function (event) {
+          var reason = event.reason;
+          renderStartupError('Unhandled promise rejection', reason && reason.stack ? reason.stack : JSON.stringify(reason, null, 2));
+        });
+      })();
+    </script>
+    <script type="module">
+      import('/index.tsx').catch((error) => {
+        const root = document.getElementById('root');
+        if (!root) return;
+        root.innerHTML =
+          '<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;background:#f8fafc;font-family:Sarabun,sans-serif;">' +
+            '<div style="width:100%;max-width:860px;background:#fff;border:1px solid #fecaca;border-radius:24px;padding:24px;box-shadow:0 20px 60px rgba(15,23,42,.08);">' +
+              '<div style="font-size:12px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:#b91c1c;margin-bottom:8px;">Bootstrap Error</div>' +
+              '<h1 style="margin:0 0 12px;font-size:28px;line-height:1.2;color:#0f172a;">Failed to import application entry</h1>' +
+              '<pre style="white-space:pre-wrap;word-break:break-word;font-size:14px;line-height:1.6;color:#7f1d1d;background:#fef2f2;border-radius:16px;padding:16px;margin:0;">' + String(error && error.stack ? error.stack : error) + '</pre>' +
+            '</div>' +
+          '</div>';
+      });
+    </script>
 </body>
 </html>

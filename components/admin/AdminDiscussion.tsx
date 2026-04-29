@@ -21,6 +21,7 @@ export interface DiscussionThread {
   status: 'active' | 'closed';
   replies?: DiscussionReply[];
   isHighlighted?: boolean;
+  viewCount: number;
 }
 
 const AdminDiscussion: React.FC = () => {
@@ -107,6 +108,7 @@ const AdminDiscussion: React.FC = () => {
                 <th className="px-6 py-4 text-sm font-semibold text-slate-600">หัวข้อกระทู้</th>
                 <th className="px-6 py-4 text-sm font-semibold text-slate-600">ผู้ตั้งกระทู้</th>
                 <th className="px-6 py-4 text-sm font-semibold text-slate-600">หมวดหมู่</th>
+                <th className="px-6 py-4 text-sm font-semibold text-slate-600 text-center">ผู้อ่าน</th>
                 <th className="px-6 py-4 text-sm font-semibold text-slate-600 text-center">ตอบกลับ</th>
                 <th className="px-6 py-4 text-sm font-semibold text-slate-600">วันที่</th>
                 <th className="px-6 py-4 text-sm font-semibold text-slate-600 text-right">จัดการ</th>
@@ -115,7 +117,7 @@ const AdminDiscussion: React.FC = () => {
             <tbody>
               {isLoading && filteredThreads.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center text-slate-500">
+                  <td colSpan={7} className="px-6 py-12 text-center text-slate-500">
                     กำลังโหลดกระทู้จากระบบกลาง...
                   </td>
                 </tr>
@@ -143,6 +145,11 @@ const AdminDiscussion: React.FC = () => {
                     </span>
                   </td>
                   <td className="px-6 py-4 text-center">
+                    <span className="inline-flex items-center justify-center min-w-10 rounded-full bg-indigo-50 px-3 py-1.5 text-sm font-bold text-indigo-700">
+                      {item.viewCount || 0}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 text-center">
                     <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-slate-100 text-slate-600 text-sm font-medium">
                       {item.repliesCount}
                     </span>
@@ -160,7 +167,7 @@ const AdminDiscussion: React.FC = () => {
               ))}
               {filteredThreads.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center text-slate-500">
+                  <td colSpan={7} className="px-6 py-12 text-center text-slate-500">
                     <div className="flex flex-col items-center justify-center">
                       <MessageSquare className="w-12 h-12 text-slate-300 mb-3" />
                       <p>ไม่พบข้อมูลกระทู้สนทนา</p>

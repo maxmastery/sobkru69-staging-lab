@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Settings, Users, Bell, Save, Trash2, Edit2, Loader2, Plus, X, ArrowLeft, CheckCircle2, Megaphone, Newspaper, MessageSquare, ShoppingCart, Search, BarChart3, Eye, Image as ImageIcon, ShieldAlert, Coffee, UserCheck } from 'lucide-react';
-import { authService, User } from '../services/authService';
+import { authService, MaintenanceModeState, User } from '../services/authService';
 import AdminNews from './admin/AdminNews';
 import AdminDiscussion from './admin/AdminDiscussion';
 import AdminShop from './admin/AdminShop';
@@ -11,6 +11,7 @@ import AdminReports from './admin/AdminReports';
 import AdminUserInsights from './admin/AdminUserInsights';
 import AdminDonations from './admin/AdminDonations';
 import { contentService } from '../services/contentService';
+import { userActivityService } from '../services/userActivityService';
 
 interface AdminDashboardProps {
   onClose: () => void;
@@ -35,8 +36,16 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [notification, setNotification] = useState({ title: '', message: '', imageUrl: '', isActive: false });
   const [marquee, setMarquee] = useState({ text: '', isActive: true });
+  const [maintenanceMode, setMaintenanceMode] = useState<MaintenanceModeState>({
+    isActive: false,
+    title: 'ปิดปรับปรุงระบบชั่วคราว',
+    message: 'ระบบอยู่ระหว่างอัปเดตและปรับปรุงประสิทธิภาพ ขออภัยในความไม่สะดวก',
+    startAt: '',
+    endAt: '',
+  });
   const [saveMessage, setSaveMessage] = useState('');
   const [unreadMessagesCount, setUnreadMessagesCount] = useState(0);
+  const [onlineUsersCount, setOnlineUsersCount] = useState(0);
 
   // Users Table State
   const [searchQuery, setSearchQuery] = useState('');
@@ -71,6 +80,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
       fetchNotification();
     } else if (activeTab === 'marquee') {
       fetchMarquee();
+    } else if (activeTab === 'settings') {
+      fetchMaintenanceMode();
     }
     fetchUnreadMessagesCount();
   }, [activeTab]);
@@ -102,6 +113,40 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
 
     loadPendingReports();
   }, [activeTab]);
+
+  useEffect(() => {
+    const shouldTrackLiveUsers = ['news', 'discussion', 'shop', 'user-insights'].includes(activeTab);
+    if (!shouldTrackLiveUsers) {
+      return;
+    }
+
+    const loadLiveUsers = async () => {
+      try {
+        const sessions = await userActivityService.getOnlineSessions();
+        const threshold = Date.now() - (5 * 60 * 1000);
+        setOnlineUsersCount(
+          (sessions || []).filter(item => new Date(item.last_active_at).getTime() >= threshold).length
+        );
+      } catch (error) {
+        console.error('Failed to load online users count', error);
+        setOnlineUsersCount(0);
+      }
+    };
+
+    void loadLiveUsers();
+    const interval = window.setInterval(() => {
+      void loadLiveUsers();
+    }, 60000);
+
+    return () => window.clearInterval(interval);
+  }, [activeTab]);
+
+  const liveStatusPill = (
+    <div className="ml-auto inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-bold text-emerald-700">
+      <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+      ออนไลน์ {onlineUsersCount} คน
+    </div>
+  );
 
   const fetchUsers = async () => {
     setIsLoading(true);
@@ -145,6 +190,17 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
     }
   };
 
+  const fetchMaintenanceMode = async () => {
+    try {
+      const res = await authService.getMaintenanceMode();
+      if (res.success) {
+        setMaintenanceMode(res.maintenance);
+      }
+    } catch (error) {
+      console.error("Failed to fetch maintenance mode", error);
+    }
+  };
+
   const handleSaveBackendSettings = () => {
     const cleanedUrl = normalizeSupabaseUrl(supabaseUrl);
     localStorage.setItem('VITE_SUPABASE_URL', cleanedUrl);
@@ -155,6 +211,21 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
     setSupabaseUrl(cleanedUrl);
     setSaveMessage('บันทึกการตั้งค่า Supabase สำเร็จ');
     setTimeout(() => setSaveMessage(''), 3000);
+  };
+
+  const handleSaveMaintenanceMode = async () => {
+    setIsLoading(true);
+    try {
+      const res = await authService.setMaintenanceMode(maintenanceMode);
+      if (res.success) {
+        setSaveMessage(maintenanceMode.isActive ? 'เปิดโหมดปิดปรับปรุงระบบแล้ว' : 'ปิดโหมดปิดปรับปรุงระบบแล้ว');
+        setTimeout(() => setSaveMessage(''), 3000);
+      }
+    } catch (error) {
+      console.error("Failed to save maintenance mode", error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleSaveNotification = async () => {
@@ -414,75 +485,152 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
         )}
 
         {activeTab === 'settings' && (
-          <div className="max-w-2xl bg-white rounded-2xl border border-slate-200 p-6 md:p-8">
-            <h3 className="text-xl font-bold text-slate-800 mb-6 flex items-center gap-2">
-              <Settings className="w-6 h-6 text-amber-500" />
-              ตั้งค่า Backend (Supabase)
-            </h3>
-            <div className="space-y-5">
-              <div className="rounded-2xl border border-emerald-100 bg-emerald-50 p-4 text-sm leading-relaxed text-emerald-900">
-                <p className="font-bold mb-1">ขั้นตอนก่อนเชื่อมต่อ</p>
-                <p>ให้เปิดไฟล์ <span className="font-mono text-xs bg-white/70 px-2 py-0.5 rounded">supabase/schema.sql</span> แล้วนำ SQL ทั้งหมดไปรันใน Supabase SQL Editor เพื่อสร้าง Table, Function, Policy และ Bucket ให้ครบก่อน จากนั้นค่อยนำ Project URL และ Anon Key มาใส่ตรงนี้</p>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">Supabase Project URL</label>
-                <input
-                  type="text"
-                  value={supabaseUrl}
-                  onChange={(e) => setSupabaseUrl(e.target.value)}
-                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-slate-900 focus:border-slate-900 outline-none transition-all"
-                  placeholder="https://xxxxxxxxxxxxxxxxxxxx.supabase.co"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">Supabase Anon Public Key</label>
-                <input
-                  type="password"
-                  value={supabaseAnonKey}
-                  onChange={(e) => setSupabaseAnonKey(e.target.value)}
-                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-slate-900 focus:border-slate-900 outline-none transition-all"
-                  placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-                />
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="max-w-4xl space-y-6">
+            <div className="bg-white rounded-2xl border border-slate-200 p-6 md:p-8">
+              <h3 className="text-xl font-bold text-slate-800 mb-6 flex items-center gap-2">
+                <Settings className="w-6 h-6 text-emerald-500" />
+                โหมดปิดปรับปรุงระบบ
+              </h3>
+              <div className="space-y-5">
+                <div className="flex items-center justify-between p-4 bg-emerald-50 rounded-2xl border border-emerald-200">
+                  <div>
+                    <p className="font-medium text-slate-900">เปิดใช้งาน Maintenance Mode</p>
+                    <p className="text-sm text-slate-500">เมื่อเปิด ผู้ใช้ทั่วไปจะเข้าใช้งานไม่ได้ชั่วคราว แต่ผู้ดูแลระบบยังเข้าได้</p>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      className="sr-only peer"
+                      checked={maintenanceMode.isActive}
+                      onChange={(e) => setMaintenanceMode({ ...maintenanceMode, isActive: e.target.checked })}
+                    />
+                    <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
+                  </label>
+                </div>
+
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">Bucket รูปภาพ</label>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">หัวข้อประกาศ</label>
                   <input
                     type="text"
-                    value={imagesBucket}
-                    onChange={(e) => setImagesBucket(e.target.value)}
+                    value={maintenanceMode.title}
+                    onChange={(e) => setMaintenanceMode({ ...maintenanceMode, title: e.target.value })}
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all"
+                    placeholder="เช่น ปิดปรับปรุงระบบชั่วคราว"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">ข้อความอธิบาย</label>
+                  <textarea
+                    value={maintenanceMode.message}
+                    onChange={(e) => setMaintenanceMode({ ...maintenanceMode, message: e.target.value })}
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all min-h-[120px] resize-none"
+                    placeholder="เช่น ระบบจะปิดปรับปรุงชั่วคราวเพื่ออัปเดตและเพิ่มประสิทธิภาพการใช้งาน"
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">เวลาเริ่มปิดปรับปรุง</label>
+                    <input
+                      type="datetime-local"
+                      value={maintenanceMode.startAt || ''}
+                      onChange={(e) => setMaintenanceMode({ ...maintenanceMode, startAt: e.target.value })}
+                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">เวลาคาดว่าจะเปิดใช้งาน</label>
+                    <input
+                      type="datetime-local"
+                      value={maintenanceMode.endAt || ''}
+                      onChange={(e) => setMaintenanceMode({ ...maintenanceMode, endAt: e.target.value })}
+                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all"
+                    />
+                  </div>
+                </div>
+
+                <button
+                  onClick={handleSaveMaintenanceMode}
+                  disabled={isLoading}
+                  className="px-6 py-3 bg-emerald-600 text-white rounded-xl font-medium hover:bg-emerald-700 transition-colors flex items-center gap-2"
+                >
+                  {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
+                  บันทึกโหมดปิดปรับปรุง
+                </button>
+              </div>
+            </div>
+
+            <div className="bg-white rounded-2xl border border-slate-200 p-6 md:p-8">
+              <h3 className="text-xl font-bold text-slate-800 mb-6 flex items-center gap-2">
+                <Settings className="w-6 h-6 text-amber-500" />
+                ตั้งค่า Backend (Supabase)
+              </h3>
+              <div className="space-y-5">
+                <div className="rounded-2xl border border-emerald-100 bg-emerald-50 p-4 text-sm leading-relaxed text-emerald-900">
+                  <p className="font-bold mb-1">ขั้นตอนก่อนเชื่อมต่อ</p>
+                  <p>ให้เปิดไฟล์ <span className="font-mono text-xs bg-white/70 px-2 py-0.5 rounded">supabase/schema.sql</span> แล้วนำ SQL ทั้งหมดไปรันใน Supabase SQL Editor เพื่อสร้าง Table, Function, Policy และ Bucket ให้ครบก่อน จากนั้นค่อยนำ Project URL และ Anon Key มาใส่ตรงนี้</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">Supabase Project URL</label>
+                  <input
+                    type="text"
+                    value={supabaseUrl}
+                    onChange={(e) => setSupabaseUrl(e.target.value)}
                     className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-slate-900 focus:border-slate-900 outline-none transition-all"
-                    placeholder="sobkru-images"
+                    placeholder="https://xxxxxxxxxxxxxxxxxxxx.supabase.co"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">Bucket สลิป</label>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">Supabase Anon Public Key</label>
                   <input
-                    type="text"
-                    value={slipsBucket}
-                    onChange={(e) => setSlipsBucket(e.target.value)}
+                    type="password"
+                    value={supabaseAnonKey}
+                    onChange={(e) => setSupabaseAnonKey(e.target.value)}
                     className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-slate-900 focus:border-slate-900 outline-none transition-all"
-                    placeholder="sobkru-slips"
+                    placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
                   />
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">Bucket ไฟล์</label>
-                  <input
-                    type="text"
-                    value={filesBucket}
-                    onChange={(e) => setFilesBucket(e.target.value)}
-                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-slate-900 focus:border-slate-900 outline-none transition-all"
-                    placeholder="sobkru-files"
-                  />
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">Bucket รูปภาพ</label>
+                    <input
+                      type="text"
+                      value={imagesBucket}
+                      onChange={(e) => setImagesBucket(e.target.value)}
+                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-slate-900 focus:border-slate-900 outline-none transition-all"
+                      placeholder="sobkru-images"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">Bucket สลิป</label>
+                    <input
+                      type="text"
+                      value={slipsBucket}
+                      onChange={(e) => setSlipsBucket(e.target.value)}
+                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-slate-900 focus:border-slate-900 outline-none transition-all"
+                      placeholder="sobkru-slips"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">Bucket ไฟล์</label>
+                    <input
+                      type="text"
+                      value={filesBucket}
+                      onChange={(e) => setFilesBucket(e.target.value)}
+                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-slate-900 focus:border-slate-900 outline-none transition-all"
+                      placeholder="sobkru-files"
+                    />
+                  </div>
                 </div>
+                <button
+                  onClick={handleSaveBackendSettings}
+                  className="px-6 py-3 bg-slate-900 text-white rounded-xl font-medium hover:bg-slate-800 transition-colors flex items-center gap-2 mt-4"
+                >
+                  <Save className="w-5 h-5" />
+                  บันทึกการตั้งค่า
+                </button>
               </div>
-              <button
-                onClick={handleSaveBackendSettings}
-                className="px-6 py-3 bg-slate-900 text-white rounded-xl font-medium hover:bg-slate-800 transition-colors flex items-center gap-2 mt-4"
-              >
-                <Save className="w-5 h-5" />
-                บันทึกการตั้งค่า
-              </button>
             </div>
           </div>
         )}
@@ -756,6 +904,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
                 <Newspaper className="w-6 h-6 text-blue-600" />
               </div>
               จัดการข่าวสารประชาสัมพันธ์
+              {liveStatusPill}
             </h3>
             <AdminNews />
           </div>
@@ -768,6 +917,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
                 <MessageSquare className="w-6 h-6 text-indigo-600" />
               </div>
               จัดการกระดานสนทนา
+              {liveStatusPill}
             </h3>
             <AdminDiscussion />
           </div>
@@ -780,6 +930,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
                 <ShoppingCart className="w-6 h-6 text-amber-600" />
               </div>
               จัดการสินค้า (ชีทสรุป)
+              {liveStatusPill}
             </h3>
             <AdminShop />
           </div>
@@ -835,6 +986,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose }) => {
                 <UserCheck className="w-6 h-6 text-teal-600" />
               </div>
               ข้อมูลผู้ใช้งาน
+              {liveStatusPill}
             </h3>
             {isLoading ? (
               <div className="flex flex-col items-center justify-center py-20 text-slate-500 space-y-4 bg-white rounded-2xl border border-slate-200">

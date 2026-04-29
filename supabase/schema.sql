@@ -533,7 +533,8 @@ using (bucket_id = 'sobkru-files');
 insert into public.app_settings (key, value)
 values
   ('marquee', '{"text":"ยินดีต้อนรับสู่ SOBKRU 69 ระบบติวสอบออนไลน์อัจฉริยะ","isActive":true}'::jsonb),
-  ('popup_notification', '{"title":"","message":"","isActive":false,"imageUrl":"","updatedAt":""}'::jsonb)
+  ('popup_notification', '{"title":"","message":"","isActive":false,"imageUrl":"","updatedAt":""}'::jsonb),
+  ('maintenance_mode', '{"isActive":false,"title":"ปิดปรับปรุงระบบชั่วคราว","message":"ระบบอยู่ระหว่างอัปเดตและปรับปรุงประสิทธิภาพ ขออภัยในความไม่สะดวก","startAt":"","endAt":""}'::jsonb)
 on conflict (key) do nothing;
 
 -- ---------------------------------------------------------------------------
@@ -865,6 +866,25 @@ create table if not exists public.daily_login_log (
 alter table public.daily_login_log enable row level security;
 
 create policy "daily_login_log_anon_all" on public.daily_login_log
+  for all to anon, authenticated
+  using (true) with check (true);
+
+-- ---------------------------------------------------------------------------
+-- Content views (unique readers / viewers)
+-- ---------------------------------------------------------------------------
+
+create table if not exists public.content_views (
+  id text primary key,
+  content_type text not null check (content_type in ('news', 'discussion', 'product')),
+  content_id text not null,
+  viewer_key text not null,
+  viewed_at timestamptz not null default now(),
+  unique(content_type, content_id, viewer_key)
+);
+
+alter table public.content_views enable row level security;
+
+create policy "content_views_anon_all" on public.content_views
   for all to anon, authenticated
   using (true) with check (true);
 

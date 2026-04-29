@@ -18,7 +18,7 @@ import BellNotificationsPanel from './components/BellNotificationsPanel';
 import Leaderboard from './components/Leaderboard';
 import UserStatistics from './components/UserStatistics';
 import { ExamPart, SubTopic } from './types';
-import { authService, User, BellNotification, UserUiState } from './services/authService';
+import { authService, User, BellNotification, UserUiState, MaintenanceModeState } from './services/authService';
 import { userActivityService } from './services/userActivityService';
 import { LogOut, AlertTriangle, Bell, X, Settings, User as UserIcon, BarChart3, Megaphone, MessageSquare, Loader2 } from 'lucide-react';
 
@@ -46,6 +46,13 @@ const EMPTY_UI_STATE: UserUiState = {
 
 const POPUP_NOTIFICATION_KEY = 'popup_notification';
 const GOOGLE_LOGIN_RECOVERY_MESSAGE = 'Google login ยังไม่สมบูรณ์ กรุณาลองใหม่อีกครั้งจากลิงก์เดิม และระหว่างทั้งขั้นตอนให้ใช้โดเมนเดียวกัน เช่น 127.0.0.1 เดิมตลอด ไม่สลับกับ localhost';
+const DEFAULT_MAINTENANCE_MODE: MaintenanceModeState = {
+  isActive: false,
+  title: 'ปิดปรับปรุงระบบชั่วคราว',
+  message: 'ระบบอยู่ระหว่างอัปเดตและปรับปรุงประสิทธิภาพ ขออภัยในความไม่สะดวก',
+  startAt: '',
+  endAt: '',
+};
 
 const requiresGoogleProfileCompletion = (activeUser: User | null) => {
   if (!activeUser || activeUser.email === 'Krumax' || activeUser.authProvider !== 'google') {
@@ -81,6 +88,8 @@ const App: React.FC = () => {
   const [donationInitialView, setDonationInitialView] = useState<'intro' | 'history'>('intro');
   const [marquee, setMarquee] = useState<{ text: string; isActive: boolean } | null>(null);
   const [currentPage, setCurrentPage] = useState<PageState>('dashboard');
+  const [maintenanceMode, setMaintenanceMode] = useState<MaintenanceModeState>(DEFAULT_MAINTENANCE_MODE);
+  const [showMaintenanceAdminLogin, setShowMaintenanceAdminLogin] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
   // Bell Notifications
@@ -108,6 +117,18 @@ const App: React.FC = () => {
     userActivityService.logDailyLogin(activeUser.id).catch(err => console.error('logDailyLogin error:', err));
   };
 
+  const loadMaintenanceMode = async () => {
+    try {
+      const res = await authService.getMaintenanceMode();
+      if (res.success) {
+        setMaintenanceMode(res.maintenance);
+      }
+    } catch (error) {
+      console.error('Failed to fetch maintenance mode', error);
+      setMaintenanceMode(DEFAULT_MAINTENANCE_MODE);
+    }
+  };
+
   useEffect(() => {
     let isMounted = true;
 
@@ -115,6 +136,7 @@ const App: React.FC = () => {
       setIsBootstrapping(true);
       setAuthBootstrapError('');
       try {
+        await loadMaintenanceMode();
         const restored = await authService.restoreSession();
         if (!isMounted) return;
 
@@ -158,6 +180,14 @@ const App: React.FC = () => {
     return () => {
       isMounted = false;
     };
+  }, []);
+
+  useEffect(() => {
+    void loadMaintenanceMode();
+    const interval = window.setInterval(() => {
+      void loadMaintenanceMode();
+    }, 30000);
+    return () => window.clearInterval(interval);
   }, []);
 
   useEffect(() => {
@@ -212,8 +242,48 @@ const App: React.FC = () => {
 
   // Scroll to top when page changes
   useEffect(() => {
-    window.scrollTo({ top: 0, behavior: 'instant' });
+    window.scrollTo({ top: 0, behavior: 'auto' });
   }, [currentPage, currentPart, currentTopic, showLearningStats]);
+
+  useEffect(() => {
+    if (!user || user.id === 'admin-001') {
+      return;
+    }
+
+    const resolvePresencePage = () => {
+      if (showAdminPanel) return 'admin';
+      if (showLearningStats) return 'learning-stats';
+      if (currentTopic?.id) return `lesson:${currentTopic.id}`;
+      if (currentPart?.id) return `topic:${currentPart.id}`;
+      return currentPage;
+    };
+
+    const syncPresence = async () => {
+      try {
+        await userActivityService.upsertSession(user.id, user.name, resolvePresencePage());
+      } catch (error) {
+        console.error('upsertSession error:', error);
+      }
+    };
+
+    void syncPresence();
+
+    const interval = window.setInterval(() => {
+      void syncPresence();
+    }, 60000);
+
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        void syncPresence();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibility);
+    return () => {
+      window.clearInterval(interval);
+      document.removeEventListener('visibilitychange', handleVisibility);
+    };
+  }, [currentPage, currentPart, currentTopic, showAdminPanel, showLearningStats, user]);
 
   const persistUserUiState = async (patch: Partial<UserUiState>) => {
     const nextState: UserUiState = {
@@ -332,6 +402,7 @@ const App: React.FC = () => {
 
   const handleLogin = async (loggedInUser: User) => {
     await hydrateAuthenticatedUser(loggedInUser);
+    setShowMaintenanceAdminLogin(false);
   };
 
   const handleUpdateProfile = (updatedUser: User) => {
@@ -371,7 +442,60 @@ const App: React.FC = () => {
     setBellNotifications([]);
     setNotificationModal(null);
     setShowBellPanel(false);
+    setShowMaintenanceAdminLogin(false);
   };
+
+  const isAdminUser = user?.email === 'Krumax';
+
+  const MaintenanceScreen = ({ allowAdminEntry = false, showLogout = false }: { allowAdminEntry?: boolean; showLogout?: boolean }) => (
+    <div className="min-h-screen bg-[radial-gradient(circle_at_top,_#dcfce7,_#f8fafc_42%,_#e2e8f0)] flex items-center justify-center px-6">
+      <div className="w-full max-w-3xl rounded-[32px] border border-emerald-100 bg-white/90 backdrop-blur-xl shadow-[0_24px_80px_rgba(15,23,42,0.14)] overflow-hidden">
+        <div className="h-2 bg-gradient-to-r from-emerald-400 via-emerald-500 to-teal-500"></div>
+        <div className="p-8 md:p-10">
+          <div className="inline-flex items-center gap-2 rounded-full bg-emerald-50 px-4 py-2 text-sm font-bold text-emerald-700 mb-5">
+            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+            อยู่ระหว่างปิดปรับปรุงระบบ
+          </div>
+          <h1 className="text-3xl md:text-5xl font-black tracking-tight text-slate-900 leading-tight">
+            {maintenanceMode.title || 'ปิดปรับปรุงระบบชั่วคราว'}
+          </h1>
+          <p className="mt-5 text-slate-600 text-base md:text-lg leading-8 whitespace-pre-wrap">
+            {maintenanceMode.message || DEFAULT_MAINTENANCE_MODE.message}
+          </p>
+          {(maintenanceMode.startAt || maintenanceMode.endAt) && (
+            <div className="mt-6 grid sm:grid-cols-2 gap-4">
+              <div className="rounded-2xl bg-slate-50 px-5 py-4 border border-slate-200">
+                <div className="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">เริ่มปิดปรับปรุง</div>
+                <div className="mt-2 text-base font-bold text-slate-900">{maintenanceMode.startAt ? new Date(maintenanceMode.startAt).toLocaleString('th-TH') : '-'}</div>
+              </div>
+              <div className="rounded-2xl bg-slate-50 px-5 py-4 border border-slate-200">
+                <div className="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">คาดว่าจะเปิดใช้งาน</div>
+                <div className="mt-2 text-base font-bold text-slate-900">{maintenanceMode.endAt ? new Date(maintenanceMode.endAt).toLocaleString('th-TH') : '-'}</div>
+              </div>
+            </div>
+          )}
+          <div className="mt-8 flex flex-col sm:flex-row gap-3">
+            {allowAdminEntry && (
+              <button
+                onClick={() => setShowMaintenanceAdminLogin(true)}
+                className="px-5 py-3 rounded-2xl bg-slate-900 text-white font-semibold hover:bg-slate-800 transition-colors"
+              >
+                เข้าสู่ระบบผู้ดูแล
+              </button>
+            )}
+            {showLogout && (
+              <button
+                onClick={handleLogout}
+                className="px-5 py-3 rounded-2xl border border-slate-200 text-slate-700 font-semibold hover:bg-slate-50 transition-colors"
+              >
+                ออกจากระบบ
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 
   if (isBootstrapping) {
     return (
@@ -389,7 +513,14 @@ const App: React.FC = () => {
   }
 
   if (!user) {
-    return <Auth onLogin={handleLogin} initialError={authBootstrapError} />;
+    if (maintenanceMode.isActive && !showMaintenanceAdminLogin) {
+      return <MaintenanceScreen allowAdminEntry />;
+    }
+    return <Auth onLogin={handleLogin} initialError={authBootstrapError} maintenanceMode={maintenanceMode} adminOnlyMode={maintenanceMode.isActive} />;
+  }
+
+  if (maintenanceMode.isActive && !isAdminUser) {
+    return <MaintenanceScreen showLogout />;
   }
 
   if (requiresGoogleProfileCompletion(user)) {

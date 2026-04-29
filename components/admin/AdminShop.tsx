@@ -10,6 +10,7 @@ export interface ProductItem {
   imageUrl: string;
   features: string[];
   status: 'in_stock' | 'out_of_stock';
+  viewCount: number;
 }
 
 const AdminShop: React.FC = () => {
@@ -46,7 +47,8 @@ const AdminShop: React.FC = () => {
       price: 0,
       imageUrl: '',
       features: [],
-      status: 'in_stock'
+      status: 'in_stock',
+      viewCount: 0,
     });
     setFeatureInput('');
     setIsEditing(true);
@@ -294,6 +296,7 @@ const AdminShop: React.FC = () => {
                 <th className="px-6 py-4 text-sm font-semibold text-slate-600 w-20">รูปภาพ</th>
                 <th className="px-6 py-4 text-sm font-semibold text-slate-600">ชื่อสินค้า</th>
                 <th className="px-6 py-4 text-sm font-semibold text-slate-600">ราคา</th>
+                <th className="px-6 py-4 text-sm font-semibold text-slate-600 text-center">คนดู</th>
                 <th className="px-6 py-4 text-sm font-semibold text-slate-600">สถานะ</th>
                 <th className="px-6 py-4 text-sm font-semibold text-slate-600 text-right">จัดการ</th>
               </tr>
@@ -324,6 +327,11 @@ const AdminShop: React.FC = () => {
                   <td className="px-6 py-4">
                     <span className="font-bold text-amber-600">฿{item.price.toLocaleString()}</span>
                   </td>
+                  <td className="px-6 py-4 text-center">
+                    <span className="inline-flex items-center justify-center min-w-10 rounded-full bg-amber-50 px-3 py-1.5 text-sm font-bold text-amber-700">
+                      {item.viewCount || 0}
+                    </span>
+                  </td>
                   <td className="px-6 py-4">
                     <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${
                       item.status === 'in_stock' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
@@ -343,7 +351,7 @@ const AdminShop: React.FC = () => {
               ))}
               {filteredProducts.length === 0 && (
                 <tr>
-                  <td colSpan={5} className="px-6 py-12 text-center text-slate-500">
+                  <td colSpan={6} className="px-6 py-12 text-center text-slate-500">
                     <div className="flex flex-col items-center justify-center">
                       <ShoppingCart className="w-12 h-12 text-slate-300 mb-3" />
                       <p>ไม่พบข้อมูลสินค้า</p>

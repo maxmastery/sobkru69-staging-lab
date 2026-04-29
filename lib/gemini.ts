@@ -1,8 +1,19 @@
 import { GoogleGenAI, Type } from "@google/genai";
 
-// Initialize the Gemini API client
-// We use process.env.GEMINI_API_KEY as required by the environment
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+const getGeminiApiKey = () => {
+  const viteEnv = (import.meta as any).env || {};
+  const fromVite = viteEnv.VITE_GEMINI_API_KEY || viteEnv.GEMINI_API_KEY || '';
+  const fromProcess = typeof process !== 'undefined' ? process.env?.GEMINI_API_KEY || '' : '';
+  return fromVite || fromProcess;
+};
+
+const getAiClient = () => {
+  const apiKey = getGeminiApiKey();
+  if (!apiKey) {
+    throw new Error("ยังไม่ได้ตั้งค่า Gemini API Key");
+  }
+  return new GoogleGenAI({ apiKey });
+};
 
 export interface ExamQuestion {
   id: number;
@@ -14,6 +25,7 @@ export interface ExamQuestion {
 
 export async function generateMajorQuestions(major: string, count: number = 10): Promise<ExamQuestion[]> {
   try {
+    const ai = getAiClient();
     const response = await ai.models.generateContent({
       model: "gemini-3-flash-preview",
       contents: `สร้างข้อสอบปรนัย 4 ตัวเลือก สำหรับสอบบรรจุครูผู้ช่วย วิชาเอก${major} จำนวน ${count} ข้อ โดยอ้างอิงจากเนื้อหาที่มักออกสอบจริงย้อนหลัง 10 ปี`,
@@ -26,8 +38,8 @@ export async function generateMajorQuestions(major: string, count: number = 10):
             properties: {
               subject: { type: Type.STRING, description: "ชื่อวิชาเอก" },
               question: { type: Type.STRING, description: "โจทย์คำถาม" },
-              options: { 
-                type: Type.ARRAY, 
+              options: {
+                type: Type.ARRAY,
                 items: { type: Type.STRING },
                 description: "ตัวเลือก 4 ข้อ"
               },
@@ -56,6 +68,7 @@ export async function generateMajorQuestions(major: string, count: number = 10):
 
 export async function generateInterviewQuestions(count: number = 10): Promise<string[]> {
   try {
+    const ai = getAiClient();
     const response = await ai.models.generateContent({
       model: "gemini-3-flash-preview",
       contents: `สร้างคำถามสัมภาษณ์สำหรับการสอบบรรจุครูผู้ช่วย (ภาค ค ความเหมาะสมกับตำแหน่ง) จำนวน ${count} ข้อ ที่ใช้วัดทัศนคติ จิตวิญญาณความเป็นครู การแก้ปัญหาเฉพาะหน้า และวุฒิภาวะทางอารมณ์`,
@@ -83,7 +96,7 @@ export async function generateInterviewQuestions(count: number = 10): Promise<st
 }
 
 export interface InterviewEvaluation {
-  score: number; // 0-10
+  score: number;
   feedback: string;
   strengths: string;
   weaknesses: string;
@@ -91,6 +104,7 @@ export interface InterviewEvaluation {
 
 export async function evaluateInterviewAnswer(question: string, answer: string): Promise<InterviewEvaluation> {
   try {
+    const ai = getAiClient();
     const response = await ai.models.generateContent({
       model: "gemini-3-flash-preview",
       contents: `ประเมินคำตอบสัมภาษณ์ครูผู้ช่วย

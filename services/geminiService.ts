@@ -1,8 +1,19 @@
-
 import { GoogleGenAI, Type } from "@google/genai";
 
-// Initialize the client for general usage if needed
-export const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+const getGeminiApiKey = () => {
+  const viteEnv = (import.meta as any).env || {};
+  const fromVite = viteEnv.VITE_GEMINI_API_KEY || viteEnv.GEMINI_API_KEY || '';
+  const fromProcess = typeof process !== 'undefined' ? process.env?.GEMINI_API_KEY || '' : '';
+  return fromVite || fromProcess;
+};
+
+const getAiClient = () => {
+  const apiKey = getGeminiApiKey();
+  if (!apiKey) {
+    throw new Error('ยังไม่ได้ตั้งค่า Gemini API Key');
+  }
+  return new GoogleGenAI({ apiKey });
+};
 
 export const verifyPaymentSlip = async (base64Image: string): Promise<{
   isValid: boolean;
@@ -12,9 +23,9 @@ export const verifyPaymentSlip = async (base64Image: string): Promise<{
   message?: string;
 }> => {
   try {
-    // Remove data URL prefix if present
+    const ai = getAiClient();
     const base64Data = base64Image.replace(/^data:image\/(png|jpeg|jpg);base64,/, "");
-    
+
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash',
       contents: [
@@ -63,21 +74,22 @@ If ANY condition fails, set isValid to false and explain exactly why in the mess
       return JSON.parse(response.text);
     }
     return { isValid: false, message: "Could not parse response" };
-  } catch (error) {
+  } catch (error: any) {
     console.error("Slip verification error:", error);
-    return { isValid: false, message: "Error verifying slip" };
+    return { isValid: false, message: error?.message || "Error verifying slip" };
   }
 };
 
 export const generateQuizFromContent = async (
-  content: string, 
-  difficulty: 'easy' | 'hard', 
+  content: string,
+  difficulty: 'easy' | 'hard',
   count: number,
   specificTopic?: string
 ): Promise<any[]> => {
   try {
+    const ai = getAiClient();
     const model = 'gemini-2.5-flash';
-    
+
     let difficultyPrompt = "";
     if (difficulty === 'easy') {
       difficultyPrompt = "เน้นความจำและความเข้าใจพื้นฐาน (Remembering & Understanding) ถามตรงไปตรงมา ไม่ซับซ้อน";
@@ -91,7 +103,7 @@ export const generateQuizFromContent = async (
     }
 
     const response = await ai.models.generateContent({
-      model: model,
+      model,
       contents: `สร้างข้อสอบปรนัย (Multiple Choice) จำนวน ${count} ข้อ จากเนื้อหาต่อไปนี้
       
       บริบท: ข้อสอบสำหรับครูผู้ช่วย สังกัด สพฐ.
@@ -103,7 +115,7 @@ export const generateQuizFromContent = async (
       ${content.substring(0, 100000)} 
       
       คำแนะนำสำคัญ:
-      - หากมีสัญลักษณ์ทางคณิตศาสตร์ ให้ใช้ LaTeX โดยครอบด้วยเครื่องหมาย $ เช่น $x^2$, $\frac{1}{2}$
+      - หากมีสัญลักษณ์ทางคณิตศาสตร์ ให้ใช้ LaTeX โดยครอบด้วยเครื่องหมาย $ เช่น $x^2$, $\\frac{1}{2}$
       - ตรวจสอบความถูกต้องของโจทย์และตัวเลือกให้ดีที่สุด
       - เฉพาะในช่องคำตอบให้ใช้ดัชนีเป็นตัวเลข 0, 1, 2, 3
       `,
@@ -116,8 +128,8 @@ export const generateQuizFromContent = async (
             properties: {
               id: { type: Type.INTEGER },
               question: { type: Type.STRING, description: "คำถาม" },
-              options: { 
-                type: Type.ARRAY, 
+              options: {
+                type: Type.ARRAY,
                 items: { type: Type.STRING },
                 description: "ตัวเลือก 4 ข้อ (ก, ข, ค, ง) ใส่เฉพาะข้อความตัวเลือก ไม่ต้องใส่ ก. ข."
               },

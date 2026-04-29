@@ -166,6 +166,14 @@ export interface BellNotification {
   isRead?: boolean;
 }
 
+export interface MaintenanceModeState {
+  isActive: boolean;
+  title: string;
+  message: string;
+  startAt?: string;
+  endAt?: string;
+}
+
 export interface UserUiState {
   readNotificationIds: string[];
   readSupportMessageIds: string[];
@@ -184,6 +192,14 @@ const emptyUiState = (): UserUiState => ({
   readNotificationIds: [],
   readSupportMessageIds: [],
   popupSeenMap: {},
+});
+
+const defaultMaintenanceMode = (): MaintenanceModeState => ({
+  isActive: false,
+  title: 'ปิดปรับปรุงระบบชั่วคราว',
+  message: 'ระบบอยู่ระหว่างอัปเดตและปรับปรุงประสิทธิภาพ ขออภัยในความไม่สะดวก',
+  startAt: '',
+  endAt: '',
 });
 
 const safeStorage = {
@@ -1297,6 +1313,43 @@ export const authService = {
       value: {
         text,
         isActive,
+      },
+      updated_at: new Date().toISOString(),
+    }, 'key');
+    return { success: true };
+  },
+
+  async getMaintenanceMode(): Promise<{ success: boolean; maintenance: MaintenanceModeState }> {
+    try {
+      const rows = await supabaseRest.select<AppSettingRow[]>('app_settings', `select=*&key=eq.${encodeValue('maintenance_mode')}&limit=1`);
+      const value = rows?.[0]?.value || {};
+      return {
+        success: true,
+        maintenance: {
+          isActive: Boolean(value.isActive),
+          title: value.title || defaultMaintenanceMode().title,
+          message: value.message || defaultMaintenanceMode().message,
+          startAt: value.startAt || '',
+          endAt: value.endAt || '',
+        },
+      };
+    } catch {
+      return {
+        success: true,
+        maintenance: defaultMaintenanceMode(),
+      };
+    }
+  },
+
+  async setMaintenanceMode(maintenance: MaintenanceModeState): Promise<{ success: boolean }> {
+    await supabaseRest.upsert<AppSettingRow[]>('app_settings', {
+      key: 'maintenance_mode',
+      value: {
+        isActive: maintenance.isActive,
+        title: maintenance.title,
+        message: maintenance.message,
+        startAt: maintenance.startAt || '',
+        endAt: maintenance.endAt || '',
       },
       updated_at: new Date().toISOString(),
     }, 'key');

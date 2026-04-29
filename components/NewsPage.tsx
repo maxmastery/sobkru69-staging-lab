@@ -29,6 +29,15 @@ const NewsPage: React.FC<NewsPageProps> = ({ onBack }) => {
     loadNews();
   }, []);
 
+  const openNews = async (item: NewsItem) => {
+    setSelectedNews(item);
+    try {
+      await contentService.recordContentView('news', item.id);
+    } catch (error) {
+      console.error('Failed to record news view', error);
+    }
+  };
+
   if (selectedNews) {
     return (
       <div className="w-full max-w-[800px] mx-auto px-6 md:px-0 pt-8 md:pt-[60px] pb-12 animate-in fade-in duration-300">
@@ -97,8 +106,8 @@ const NewsPage: React.FC<NewsPageProps> = ({ onBack }) => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {news.map((item) => (
             <div 
-              key={item.id} 
-              onClick={() => setSelectedNews(item)}
+              key={item.id}
+              onClick={() => void openNews(item)}
               className="bg-white rounded-2xl border border-slate-200 overflow-hidden transition-shadow flex flex-col h-full group cursor-pointer"
             >
               <div className="h-48 bg-slate-100 overflow-hidden relative">
@@ -120,7 +129,7 @@ const NewsPage: React.FC<NewsPageProps> = ({ onBack }) => {
                   <button 
                     onClick={(e) => {
                       e.stopPropagation();
-                      setSelectedNews(item);
+                      void openNews(item);
                     }}
                     className="w-full py-2.5 px-4 bg-slate-50 hover:bg-blue-600 hover:text-white text-blue-600 rounded-xl font-semibold text-sm transition-all flex items-center justify-center gap-2 border border-slate-100 group/btn"
                   >

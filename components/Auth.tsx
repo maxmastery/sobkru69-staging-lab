@@ -1,12 +1,14 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Mail, Lock, User, ArrowRight, Loader2, GraduationCap, Eye, EyeOff, MapPin, Hash, CalendarDays, AlertTriangle, X } from 'lucide-react';
-import { authService, User as AuthUser } from '../services/authService';
+import { authService, MaintenanceModeState, User as AuthUser } from '../services/authService';
 import { contentService } from '../services/contentService';
 import { EXAM_COUNT_OPTIONS, GENDER_OPTIONS, MAJORS, PROVINCES } from '../constants/profileOptions';
 
 interface AuthProps {
   onLogin: (user: AuthUser) => void | Promise<void>;
   initialError?: string;
+  maintenanceMode?: MaintenanceModeState;
+  adminOnlyMode?: boolean;
 }
 
 const InAppBrowserWarning: React.FC = () => {
@@ -44,7 +46,7 @@ const InAppBrowserWarning: React.FC = () => {
   );
 };
 
-const Auth: React.FC<AuthProps> = ({ onLogin, initialError = '' }) => {
+const Auth: React.FC<AuthProps> = ({ onLogin, initialError = '', maintenanceMode, adminOnlyMode = false }) => {
   const [isLogin, setIsLogin] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(initialError);
@@ -100,6 +102,11 @@ const Auth: React.FC<AuthProps> = ({ onLogin, initialError = '' }) => {
 
   const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    const identifier = formData.email.trim();
+    if (maintenanceMode?.isActive && identifier !== 'Krumax') {
+      setError('ระบบอยู่ในช่วงปิดปรับปรุงชั่วคราว ขณะนี้เปิดให้เฉพาะผู้ดูแลระบบเข้าใช้งาน');
+      return;
+    }
     setIsLoading(true);
     setError('');
     setNotice('');
@@ -120,6 +127,10 @@ const Auth: React.FC<AuthProps> = ({ onLogin, initialError = '' }) => {
 
   const handleRegisterSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (maintenanceMode?.isActive) {
+      setError('ระบบอยู่ในช่วงปิดปรับปรุงชั่วคราว ยังไม่เปิดรับสมัครสมาชิกในขณะนี้');
+      return;
+    }
     if (!formData.name) {
       setError('กรุณากรอกชื่อผู้ใช้งาน');
       return;
@@ -168,6 +179,10 @@ const Auth: React.FC<AuthProps> = ({ onLogin, initialError = '' }) => {
   };
 
   const handleGoogleLogin = async () => {
+    if (maintenanceMode?.isActive) {
+      setError('ระบบอยู่ในช่วงปิดปรับปรุงชั่วคราว ปิดการเข้าสู่ระบบสำหรับผู้ใช้ทั่วไปชั่วคราว');
+      return;
+    }
     setIsLoading(true);
     setError('');
     setNotice('');
@@ -238,8 +253,15 @@ const Auth: React.FC<AuthProps> = ({ onLogin, initialError = '' }) => {
           <div className="flex flex-col items-center text-center mb-8 mt-4">
             <h1 className="text-3xl font-bold text-slate-900 tracking-tight mb-6">SOBKRU <span className="text-amber-500">69</span></h1>
             <h2 className="text-2xl font-bold text-slate-800 mb-2">ระบบติวสอบครูออนไลน์ฟรี</h2>
-            <p className="text-slate-500">กรุณากรอกข้อมูลเพื่อเข้าสู่ระบบเตรียมสอบ</p>
+            <p className="text-slate-500">{adminOnlyMode ? 'โหมดปิดปรับปรุง เปิดให้ผู้ดูแลระบบเข้าใช้งานเท่านั้น' : 'กรุณากรอกข้อมูลเพื่อเข้าสู่ระบบเตรียมสอบ'}</p>
           </div>
+
+          {maintenanceMode?.isActive && (
+            <div className="mb-5 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+              <div className="font-bold mb-1">{maintenanceMode.title || 'ปิดปรับปรุงระบบชั่วคราว'}</div>
+              <div className="leading-relaxed">{maintenanceMode.message}</div>
+            </div>
+          )}
 
           <form onSubmit={handleLoginSubmit} className="space-y-5 pb-8">
             <div className="space-y-1.5">
@@ -306,29 +328,33 @@ const Auth: React.FC<AuthProps> = ({ onLogin, initialError = '' }) => {
               )}
             </button>
 
-            <div className="relative py-1">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-slate-200"></div>
+            {!adminOnlyMode && (
+              <div className="relative py-1">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-slate-200"></div>
+                </div>
+                <div className="relative flex justify-center">
+                  <span className="bg-white px-3 text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">หรือ</span>
+                </div>
               </div>
-              <div className="relative flex justify-center">
-                <span className="bg-white px-3 text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">หรือ</span>
-              </div>
-            </div>
+            )}
 
-            <button
-              type="button"
-              onClick={handleGoogleLogin}
-              disabled={isLoading}
-              className="w-full py-3.5 px-4 bg-white border border-slate-200 hover:bg-slate-50 text-slate-800 rounded-xl font-semibold transition-all flex items-center justify-center gap-3 disabled:opacity-70 disabled:cursor-not-allowed"
-            >
-              <svg className="w-5 h-5" viewBox="0 0 24 24" aria-hidden="true">
-                <path fill="#EA4335" d="M12 10.2v3.9h5.5c-.2 1.3-1.5 3.8-5.5 3.8-3.3 0-6-2.8-6-6.2s2.7-6.2 6-6.2c1.9 0 3.2.8 3.9 1.5l2.6-2.5C16.8 2.8 14.6 2 12 2 6.9 2 2.8 6.4 2.8 11.7S6.9 21.5 12 21.5c6.9 0 8.6-4.9 8.6-7.4 0-.5 0-.8-.1-1.2H12z" />
-                <path fill="#4285F4" d="M3.8 7.1l3.2 2.4C7.8 7.7 9.7 6.3 12 6.3c1.9 0 3.2.8 3.9 1.5l2.6-2.5C16.8 3.8 14.6 3 12 3 8.4 3 5.2 5.1 3.8 8.1z" />
-                <path fill="#FBBC05" d="M3 12c0 1.7.4 3.2 1.2 4.6l3.5-2.7c-.2-.6-.3-1.2-.3-1.9s.1-1.3.3-1.9L4.2 7.4C3.4 8.8 3 10.3 3 12z" />
-                <path fill="#34A853" d="M12 21c2.5 0 4.7-.8 6.3-2.3l-3-2.5c-.8.6-1.9 1.1-3.3 1.1-2.3 0-4.2-1.5-4.9-3.6l-3.4 2.6C5.1 18.9 8.2 21 12 21z" />
-              </svg>
-              เข้าสู่ระบบด้วย Google
-            </button>
+            {!adminOnlyMode && (
+              <button
+                type="button"
+                onClick={handleGoogleLogin}
+                disabled={isLoading}
+                className="w-full py-3.5 px-4 bg-white border border-slate-200 hover:bg-slate-50 text-slate-800 rounded-xl font-semibold transition-all flex items-center justify-center gap-3 disabled:opacity-70 disabled:cursor-not-allowed"
+              >
+                <svg className="w-5 h-5" viewBox="0 0 24 24" aria-hidden="true">
+                  <path fill="#EA4335" d="M12 10.2v3.9h5.5c-.2 1.3-1.5 3.8-5.5 3.8-3.3 0-6-2.8-6-6.2s2.7-6.2 6-6.2c1.9 0 3.2.8 3.9 1.5l2.6-2.5C16.8 2.8 14.6 2 12 2 6.9 2 2.8 6.4 2.8 11.7S6.9 21.5 12 21.5c6.9 0 8.6-4.9 8.6-7.4 0-.5 0-.8-.1-1.2H12z" />
+                  <path fill="#4285F4" d="M3.8 7.1l3.2 2.4C7.8 7.7 9.7 6.3 12 6.3c1.9 0 3.2.8 3.9 1.5l2.6-2.5C16.8 3.8 14.6 3 12 3 8.4 3 5.2 5.1 3.8 8.1z" />
+                  <path fill="#FBBC05" d="M3 12c0 1.7.4 3.2 1.2 4.6l3.5-2.7c-.2-.6-.3-1.2-.3-1.9s.1-1.3.3-1.9L4.2 7.4C3.4 8.8 3 10.3 3 12z" />
+                  <path fill="#34A853" d="M12 21c2.5 0 4.7-.8 6.3-2.3l-3-2.5c-.8.6-1.9 1.1-3.3 1.1-2.3 0-4.2-1.5-4.9-3.6l-3.4 2.6C5.1 18.9 8.2 21 12 21z" />
+                </svg>
+                เข้าสู่ระบบด้วย Google
+              </button>
+            )}
 
             {notice && (
               <div className="p-3 rounded-lg bg-emerald-50 border border-emerald-100 text-emerald-700 text-sm text-center font-medium">
@@ -337,7 +363,7 @@ const Auth: React.FC<AuthProps> = ({ onLogin, initialError = '' }) => {
             )}
             
             {/* Mobile Switcher */}
-            <div className="sm:hidden text-center pt-4 border-t border-slate-100">
+            {!adminOnlyMode && <div className="sm:hidden text-center pt-4 border-t border-slate-100">
               <p className="text-slate-500 text-sm mb-2">ยังไม่มีบัญชีผู้ใช้งาน?</p>
               <button 
                 type="button"
@@ -346,12 +372,12 @@ const Auth: React.FC<AuthProps> = ({ onLogin, initialError = '' }) => {
               >
                 สมัครสมาชิกใหม่
               </button>
-            </div>
+            </div>}
           </form>
         </div>
 
         {/* ================= ซีกขวา: ฟอร์มสมัครสมาชิก (ตรึงอยู่กับที่) ================= */}
-        <div className={`absolute top-0 right-0 w-full sm:w-1/2 h-full bg-white z-0 flex flex-col justify-center px-8 sm:px-12 py-8 overflow-y-auto custom-scrollbar transition-transform duration-500 ${!isLogin ? 'translate-x-0' : 'translate-x-full sm:translate-x-0'}`}>
+        {!adminOnlyMode && <div className={`absolute top-0 right-0 w-full sm:w-1/2 h-full bg-white z-0 flex flex-col justify-center px-8 sm:px-12 py-8 overflow-y-auto custom-scrollbar transition-transform duration-500 ${!isLogin ? 'translate-x-0' : 'translate-x-full sm:translate-x-0'}`}>
           <div className="flex flex-col items-center text-center mb-6 mt-4">
             <h1 className="text-3xl font-bold text-slate-900 tracking-tight mb-2">SOBKRU <span className="text-amber-500">69</span></h1>
             <h2 className="text-xl font-bold text-slate-800 mb-1">สร้างบัญชีใหม่</h2>
@@ -575,10 +601,10 @@ const Auth: React.FC<AuthProps> = ({ onLogin, initialError = '' }) => {
               </button>
             </div>
           </form>
-        </div>
+        </div>}
 
         {/* ================= แผ่นรูปภาพแบบสไลด์ (ซ้อนทับอยู่ด้านบนสุด) - แสดงเฉพาะจอใหญ่ ================= */}
-        <div 
+        {!adminOnlyMode && <div 
           className="absolute top-0 left-0 w-1/2 h-full z-20 shadow-[0_0_40px_rgba(0,0,0,0.3)] overflow-hidden hidden sm:block"
           style={{ 
             transform: isLogin ? 'translateX(100%)' : 'translateX(0%)',
@@ -663,7 +689,7 @@ const Auth: React.FC<AuthProps> = ({ onLogin, initialError = '' }) => {
             </div>
           </div>
 
-        </div>
+        </div>}
 
       </div>
     </div>

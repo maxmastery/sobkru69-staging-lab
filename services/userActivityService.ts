@@ -28,6 +28,13 @@ type QuizAttemptRow = {
   completed_at: string;
 };
 
+type UserSessionRow = {
+  user_id: string;
+  user_name: string;
+  current_page: string;
+  last_active_at: string;
+};
+
 const encodeValue = (value: string) => encodeURIComponent(value);
 
 const ensureSupabase = () => {
@@ -53,6 +60,21 @@ export const getStoredUser = (): User | null => {
 };
 
 export const userActivityService = {
+  async upsertSession(userId: string, userName: string, currentPage: string) {
+    ensureSupabase();
+    await supabaseRest.upsert<UserSessionRow[]>('user_sessions', {
+      user_id: userId,
+      user_name: userName || '',
+      current_page: currentPage || 'dashboard',
+      last_active_at: new Date().toISOString(),
+    }, 'user_id');
+  },
+
+  async getOnlineSessions(): Promise<UserSessionRow[]> {
+    ensureSupabase();
+    return supabaseRest.select<UserSessionRow[]>('user_sessions', 'select=user_id,user_name,current_page,last_active_at&order=last_active_at.desc&limit=500');
+  },
+
   async getCompletedChapterIds(userId: string, topicId: string): Promise<string[]> {
     ensureSupabase();
     const rows = await supabaseRest.select<LessonProgressRow[]>('lesson_progress', `select=chapter_id&user_id=eq.${encodeValue(userId)}&topic_id=eq.${encodeValue(topicId)}`);
@@ -261,4 +283,3 @@ export const userActivityService = {
     };
   },
 };
-

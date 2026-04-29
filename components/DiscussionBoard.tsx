@@ -42,6 +42,17 @@ const DiscussionBoard: React.FC<DiscussionBoardProps> = ({ onBack, currentUser }
     loadBoardData();
   }, []);
 
+  const openThread = async (thread: DiscussionThread) => {
+    setActiveThread(thread);
+    setView('thread');
+
+    try {
+      await contentService.recordContentView('discussion', thread.id);
+    } catch (error) {
+      console.error('Failed to record discussion view', error);
+    }
+  };
+
   const loadBoardData = async (threadId?: string) => {
     setIsLoading(true);
     try {
@@ -386,7 +397,7 @@ const DiscussionBoard: React.FC<DiscussionBoardProps> = ({ onBack, currentUser }
           ) : paginatedThreads.length > 0 ? (
             <div className="space-y-4">
               {paginatedThreads.map((thread) => (
-                <div key={thread.id} onClick={() => { setActiveThread(thread); setView('thread'); }} className={`bg-white p-6 rounded-2xl border ${thread.isHighlighted ? 'border-amber-400 bg-amber-50/30' : 'border-slate-200'} hover:border-indigo-300 transition-colors cursor-pointer group`}>
+                <div key={thread.id} onClick={() => void openThread(thread)} className={`bg-white p-6 rounded-2xl border ${thread.isHighlighted ? 'border-amber-400 bg-amber-50/30' : 'border-slate-200'} hover:border-indigo-300 transition-colors cursor-pointer group`}>
                   <div className="flex flex-col md:flex-row gap-4 md:items-center justify-between mb-3">
                     <div className="flex items-center gap-3">
                       {thread.isHighlighted && (

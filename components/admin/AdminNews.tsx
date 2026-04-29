@@ -13,6 +13,7 @@ export interface NewsItem {
   imageUrl: string;
   date: string;
   status: 'published' | 'draft';
+  viewCount: number;
 }
 
 const AdminNews: React.FC = () => {
@@ -67,7 +68,8 @@ const AdminNews: React.FC = () => {
       source: '',
       imageUrl: '',
       date: new Date().toISOString().split('T')[0],
-      status: 'published'
+      status: 'published',
+      viewCount: 0,
     });
     setIsEditing(true);
   };
@@ -327,6 +329,7 @@ const AdminNews: React.FC = () => {
                 <th className="px-6 py-4 text-sm font-semibold text-slate-600 w-24">รูปภาพ</th>
                 <th className="px-6 py-4 text-sm font-semibold text-slate-600 w-auto">หัวข้อข่าว</th>
                 <th className="px-6 py-4 text-sm font-semibold text-slate-600 w-32">ผู้โพสต์</th>
+                <th className="px-6 py-4 text-sm font-semibold text-slate-600 w-28 text-center">คนอ่าน</th>
                 <th className="px-6 py-4 text-sm font-semibold text-slate-600 w-32">วันที่</th>
                 <th className="px-6 py-4 text-sm font-semibold text-slate-600 w-28">สถานะ</th>
                 <th className="px-6 py-4 text-sm font-semibold text-slate-600 w-24 text-right">จัดการ</th>
@@ -335,7 +338,7 @@ const AdminNews: React.FC = () => {
             <tbody>
               {isLoading && filteredNews.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center text-slate-500">
+                  <td colSpan={7} className="px-6 py-12 text-center text-slate-500">
                     กำลังโหลดข้อมูลข่าวสาร...
                   </td>
                 </tr>
@@ -356,6 +359,11 @@ const AdminNews: React.FC = () => {
                     <div className="text-[10px] text-slate-400 mt-1 break-all line-clamp-1">{item.source}</div>
                   </td>
                   <td className="px-6 py-4 text-sm text-slate-600">{item.author}</td>
+                  <td className="px-6 py-4 text-center">
+                    <span className="inline-flex min-w-14 items-center justify-center rounded-full bg-blue-50 px-3 py-1.5 text-sm font-bold text-blue-700">
+                      {item.viewCount || 0}
+                    </span>
+                  </td>
                   <td className="px-6 py-4 text-sm text-slate-600">{item.date}</td>
                   <td className="px-6 py-4">
                     <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${
@@ -376,7 +384,7 @@ const AdminNews: React.FC = () => {
               ))}
               {filteredNews.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center text-slate-500">
+                  <td colSpan={7} className="px-6 py-12 text-center text-slate-500">
                     <div className="flex flex-col items-center justify-center">
                       <Newspaper className="w-12 h-12 text-slate-300 mb-3" />
                       <p>ไม่พบข้อมูลข่าวสาร</p>
