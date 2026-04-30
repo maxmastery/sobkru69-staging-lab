@@ -1269,13 +1269,57 @@ export const authService = {
     }
   },
 
-  async deleteUser(userId: string): Promise<{ success: boolean; message?: string }> {
+  async setUserActive(userId: string, isActive: boolean): Promise<{ success: boolean; user?: User; message?: string }> {
     try {
-      const result = await supabaseRest.rpc<boolean>('deactivate_user_profile', {
+      const rows = await supabaseRest.rpc<UserProfileRow[]>('set_user_profile_active', {
+        p_user_id: userId,
+        p_is_active: isActive,
+      });
+      return {
+        success: true,
+        user: rows?.[0] ? mapProfileRowToUser(rows[0]) : undefined,
+      };
+    } catch (error: any) {
+      if (!isActive) {
+        try {
+          const result = await supabaseRest.rpc<boolean>('deactivate_user_profile', {
+            p_user_id: userId,
+          });
+          return {
+            success: Boolean(result),
+            message: result ? undefined : 'ไม่พบบัญชีผู้ใช้ที่ต้องการปิดใช้งาน',
+          };
+        } catch {
+          return {
+            success: false,
+            message: error?.message || 'ไม่สามารถปิดการใช้งานผู้ใช้ได้',
+          };
+        }
+      }
+
+      return {
+        success: false,
+        message: error?.message || 'ไม่สามารถเปิดใช้งานผู้ใช้ได้ กรุณารัน SQL patch ล่าสุดใน Supabase ก่อน',
+      };
+    }
+  },
+
+  async deactivateUser(userId: string): Promise<{ success: boolean; user?: User; message?: string }> {
+    return this.setUserActive(userId, false);
+  },
+
+  async reactivateUser(userId: string): Promise<{ success: boolean; user?: User; message?: string }> {
+    return this.setUserActive(userId, true);
+  },
+
+  async deleteUserPermanently(userId: string): Promise<{ success: boolean; message?: string }> {
+    try {
+      const result = await supabaseRest.rpc<boolean>('delete_user_profile_full', {
         p_user_id: userId,
       });
       return {
         success: Boolean(result),
+        message: result ? undefined : 'ไม่พบบัญชีผู้ใช้ที่ต้องการลบ',
       };
     } catch (error: any) {
       try {
@@ -1286,10 +1330,14 @@ export const authService = {
       } catch {
         return {
           success: false,
-          message: error?.message || 'ไม่สามารถปิดการใช้งานผู้ใช้ได้',
+          message: error?.message || 'ไม่สามารถลบผู้ใช้ออกจากฐานข้อมูลได้ กรุณารัน SQL patch ล่าสุดใน Supabase ก่อน',
         };
       }
     }
+  },
+
+  async deleteUser(userId: string): Promise<{ success: boolean; message?: string }> {
+    return this.deactivateUser(userId);
   },
 
   async getUserUiState(userId: string): Promise<{ success: boolean; state: UserUiState; message?: string }> {

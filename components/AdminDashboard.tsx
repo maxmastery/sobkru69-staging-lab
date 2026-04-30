@@ -60,7 +60,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, onPreviewShop,
   // Editing & Viewing User State
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [viewingUser, setViewingUser] = useState<User | null>(null);
-  const [userToDelete, setUserToDelete] = useState<string | null>(null);
+  const [userActionTarget, setUserActionTarget] = useState<{ id: string; action: 'deactivate' | 'reactivate' | 'delete' } | null>(null);
   const [editFormData, setEditFormData] = useState({ name: '', email: '', password: '' });
 
   const getAuthProviderLabel = (provider?: string) => {
@@ -322,23 +322,41 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, onPreviewShop,
     }
   };
 
-  const handleDeleteUser = (id: string) => {
-    setUserToDelete(id);
+  const handleUserAction = (id: string, action: 'deactivate' | 'reactivate' | 'delete') => {
+    setUserActionTarget({ id, action });
   };
 
-  const confirmDeleteUser = async () => {
-    if (!userToDelete) return;
+  const confirmUserAction = async () => {
+    if (!userActionTarget) return;
     setIsLoading(true);
     try {
-      const res = await authService.deleteUser(userToDelete);
+      const { id, action } = userActionTarget;
+      const res =
+        action === 'delete'
+          ? await authService.deleteUserPermanently(id)
+          : action === 'reactivate'
+            ? await authService.reactivateUser(id)
+            : await authService.deactivateUser(id);
+
       if (res.success) {
-        setUsers(users.filter(u => u.id !== userToDelete));
+        if (action === 'delete') {
+          setUsers(users.filter(u => u.id !== id));
+        } else if ('user' in res && res.user) {
+          setUsers(users.map(u => u.id === id ? res.user! : u));
+        } else {
+          setUsers(users.map(u => u.id === id ? { ...u, isActive: action === 'reactivate' } : u));
+        }
+        setSaveMessage(action === 'delete' ? 'ลบผู้ใช้ออกจากฐานข้อมูลแล้ว' : action === 'reactivate' ? 'เปิดใช้งานบัญชีแล้ว' : 'ปิดใช้งานบัญชีชั่วคราวแล้ว');
+        setTimeout(() => setSaveMessage(''), 3000);
+      } else if (res.message) {
+        setSaveMessage(res.message);
+        setTimeout(() => setSaveMessage(''), 4500);
       }
     } catch (error) {
-      console.error("Failed to delete user", error);
+      console.error("Failed to update user action", error);
     } finally {
       setIsLoading(false);
-      setUserToDelete(null);
+      setUserActionTarget(null);
     }
   };
 
@@ -808,7 +826,18 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, onPreviewShop,
                           <button onClick={() => handleEditClick(u)} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="แก้ไข">
                             <Edit2 className="w-4 h-4" />
                           </button>
-                          <button onClick={() => handleDeleteUser(u.id)} className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="ลบ">
+                          <button
+                            onClick={() => handleUserAction(u.id, u.isActive === false ? 'reactivate' : 'deactivate')}
+                            className={`p-2 rounded-lg transition-colors ${
+                              u.isActive === false
+                                ? 'text-emerald-600 hover:bg-emerald-50'
+                                : 'text-amber-600 hover:bg-amber-50'
+                            }`}
+                            title={u.isActive === false ? 'เปิดใช้งานบัญชี' : 'ปิดใช้งานชั่วคราว'}
+                          >
+                            <UserCheck className="w-4 h-4" />
+                          </button>
+                          <button onClick={() => handleUserAction(u.id, 'delete')} className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="ลบถาวร">
                             <Trash2 className="w-4 h-4" />
                           </button>
                         </td>
@@ -1270,33 +1299,55 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, onPreviewShop,
           </div>
         </div>
       )}
-      {/* Delete User Confirmation Modal */}
-      {userToDelete && (
+      {/* User Action Confirmation Modal */}
+      {userActionTarget && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-2xl max-w-sm w-full p-6 animate-in fade-in zoom-in duration-200">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 animate-in fade-in zoom-in duration-200">
             <div className="flex flex-col items-center text-center">
-              <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center mb-4">
-                <Trash2 className="w-6 h-6 text-red-600" />
+              <div className={`w-12 h-12 rounded-full flex items-center justify-center mb-4 ${
+                userActionTarget.action === 'delete'
+                  ? 'bg-red-100 text-red-600'
+                  : userActionTarget.action === 'reactivate'
+                    ? 'bg-emerald-100 text-emerald-600'
+                    : 'bg-amber-100 text-amber-600'
+              }`}>
+                {userActionTarget.action === 'delete' ? <Trash2 className="w-6 h-6" /> : <UserCheck className="w-6 h-6" />}
               </div>
-              <h3 className="text-xl font-bold text-slate-900 mb-2">ยืนยันการลบผู้ใช้งาน</h3>
-              <p className="text-slate-500 text-sm mb-6">
-                ระบบจะปิดการใช้งานบัญชีนี้ในฐานข้อมูลหลัก เพื่อป้องกันการเข้าถึงต่อ โดยยังคงข้อมูลไว้สำหรับตรวจสอบย้อนหลัง
+              <h3 className="text-xl font-bold text-slate-900 mb-2">
+                {userActionTarget.action === 'delete'
+                  ? 'ยืนยันการลบผู้ใช้งานถาวร'
+                  : userActionTarget.action === 'reactivate'
+                    ? 'ยืนยันเปิดใช้งานบัญชี'
+                    : 'ยืนยันปิดใช้งานชั่วคราว'}
+              </h3>
+              <p className="text-slate-500 text-sm leading-6 mb-6">
+                {userActionTarget.action === 'delete'
+                  ? 'ระบบจะลบข้อมูลผู้ใช้นี้ออกจากฐานข้อมูลทั้งหมดที่ผูกกับบัญชี เช่น โปรไฟล์ สถิติเรียน session ข้อความ และข้อมูลกิจกรรม การกระทำนี้ย้อนกลับไม่ได้'
+                  : userActionTarget.action === 'reactivate'
+                    ? 'บัญชีนี้จะกลับมาใช้งานได้ตามปกติ'
+                    : 'ระบบจะปิดการใช้งานบัญชีนี้ชั่วคราว โดยยังเก็บข้อมูลไว้สำหรับตรวจสอบย้อนหลัง และสามารถเปิดใช้งานใหม่ได้'}
               </p>
               <div className="flex gap-3 w-full">
                 <button
                   type="button"
-                  onClick={() => setUserToDelete(null)}
+                  onClick={() => setUserActionTarget(null)}
                   className="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 text-slate-700 font-medium hover:bg-slate-50 transition-colors"
                 >
                   ยกเลิก
                 </button>
                 <button
                   type="button"
-                  onClick={confirmDeleteUser}
+                  onClick={confirmUserAction}
                   disabled={isLoading}
-                  className="flex-1 px-4 py-2.5 rounded-xl bg-red-600 text-white font-medium hover:bg-red-700 disabled:opacity-70 flex items-center justify-center transition-colors"
+                  className={`flex-1 px-4 py-2.5 rounded-xl text-white font-medium disabled:opacity-70 flex items-center justify-center transition-colors ${
+                    userActionTarget.action === 'delete'
+                      ? 'bg-red-600 hover:bg-red-700'
+                      : userActionTarget.action === 'reactivate'
+                        ? 'bg-emerald-600 hover:bg-emerald-700'
+                        : 'bg-amber-500 hover:bg-amber-600'
+                  }`}
                 >
-                  {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'ปิดการใช้งาน'}
+                  {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : userActionTarget.action === 'delete' ? 'ลบถาวร' : userActionTarget.action === 'reactivate' ? 'เปิดใช้งาน' : 'ปิดใช้งาน'}
                 </button>
               </div>
             </div>
