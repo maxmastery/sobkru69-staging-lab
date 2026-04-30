@@ -27,6 +27,7 @@ const ShopPage: React.FC<ShopPageProps> = ({ onBack }) => {
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [subjectFilter, setSubjectFilter] = useState('all');
   const [sortOrder, setSortOrder] = useState('newest');
+  const [showFilters, setShowFilters] = useState(false);
 
   useEffect(() => {
     const loadProducts = async () => {
@@ -210,39 +211,54 @@ const ShopPage: React.FC<ShopPageProps> = ({ onBack }) => {
         <ArrowLeft className="w-5 h-5 mr-2" />
         กลับหน้าหลัก
       </button>
-      <div className="mb-8 border-b border-slate-200 pb-4">
-        <h1 className="text-3xl md:text-4xl font-black text-slate-900">E-book แนะนำสำหรับคุณ</h1>
-      </div>
+      <div className="mb-10 border-b border-slate-200 pb-5">
+        <div className="grid items-end gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(460px,520px)]">
+          <h1 className="text-3xl md:text-4xl font-black text-slate-900">E-book แนะนำสำหรับคุณ</h1>
+          <div className="flex w-full items-center gap-2 rounded-full border border-slate-200 bg-white/85 p-1.5 shadow-[0_14px_32px_rgba(15,23,42,.06)] backdrop-blur">
+            <label className="relative min-w-0 flex-1">
+              <Search className="absolute left-4 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-[#FA6B19]" />
+              <input
+                value={searchTerm}
+                onChange={(event) => setSearchTerm(event.target.value)}
+                placeholder="ค้นหาชื่อสินค้า หรือคำสำคัญ..."
+                className="h-11 w-full rounded-full border border-transparent bg-transparent pl-10 pr-3 text-sm font-bold text-slate-800 outline-none transition-all placeholder:text-slate-400 focus:bg-orange-50/70"
+              />
+            </label>
+            <button
+              type="button"
+              onClick={() => setShowFilters((current) => !current)}
+              className={`inline-flex h-11 shrink-0 items-center gap-2 rounded-full px-4 text-sm font-black transition-all ${
+                showFilters
+                  ? 'bg-[#FA6B19] text-white shadow-[0_10px_24px_rgba(250,107,25,.24)]'
+                  : 'bg-slate-950 text-white hover:bg-slate-800'
+              }`}
+            >
+              <SlidersHorizontal className="h-4 w-4" />
+              กรองการค้นหา
+            </button>
+          </div>
+        </div>
 
-      <div className="mb-12 grid gap-3 rounded-[32px] border border-orange-100/70 bg-[linear-gradient(135deg,rgba(255,255,255,.96),rgba(255,247,237,.82))] p-3 shadow-[0_18px_45px_rgba(15,23,42,.08)] ring-1 ring-white/70 backdrop-blur md:grid-cols-[1.35fr_.8fr_.8fr_.8fr]">
-        <label className="relative">
-          <Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-orange-400" />
-          <input
-            value={searchTerm}
-            onChange={(event) => setSearchTerm(event.target.value)}
-            placeholder="ค้นหาชื่อสินค้า หรือคำสำคัญ..."
-            className="h-[52px] w-full rounded-[22px] border border-white bg-white/90 pl-11 pr-4 text-sm font-bold text-slate-800 shadow-inner shadow-slate-900/[.03] outline-none transition-all placeholder:text-slate-400 focus:border-orange-300 focus:bg-white focus:ring-4 focus:ring-orange-100"
-          />
-        </label>
-        <label className="relative">
-          <SlidersHorizontal className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-orange-400" />
-          <select value={categoryFilter} onChange={(event) => setCategoryFilter(event.target.value)} className="h-[52px] w-full appearance-none rounded-[22px] border border-white bg-white/90 pl-11 pr-4 text-sm font-black text-slate-800 shadow-inner shadow-slate-900/[.03] outline-none transition-all focus:border-orange-300 focus:bg-white focus:ring-4 focus:ring-orange-100">
-            <option value="all">ทุกภาค</option>
-            <option value="part_a">ภาค ก</option>
-            <option value="part_b">ภาค ข</option>
-            <option value="part_c">ภาค ค</option>
-          </select>
-        </label>
-        <select value={subjectFilter} onChange={(event) => setSubjectFilter(event.target.value)} className="h-[52px] rounded-[22px] border border-white bg-white/90 px-4 text-sm font-black text-slate-800 shadow-inner shadow-slate-900/[.03] outline-none transition-all focus:border-orange-300 focus:bg-white focus:ring-4 focus:ring-orange-100">
-          <option value="all">ทุกวิชา</option>
-          {subjects.map(subject => <option key={subject} value={subject}>{subject}</option>)}
-        </select>
-        <select value={sortOrder} onChange={(event) => setSortOrder(event.target.value)} className="h-[52px] rounded-[22px] border border-white bg-white/90 px-4 text-sm font-black text-slate-800 shadow-inner shadow-slate-900/[.03] outline-none transition-all focus:border-orange-300 focus:bg-white focus:ring-4 focus:ring-orange-100">
-          <option value="newest">ใหม่ล่าสุด</option>
-          <option value="oldest">เก่าสุด</option>
-          <option value="price_low">ราคาต่ำสุด</option>
-          <option value="price_high">ราคาสูงสุด</option>
-        </select>
+        {showFilters && (
+          <div className="mt-4 grid gap-3 rounded-[26px] border border-orange-100 bg-white/80 p-2.5 shadow-[0_18px_42px_rgba(15,23,42,.07)] md:grid-cols-3">
+            <select value={categoryFilter} onChange={(event) => setCategoryFilter(event.target.value)} className="h-11 rounded-2xl border border-slate-200 bg-white px-4 text-sm font-black text-slate-800 outline-none transition-all focus:border-orange-300 focus:ring-4 focus:ring-orange-100">
+              <option value="all">ทุกภาค</option>
+              <option value="part_a">ภาค ก</option>
+              <option value="part_b">ภาค ข</option>
+              <option value="part_c">ภาค ค</option>
+            </select>
+            <select value={subjectFilter} onChange={(event) => setSubjectFilter(event.target.value)} className="h-11 rounded-2xl border border-slate-200 bg-white px-4 text-sm font-black text-slate-800 outline-none transition-all focus:border-orange-300 focus:ring-4 focus:ring-orange-100">
+              <option value="all">ทุกวิชา</option>
+              {subjects.map(subject => <option key={subject} value={subject}>{subject}</option>)}
+            </select>
+            <select value={sortOrder} onChange={(event) => setSortOrder(event.target.value)} className="h-11 rounded-2xl border border-slate-200 bg-white px-4 text-sm font-black text-slate-800 outline-none transition-all focus:border-orange-300 focus:ring-4 focus:ring-orange-100">
+              <option value="newest">ใหม่ล่าสุด</option>
+              <option value="oldest">เก่าสุด</option>
+              <option value="price_low">ราคาต่ำสุด</option>
+              <option value="price_high">ราคาสูงสุด</option>
+            </select>
+          </div>
+        )}
       </div>
 
       {isLoading ? (
