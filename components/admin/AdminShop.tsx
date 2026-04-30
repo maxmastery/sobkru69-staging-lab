@@ -72,7 +72,6 @@ const AdminShop: React.FC<AdminShopProps> = ({ onPreviewShop, onShopButtonVisibi
     setCurrentProduct({
       name: '',
       description: '',
-      price: 0,
       imageUrl: '',
       features: [],
       status: 'in_stock',
@@ -82,7 +81,6 @@ const AdminShop: React.FC<AdminShopProps> = ({ onPreviewShop, onShopButtonVisibi
       subject: '',
       stripeUrl: '',
       isDiscounted: false,
-      originalPrice: 0,
       isNew: false,
     });
     setFeatureInput('');
@@ -304,9 +302,10 @@ const AdminShop: React.FC<AdminShopProps> = ({ onPreviewShop, onShopButtonVisibi
                 type="number"
                 required
                 min="0"
-                value={currentProduct.price || 0}
-                onChange={(e) => setCurrentProduct({ ...currentProduct, price: Number(e.target.value) })}
+                value={currentProduct.price ?? ''}
+                onChange={(e) => setCurrentProduct({ ...currentProduct, price: e.target.value === '' ? undefined : Number(e.target.value) })}
                 className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-amber-500 outline-none transition-all"
+                placeholder="เช่น 49"
               />
             </div>
 
@@ -381,14 +380,16 @@ const AdminShop: React.FC<AdminShopProps> = ({ onPreviewShop, onShopButtonVisibi
                     checked={Boolean(currentProduct.isDiscounted)}
                     onChange={(e) => handleDiscountToggle(e.target.checked)}
                   />
-                  <span className="relative block h-8 w-[58px] rounded-full bg-orange-200 shadow-inner shadow-orange-300/30 transition-colors duration-300 peer-checked:bg-orange-500 after:absolute after:left-1 after:top-1 after:h-6 after:w-6 after:rounded-full after:bg-white after:shadow-[0_3px_10px_rgba(15,23,42,.22)] after:transition-transform after:duration-300 peer-checked:after:translate-x-[26px] peer-focus-visible:ring-4 peer-focus-visible:ring-orange-100"></span>
+                  <span className={`relative block h-8 w-14 shrink-0 rounded-full p-1 shadow-inner transition-colors duration-300 ${currentProduct.isDiscounted ? 'bg-orange-500 shadow-orange-900/20' : 'bg-orange-200 shadow-orange-300/30'}`}>
+                    <span className={`block h-6 w-6 rounded-full bg-white shadow-[0_3px_10px_rgba(15,23,42,.22)] transition-transform duration-300 ${currentProduct.isDiscounted ? 'translate-x-6' : 'translate-x-0'}`}></span>
+                  </span>
                 </label>
                 {currentProduct.isDiscounted && (
                   <input
                     type="number"
                     min="0"
-                    value={currentProduct.originalPrice || 0}
-                    onChange={(e) => setCurrentProduct({ ...currentProduct, originalPrice: Number(e.target.value) })}
+                    value={currentProduct.originalPrice ?? ''}
+                    onChange={(e) => setCurrentProduct({ ...currentProduct, originalPrice: e.target.value === '' ? undefined : Number(e.target.value) })}
                     className="mt-4 w-full px-4 py-2.5 bg-white border border-orange-200 rounded-xl focus:ring-2 focus:ring-orange-500 outline-none transition-all"
                     placeholder="ราคาเต็มก่อนลด เช่น 99"
                   />
@@ -414,7 +415,9 @@ const AdminShop: React.FC<AdminShopProps> = ({ onPreviewShop, onShopButtonVisibi
                     checked={Boolean(currentProduct.isNew)}
                     onChange={(e) => setCurrentProduct({ ...currentProduct, isNew: e.target.checked })}
                   />
-                  <span className="relative block h-8 w-[58px] rounded-full bg-emerald-200 shadow-inner shadow-emerald-300/30 transition-colors duration-300 peer-checked:bg-emerald-500 after:absolute after:left-1 after:top-1 after:h-6 after:w-6 after:rounded-full after:bg-white after:shadow-[0_3px_10px_rgba(15,23,42,.22)] after:transition-transform after:duration-300 peer-checked:after:translate-x-[26px] peer-focus-visible:ring-4 peer-focus-visible:ring-emerald-100"></span>
+                  <span className={`relative block h-8 w-14 shrink-0 rounded-full p-1 shadow-inner transition-colors duration-300 ${currentProduct.isNew ? 'bg-emerald-500 shadow-emerald-900/20' : 'bg-emerald-200 shadow-emerald-300/30'}`}>
+                    <span className={`block h-6 w-6 rounded-full bg-white shadow-[0_3px_10px_rgba(15,23,42,.22)] transition-transform duration-300 ${currentProduct.isNew ? 'translate-x-6' : 'translate-x-0'}`}></span>
+                  </span>
                 </label>
               </div>
             </div>
@@ -571,7 +574,9 @@ const AdminShop: React.FC<AdminShopProps> = ({ onPreviewShop, onShopButtonVisibi
                 disabled={isSavingVisibility}
                 onChange={(e) => void handleToggleShopButton(e.target.checked)}
               />
-              <span className="relative block h-8 w-[58px] rounded-full bg-slate-300 shadow-inner shadow-slate-400/20 transition-colors duration-300 peer-checked:bg-amber-500 peer-disabled:opacity-60 after:absolute after:left-1 after:top-1 after:h-6 after:w-6 after:rounded-full after:bg-white after:shadow-[0_3px_10px_rgba(15,23,42,.22)] after:transition-transform after:duration-300 peer-checked:after:translate-x-[26px] peer-focus-visible:ring-4 peer-focus-visible:ring-amber-100"></span>
+              <span className={`relative block h-8 w-14 shrink-0 rounded-full p-1 shadow-inner transition-colors duration-300 ${isShopButtonVisible ? 'bg-amber-500 shadow-amber-900/20' : 'bg-slate-300 shadow-slate-400/20'} ${isSavingVisibility ? 'opacity-60' : ''}`}>
+                <span className={`block h-6 w-6 rounded-full bg-white shadow-[0_3px_10px_rgba(15,23,42,.22)] transition-transform duration-300 ${isShopButtonVisible ? 'translate-x-6' : 'translate-x-0'}`}></span>
+              </span>
             </label>
           </div>
         </div>

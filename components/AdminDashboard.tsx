@@ -580,7 +580,9 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, onPreviewShop,
                       checked={maintenanceMode.isActive}
                       onChange={(e) => setMaintenanceMode({ ...maintenanceMode, isActive: e.target.checked })}
                     />
-                    <div className="relative h-12 w-[92px] rounded-full bg-slate-300 p-1 shadow-inner shadow-slate-400/20 transition-colors duration-300 after:absolute after:left-1 after:top-1 after:h-10 after:w-10 after:rounded-full after:bg-white after:shadow-[0_4px_14px_rgba(15,23,42,.22)] after:transition-transform after:duration-300 peer-checked:bg-red-600 peer-checked:shadow-red-900/20 peer-checked:after:translate-x-[44px] peer-focus-visible:ring-4 peer-focus-visible:ring-red-100"></div>
+                    <span className={`relative block h-12 w-[92px] shrink-0 rounded-full p-1 shadow-inner transition-colors duration-300 ${maintenanceMode.isActive ? 'bg-red-600 shadow-red-900/20' : 'bg-slate-300 shadow-slate-400/20'}`}>
+                      <span className={`block h-10 w-10 rounded-full bg-white shadow-[0_4px_14px_rgba(15,23,42,.22)] transition-transform duration-300 ${maintenanceMode.isActive ? 'translate-x-[44px]' : 'translate-x-0'}`}></span>
+                    </span>
                   </label>
                 </div>
 
@@ -858,14 +860,16 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, onPreviewShop,
                   <p className="font-medium text-slate-900">สถานะการแจ้งเตือน</p>
                   <p className="text-sm text-slate-500">เปิด/ปิด การแสดง Pop-up แจ้งเตือนเมื่อเข้าสู่ระบบ</p>
                 </div>
-                <label className="relative inline-flex items-center cursor-pointer">
+                <label className="inline-flex cursor-pointer items-center">
                   <input 
                     type="checkbox" 
                     className="sr-only peer"
                     checked={notification.isActive}
                     onChange={(e) => setNotification({ ...notification, isActive: e.target.checked })}
                   />
-                  <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-500"></div>
+                  <span className={`relative block h-8 w-14 shrink-0 rounded-full p-1 shadow-inner transition-colors duration-300 ${notification.isActive ? 'bg-amber-500 shadow-amber-900/20' : 'bg-slate-300 shadow-slate-400/20'}`}>
+                    <span className={`block h-6 w-6 rounded-full bg-white shadow-[0_3px_10px_rgba(15,23,42,.22)] transition-transform duration-300 ${notification.isActive ? 'translate-x-6' : 'translate-x-0'}`}></span>
+                  </span>
                 </label>
               </div>
               <div className="rounded-2xl border border-amber-100 bg-amber-50/70 px-4 py-3 text-sm leading-6 text-amber-900">
@@ -950,18 +954,19 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, onPreviewShop,
               ตั้งค่าข้อความประชาสัมพันธ์ (ตัววิ่ง)
             </h3>
             <div className="space-y-5">
-              <div className="flex items-center gap-3 p-4 bg-slate-50 rounded-xl border border-slate-200">
+              <label className="flex cursor-pointer items-center justify-between gap-4 p-4 bg-slate-50 rounded-xl border border-slate-200">
+                <span className="font-medium text-slate-700">เปิดใช้งานข้อความวิ่งที่แถบด้านบน</span>
                 <input
                   type="checkbox"
                   id="isMarqueeActive"
                   checked={marquee.isActive}
                   onChange={(e) => setMarquee({ ...marquee, isActive: e.target.checked })}
-                  className="w-5 h-5 text-slate-900 rounded border-slate-300 focus:ring-slate-900"
+                  className="sr-only"
                 />
-                <label htmlFor="isMarqueeActive" className="font-medium text-slate-700 cursor-pointer">
-                  เปิดใช้งานข้อความวิ่งที่แถบด้านบน
-                </label>
-              </div>
+                <span className={`relative block h-8 w-14 shrink-0 rounded-full p-1 shadow-inner transition-colors duration-300 ${marquee.isActive ? 'bg-slate-900 shadow-slate-950/20' : 'bg-slate-300 shadow-slate-400/20'}`}>
+                  <span className={`block h-6 w-6 rounded-full bg-white shadow-[0_3px_10px_rgba(15,23,42,.22)] transition-transform duration-300 ${marquee.isActive ? 'translate-x-6' : 'translate-x-0'}`}></span>
+                </span>
+              </label>
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-2">ข้อความประชาสัมพันธ์</label>
                 <input

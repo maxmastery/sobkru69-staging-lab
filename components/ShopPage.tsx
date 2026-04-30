@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { ArrowLeft, ShoppingCart, CheckCircle2, Package, Search, SlidersHorizontal, Sparkles, Percent, Clock, Tag, ExternalLink } from 'lucide-react';
+import { ArrowLeft, ShoppingCart, CheckCircle2, Package, Search, SlidersHorizontal, Sparkles, Percent, Tag, ExternalLink } from 'lucide-react';
 import { ProductItem } from './admin/AdminShop';
 import { contentService } from '../services/contentService';
 
@@ -210,14 +210,14 @@ const ShopPage: React.FC<ShopPageProps> = ({ onBack }) => {
         <ArrowLeft className="w-5 h-5 mr-2" />
         กลับหน้าหลัก
       </button>
-      <div className="mb-8">
-        <p className="mb-2 inline-flex items-center gap-2 rounded-full bg-orange-50 px-3 py-1 text-xs font-black text-orange-600">
-          <Clock className="h-3.5 w-3.5" /> เรียงตามวันเวลา
-        </p>
-        <h1 className="text-3xl md:text-4xl font-black text-slate-900">สั่งซื้อ ชีทสรุปรวมอ่านเตรียมสอบ</h1>
+      <div className="mb-8 flex items-end justify-between gap-4 border-b border-slate-200 pb-4">
+        <h1 className="text-3xl md:text-4xl font-black text-slate-900">E-book แนะนำสำหรับคุณ</h1>
+        <span className="shrink-0 text-sm font-black text-orange-600">
+          {filteredProducts.length} / {products.length} รายการ
+        </span>
       </div>
 
-      <div className="mb-8 grid gap-3 rounded-[28px] border border-slate-100 bg-white/80 p-3 shadow-sm md:grid-cols-[1.35fr_.8fr_.8fr_.8fr]">
+      <div className="mb-12 grid gap-3 rounded-[28px] border border-slate-100 bg-white/80 p-3 shadow-sm md:grid-cols-[1.35fr_.8fr_.8fr_.8fr]">
         <label className="relative">
           <Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
           <input
@@ -258,17 +258,7 @@ const ShopPage: React.FC<ShopPageProps> = ({ onBack }) => {
         </div>
       ) : filteredProducts.length > 0 ? (
         <section className="max-w-[980px]">
-          <div className="mb-5 flex items-end justify-between gap-4 border-b border-slate-200 pb-3">
-            <div>
-              <h2 className="text-xl font-black text-slate-900">E-book แนะนำสำหรับคุณ</h2>
-              <p className="text-sm font-medium text-slate-500">เลือกดูไฟล์สรุปเนื้อหาแบบปกหนังสือ เห็นสินค้าได้ชัดก่อนตัดสินใจ</p>
-            </div>
-            <span className="shrink-0 text-sm font-black text-orange-600">
-              {filteredProducts.length} / {products.length} รายการ
-            </span>
-          </div>
-
-          <div className="grid grid-cols-[repeat(auto-fill,minmax(170px,1fr))] gap-x-6 gap-y-10 md:grid-cols-[repeat(auto-fill,minmax(176px,190px))]">
+          <div className="grid items-start grid-cols-[repeat(auto-fill,minmax(170px,1fr))] gap-x-10 gap-y-14 md:grid-cols-[repeat(auto-fill,minmax(176px,190px))]">
             {filteredProducts.map((product) => {
               const hasDiscount = Boolean(product.isDiscounted);
               const hasOriginalPrice = hasDiscount && product.originalPrice > product.price;
@@ -277,7 +267,7 @@ const ShopPage: React.FC<ShopPageProps> = ({ onBack }) => {
                   type="button"
                   key={product.id}
                   onClick={() => void openProduct(product)}
-                  className="group block text-left transition-transform duration-300 hover:-translate-y-1 focus:outline-none focus-visible:ring-4 focus-visible:ring-orange-100"
+                  className="group flex h-full min-h-[500px] flex-col text-left transition-transform duration-300 hover:-translate-y-1 focus:outline-none focus-visible:ring-4 focus-visible:ring-orange-100"
                 >
                   <div className="relative mx-auto aspect-[3/4] w-full overflow-visible rounded-xl">
                     <div className="absolute inset-x-3 bottom-0 h-8 rounded-full bg-slate-900/12 blur-xl transition-opacity duration-300 group-hover:opacity-80"></div>
@@ -301,16 +291,16 @@ const ShopPage: React.FC<ShopPageProps> = ({ onBack }) => {
                     </div>
                   </div>
 
-                  <div className="mt-4">
-                    <h3 className="line-clamp-2 text-base font-black leading-snug text-slate-950 transition-colors group-hover:text-orange-600">
+                  <div className="mt-4 flex min-h-[176px] flex-1 flex-col">
+                    <h3 className="line-clamp-2 min-h-[44px] text-base font-black leading-snug text-slate-950 transition-colors group-hover:text-orange-600">
                       {product.name}
                     </h3>
-                    <div className="mt-1 flex flex-wrap gap-1.5">
+                    <div className="mt-1 flex min-h-[18px] flex-wrap gap-1.5">
                       {product.categoryPart && <span className="text-xs font-bold text-slate-500">{CATEGORY_LABELS[product.categoryPart] || product.categoryPart}</span>}
                       {product.subject && <span className="text-xs font-bold text-orange-600">{product.subject}</span>}
                     </div>
-                    <p className="mt-1 line-clamp-2 text-xs leading-5 text-slate-500">{product.description}</p>
-                    <div className="mt-3 flex items-end justify-between gap-3">
+                    <p className="mt-1 line-clamp-2 min-h-[40px] text-xs leading-5 text-slate-500">{product.description}</p>
+                    <div className="mt-auto flex items-end justify-between gap-3 pt-3">
                       <div>
                         <div className="text-2xl font-black text-[#FA6B19]">
                           ฿{product.price.toLocaleString()}
