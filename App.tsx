@@ -339,7 +339,7 @@ const App: React.FC = () => {
 
     setUserUiState(nextState);
 
-    if (!user || user.id === 'admin-001') {
+    if (!user) {
       return nextState;
     }
 
