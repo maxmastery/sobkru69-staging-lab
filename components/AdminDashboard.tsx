@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Settings, Users, Bell, Save, Trash2, Edit2, Loader2, Plus, X, ArrowLeft, CheckCircle2, Megaphone, Newspaper, MessageSquare, ShoppingCart, Search, BarChart3, Eye, Image as ImageIcon, ShieldAlert, Coffee, UserCheck } from 'lucide-react';
+import { Settings, Users, Bell, Save, Trash2, Edit2, Loader2, Plus, X, ArrowLeft, CheckCircle2, Megaphone, Newspaper, MessageSquare, ShoppingCart, Search, BarChart3, Eye, Image as ImageIcon, ShieldAlert, Coffee, UserCheck, RadioTower } from 'lucide-react';
 import { authService, MaintenanceModeState, User } from '../services/authService';
 import AdminNews from './admin/AdminNews';
 import AdminDiscussion from './admin/AdminDiscussion';
@@ -9,6 +9,7 @@ import AdminBellNotifications from './admin/AdminBellNotifications';
 import AdminMessages from './admin/AdminMessages';
 import AdminReports from './admin/AdminReports';
 import AdminUserInsights from './admin/AdminUserInsights';
+import AdminUserActive from './admin/AdminUserActive';
 import AdminDonations from './admin/AdminDonations';
 import { contentService } from '../services/contentService';
 import { getStoredUser, userActivityService } from '../services/userActivityService';
@@ -21,7 +22,7 @@ interface AdminDashboardProps {
 
 const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, onPreviewShop, onShopButtonVisibilityChange }) => {
   const viteEnv = (import.meta as any).env || {};
-  const [activeTab, setActiveTab] = useState<'settings' | 'users' | 'notification' | 'bell' | 'messages' | 'marquee' | 'news' | 'discussion' | 'shop' | 'statistics' | 'reports' | 'user-insights' | 'donations'>('settings');
+  const [activeTab, setActiveTab] = useState<'settings' | 'users' | 'notification' | 'bell' | 'messages' | 'marquee' | 'news' | 'discussion' | 'shop' | 'statistics' | 'reports' | 'user-insights' | 'user-active' | 'donations'>('settings');
   const normalizeSupabaseUrl = (rawValue: string) => {
     const value = rawValue.trim();
     const markdownMatch = value.match(/\((https?:\/\/[^)\s]+)\)/i);
@@ -78,7 +79,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, onPreviewShop,
   };
 
   useEffect(() => {
-    if (activeTab === 'users' || activeTab === 'statistics' || activeTab === 'user-insights') {
+    if (activeTab === 'users' || activeTab === 'statistics' || activeTab === 'user-insights' || activeTab === 'user-active') {
       fetchUsers();
     } else if (activeTab === 'notification') {
       fetchNotification();
@@ -141,7 +142,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, onPreviewShop,
   }, [activeTab]);
 
   useEffect(() => {
-    const shouldTrackLiveUsers = ['news', 'discussion', 'shop', 'user-insights'].includes(activeTab);
+    const shouldTrackLiveUsers = ['news', 'discussion', 'shop', 'user-insights', 'user-active'].includes(activeTab);
     if (!shouldTrackLiveUsers) {
       return;
     }
@@ -417,6 +418,15 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, onPreviewShop,
           >
             <UserCheck className="w-5 h-5" />
             ข้อมูลผู้ใช้งาน
+          </button>
+          <button
+            onClick={() => setActiveTab('user-active')}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-colors ${
+              activeTab === 'user-active' ? 'bg-emerald-600 text-white' : 'text-slate-600 hover:bg-slate-100'
+            }`}
+          >
+            <RadioTower className="w-5 h-5" />
+            User Active
           </button>
           <button
             onClick={() => setActiveTab('donations')}
@@ -1090,6 +1100,26 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, onPreviewShop,
               </div>
             ) : (
               <AdminUserInsights users={users} />
+            )}
+          </div>
+        )}
+
+        {activeTab === 'user-active' && (
+          <div className="w-full max-w-6xl">
+            <h3 className="text-2xl font-bold text-slate-800 mb-6 flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center">
+                <RadioTower className="w-6 h-6 text-emerald-600" />
+              </div>
+              User Active
+              {liveStatusPill}
+            </h3>
+            {isLoading ? (
+              <div className="flex flex-col items-center justify-center py-20 text-slate-500 space-y-4 bg-white rounded-2xl border border-slate-200">
+                <div className="w-8 h-8 border-4 border-emerald-200 border-t-emerald-600 rounded-full animate-spin"></div>
+                <p>กำลังโหลดข้อมูล User Active...</p>
+              </div>
+            ) : (
+              <AdminUserActive users={users} />
             )}
           </div>
         )}
