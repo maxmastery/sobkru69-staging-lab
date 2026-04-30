@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Edit2, Trash2, Image as ImageIcon, Search, DollarSign, Package, X, Save, CheckCircle2, ShoppingCart, Eye, EyeOff, Store, Link as LinkIcon, Sparkles, Percent, Tag } from 'lucide-react';
+import { Plus, Edit2, Trash2, Image as ImageIcon, Search, DollarSign, Package, X, Save, CheckCircle2, ShoppingCart, Eye, EyeOff, Store, Link as LinkIcon, Sparkles, Percent, Tag, UploadCloud, Loader2 } from 'lucide-react';
 import { contentService } from '../../services/contentService';
 
 export interface ProductItem {
@@ -37,6 +37,7 @@ const AdminShop: React.FC<AdminShopProps> = ({ onPreviewShop, onShopButtonVisibi
   const [isLoading, setIsLoading] = useState(false);
   const [isShopButtonVisible, setIsShopButtonVisible] = useState(true);
   const [isSavingVisibility, setIsSavingVisibility] = useState(false);
+  const [uploadingImageKey, setUploadingImageKey] = useState<string | null>(null);
 
   useEffect(() => {
     loadProducts();
@@ -76,7 +77,7 @@ const AdminShop: React.FC<AdminShopProps> = ({ onPreviewShop, onShopButtonVisibi
       features: [],
       status: 'in_stock',
       viewCount: 0,
-      galleryImages: ['', ''],
+      galleryImages: ['', '', ''],
       categoryPart: '',
       subject: '',
       stripeUrl: '',
@@ -89,7 +90,10 @@ const AdminShop: React.FC<AdminShopProps> = ({ onPreviewShop, onShopButtonVisibi
   };
 
   const handleEdit = (item: ProductItem) => {
-    setCurrentProduct(item);
+    setCurrentProduct({
+      ...item,
+      galleryImages: [...(item.galleryImages || []), '', '', ''].slice(0, 3),
+    });
     setFeatureInput('');
     setIsEditing(true);
   };
@@ -129,10 +133,40 @@ const AdminShop: React.FC<AdminShopProps> = ({ onPreviewShop, onShopButtonVisibi
     setCurrentProduct({ ...currentProduct, features: newFeatures });
   };
 
-  const handleGalleryImageChange = (index: number, value: string) => {
-    const nextImages = [...(currentProduct.galleryImages || [])];
-    nextImages[index] = value;
-    setCurrentProduct({ ...currentProduct, galleryImages: nextImages.slice(0, 2) });
+  const handleDiscountToggle = (checked: boolean) => {
+    const currentPrice = Number(currentProduct.price || 0);
+    setCurrentProduct({
+      ...currentProduct,
+      isDiscounted: checked,
+      originalPrice: checked && !currentProduct.originalPrice ? currentPrice : Number(currentProduct.originalPrice || 0),
+    });
+  };
+
+  const handleProductImageUpload = async (file: File, target: 'cover' | number) => {
+    const imageKey = target === 'cover' ? 'cover' : `gallery-${target + 1}`;
+    setUploadingImageKey(imageKey);
+    setSaveMessage('');
+
+    try {
+      const result = await contentService.uploadProductImage(file, imageKey);
+      setCurrentProduct(current => {
+        if (target === 'cover') {
+          return { ...current, imageUrl: result.url };
+        }
+
+        const nextImages = [...(current.galleryImages || []), '', '', ''].slice(0, 3);
+        nextImages[target] = result.url;
+        return { ...current, galleryImages: nextImages };
+      });
+      setSaveMessage('อัปโหลดรูปภาพสำเร็จ');
+      setTimeout(() => setSaveMessage(''), 2500);
+    } catch (error) {
+      console.error('Failed to upload product image', error);
+      setSaveMessage('อัปโหลดรูปภาพไม่สำเร็จ กรุณาตรวจสอบ Storage policy ของ Supabase');
+      setTimeout(() => setSaveMessage(''), 4000);
+    } finally {
+      setUploadingImageKey(null);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -178,6 +212,49 @@ const AdminShop: React.FC<AdminShopProps> = ({ onPreviewShop, onShopButtonVisibi
   };
 
   const filteredProducts = products.filter(p => p.name.toLowerCase().includes(searchTerm.toLowerCase()));
+
+  const renderImageUploader = (label: string, imageUrl: string, imageKey: string, onUpload: (file: File) => void, accent = 'amber') => {
+    const isUploading = uploadingImageKey === imageKey;
+    const accentClasses = accent === 'orange'
+      ? 'border-orange-200 bg-orange-50 text-orange-700 hover:border-orange-400'
+      : 'border-amber-200 bg-amber-50 text-amber-700 hover:border-amber-400';
+
+    return (
+      <div className="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
+        <div className="mb-2 flex items-center justify-between gap-3">
+          <span className="text-sm font-black text-slate-700">{label}</span>
+          {imageUrl && <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-black text-emerald-700">พร้อมใช้</span>}
+        </div>
+        <div className="mb-3 flex aspect-[4/3] items-center justify-center overflow-hidden rounded-xl bg-slate-50">
+          {imageUrl ? (
+            <img src={imageUrl} alt={label} className="h-full w-full object-contain" />
+          ) : (
+            <div className="flex flex-col items-center gap-2 text-slate-300">
+              <ImageIcon className="h-8 w-8" />
+              <span className="text-xs font-bold text-slate-400">ยังไม่มีรูป</span>
+            </div>
+          )}
+        </div>
+        <label className={`flex cursor-pointer items-center justify-center gap-2 rounded-xl border px-3 py-2 text-sm font-black transition-all ${accentClasses} ${isUploading ? 'pointer-events-none opacity-70' : ''}`}>
+          {isUploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <UploadCloud className="h-4 w-4" />}
+          {isUploading ? 'กำลังอัปโหลด...' : 'อัปโหลดรูป'}
+          <input
+            type="file"
+            accept="image/*"
+            className="hidden"
+            disabled={isUploading}
+            onChange={(event) => {
+              const file = event.target.files?.[0];
+              event.target.value = '';
+              if (file) {
+                onUpload(file);
+              }
+            }}
+          />
+        </label>
+      </div>
+    );
+  };
 
   if (isEditing) {
     return (
@@ -299,7 +376,7 @@ const AdminShop: React.FC<AdminShopProps> = ({ onPreviewShop, onShopButtonVisibi
                     type="checkbox"
                     className="sr-only peer"
                     checked={Boolean(currentProduct.isDiscounted)}
-                    onChange={(e) => setCurrentProduct({ ...currentProduct, isDiscounted: e.target.checked })}
+                    onChange={(e) => handleDiscountToggle(e.target.checked)}
                   />
                   <span className="relative h-7 w-14 rounded-full bg-orange-200 transition-colors peer-checked:bg-orange-500 after:absolute after:left-1 after:top-1 after:h-5 after:w-5 after:rounded-full after:bg-white after:shadow-sm after:transition-transform peer-checked:after:translate-x-7"></span>
                 </label>
@@ -310,8 +387,13 @@ const AdminShop: React.FC<AdminShopProps> = ({ onPreviewShop, onShopButtonVisibi
                     value={currentProduct.originalPrice || 0}
                     onChange={(e) => setCurrentProduct({ ...currentProduct, originalPrice: Number(e.target.value) })}
                     className="mt-4 w-full px-4 py-2.5 bg-white border border-orange-200 rounded-xl focus:ring-2 focus:ring-orange-500 outline-none transition-all"
-                    placeholder="ราคาเต็มก่อนลด"
+                    placeholder="ราคาเต็มก่อนลด เช่น 99"
                   />
+                )}
+                {currentProduct.isDiscounted && (
+                  <p className="mt-2 text-[11px] font-semibold leading-5 text-orange-700">
+                    ช่องราคา (บาท) ด้านบนคือราคาขายหลังลด ส่วนช่องนี้คือราคาเต็มก่อนลดที่จะแสดงแบบขีดฆ่า
+                  </p>
                 )}
               </div>
 
@@ -370,38 +452,31 @@ const AdminShop: React.FC<AdminShopProps> = ({ onPreviewShop, onShopButtonVisibi
             </div>
 
             <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-slate-700 mb-2 flex items-center gap-2">
-                <ImageIcon className="w-4 h-4 text-slate-400" /> URL รูปภาพปกสินค้า
+              <label className="mb-3 flex items-center gap-2 text-sm font-black text-slate-700">
+                <ImageIcon className="w-4 h-4 text-slate-400" /> อัปโหลดรูปสินค้าไป Supabase Storage
               </label>
-              <input
-                type="url"
-                value={currentProduct.imageUrl || ''}
-                onChange={(e) => setCurrentProduct({ ...currentProduct, imageUrl: e.target.value })}
-                className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-amber-500 outline-none transition-all"
-                placeholder="https://example.com/product.jpg"
-              />
-              {currentProduct.imageUrl && (
-                <div className="mt-4 rounded-xl overflow-hidden border border-slate-200 bg-slate-50 h-48 w-48 relative">
-                  <img src={currentProduct.imageUrl} alt="Preview" className="w-full h-full object-cover" onError={(e) => (e.currentTarget.src = 'https://placehold.co/400x400?text=Image+Error')} />
-                </div>
-              )}
-            </div>
-
-            <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">
-              {[0, 1].map((index) => (
-                <div key={index}>
-                  <label className="block text-sm font-medium text-slate-700 mb-2 flex items-center gap-2">
-                    <ImageIcon className="w-4 h-4 text-slate-400" /> URL ภาพรอง {index + 1}
-                  </label>
-                  <input
-                    type="url"
-                    value={(currentProduct.galleryImages || [])[index] || ''}
-                    onChange={(e) => handleGalleryImageChange(index, e.target.value)}
-                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-amber-500 outline-none transition-all"
-                    placeholder="https://example.com/product-preview.jpg"
-                  />
-                </div>
-              ))}
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
+                {renderImageUploader(
+                  'รูปปกสินค้า',
+                  currentProduct.imageUrl || '',
+                  'cover',
+                  (file) => void handleProductImageUpload(file, 'cover'),
+                  'orange'
+                )}
+                {[0, 1, 2].map((index) => (
+                  <React.Fragment key={index}>
+                    {renderImageUploader(
+                      `ภาพรอง ${index + 1}`,
+                      (currentProduct.galleryImages || [])[index] || '',
+                      `gallery-${index + 1}`,
+                      (file) => void handleProductImageUpload(file, index)
+                    )}
+                  </React.Fragment>
+                ))}
+              </div>
+              <p className="mt-3 text-xs leading-5 text-slate-500">
+                ระบบจะอัปโหลดรูปไปที่ bucket รูปภาพของ Supabase แล้วบันทึกลิงก์ให้อัตโนมัติ แนะนำใช้รูปปกแนวตั้งแบบหนังสือเพื่อให้หน้าร้านแสดงผลสวยที่สุด
+              </p>
             </div>
           </div>
 

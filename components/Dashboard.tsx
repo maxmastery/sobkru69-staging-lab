@@ -12,10 +12,9 @@ interface DashboardProps {
   onNavigateToMockExam: () => void;
   onNavigateToLeaderboard?: () => void;
   showShopButton?: boolean;
-  onlineUsersCount?: number;
 }
 
-const Dashboard: React.FC<DashboardProps> = ({ onSelectPart, onNavigateToNews, onNavigateToDiscussion, onNavigateToShop, onNavigateToMockExam, onNavigateToLeaderboard, showShopButton = true, onlineUsersCount = 0 }) => {
+const Dashboard: React.FC<DashboardProps> = ({ onSelectPart, onNavigateToNews, onNavigateToDiscussion, onNavigateToShop, onNavigateToMockExam, onNavigateToLeaderboard, showShopButton = true }) => {
   const getIcon = (id: PartId) => {
     switch (id) {
       case PartId.PART_A: return <BookOpen className="w-12 h-12 text-white mb-4" />;
@@ -152,28 +151,19 @@ const Dashboard: React.FC<DashboardProps> = ({ onSelectPart, onNavigateToNews, o
         {/* Slim Shop Button */}
         {showShopButton && (
           <div className="flex justify-center px-1">
-            <button onClick={onNavigateToShop} className="group relative flex min-h-[48px] w-full max-w-[294px] items-center justify-center overflow-hidden rounded-full bg-gradient-to-r from-[#F59E0B] via-[#F97316] to-[#EA580C] px-5 py-2.5 text-white shadow-[0_18px_36px_rgba(234,88,12,.28)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_24px_48px_rgba(234,88,12,.34)] active:translate-y-0 active:scale-[.98]">
-              <div className="absolute inset-0 bg-[radial-gradient(circle_at_25%_15%,rgba(255,255,255,.34),transparent_30%),linear-gradient(90deg,transparent,rgba(255,255,255,.16),transparent)] opacity-80"></div>
-              <div className="mr-2.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/20 ring-1 ring-white/25 transition-transform duration-300 group-hover:rotate-6 group-hover:scale-110">
-                <ShoppingCart className="w-4 h-4 text-white" />
+            <button onClick={onNavigateToShop} className="group relative flex min-h-[48px] w-full max-w-[294px] items-center justify-center overflow-hidden rounded-full bg-gradient-to-r from-[#C47A08] via-[#F59E0B] to-[#F7C948] px-5 py-2.5 text-white ring-1 ring-amber-200/80 shadow-[0_18px_38px_rgba(180,83,9,.30)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_24px_52px_rgba(180,83,9,.36)] active:translate-y-0 active:scale-[.98]">
+              <div className="absolute inset-0 bg-[radial-gradient(circle_at_24%_12%,rgba(255,255,255,.42),transparent_30%),linear-gradient(110deg,rgba(120,53,15,.20),transparent_38%,rgba(255,255,255,.22)_62%,rgba(146,64,14,.18))]"></div>
+              <div className="absolute inset-y-1 left-1 w-12 rounded-full bg-white/16 blur-sm transition-transform duration-500 group-hover:translate-x-[220px]"></div>
+              <div className="mr-2.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/22 ring-1 ring-white/35 transition-transform duration-300 group-hover:rotate-6 group-hover:scale-110">
+                <ShoppingCart className="w-4 h-4 text-white drop-shadow-sm" />
               </div>
               <div className="relative min-w-0">
-                <h4 className="truncate text-sm font-black tracking-wide text-white drop-shadow-[0_1px_1px_rgba(124,45,18,.2)]">ไฟล์ E-book สรุปเนื้อหา</h4>
+                <h4 className="truncate text-sm font-black tracking-wide text-white drop-shadow-[0_1px_2px_rgba(92,38,8,.38)]">ไฟล์ E-book สรุปเนื้อหา</h4>
               </div>
             </button>
           </div>
         )}
 
-      </div>
-
-      <div className="fixed bottom-5 left-4 z-40 md:absolute md:-left-10 md:bottom-0 md:z-10 px-1 py-1 text-emerald-700">
-        <div className="flex items-center gap-2 text-sm font-black drop-shadow-[0_1px_0_rgba(255,255,255,.9)]">
-          <span className="relative flex h-3 w-3">
-            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-60"></span>
-            <span className="relative inline-flex h-3 w-3 rounded-full bg-emerald-500"></span>
-          </span>
-          {onlineUsersCount} Online
-        </div>
       </div>
     </div>
   );

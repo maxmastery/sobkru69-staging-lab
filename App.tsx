@@ -119,7 +119,6 @@ const App: React.FC = () => {
   const [currentPage, setCurrentPage] = useState<PageState>('dashboard');
   const [maintenanceMode, setMaintenanceMode] = useState<MaintenanceModeState>(DEFAULT_MAINTENANCE_MODE);
   const [showMaintenanceAdminLogin, setShowMaintenanceAdminLogin] = useState(false);
-  const [onlineUsersCount, setOnlineUsersCount] = useState(0);
   const [showShopButton, setShowShopButton] = useState(true);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -328,32 +327,6 @@ const App: React.FC = () => {
       document.removeEventListener('visibilitychange', handleVisibility);
     };
   }, [currentPage, currentPart, currentTopic, showAdminPanel, showLearningStats, user]);
-
-  useEffect(() => {
-    if (!user) {
-      setOnlineUsersCount(0);
-      return;
-    }
-
-    const loadOnlineUsers = async () => {
-      try {
-        const sessions = await userActivityService.getOnlineSessions();
-        const threshold = Date.now() - (5 * 60 * 1000);
-        const activeSessions = (sessions || []).filter(item => new Date(item.last_active_at).getTime() >= threshold);
-        setOnlineUsersCount(activeSessions.length);
-      } catch (error) {
-        console.error('loadOnlineUsers error:', error);
-        setOnlineUsersCount(0);
-      }
-    };
-
-    void loadOnlineUsers();
-    const interval = window.setInterval(() => {
-      void loadOnlineUsers();
-    }, 30000);
-
-    return () => window.clearInterval(interval);
-  }, [user]);
 
   const persistUserUiState = async (patch: Partial<UserUiState>) => {
     const nextState: UserUiState = {
@@ -673,7 +646,6 @@ const App: React.FC = () => {
           onNavigateToMockExam={() => setCurrentPage('mock-exam')}
           onNavigateToLeaderboard={() => setCurrentPage('user-stats')}
           showShopButton={showShopButton}
-          onlineUsersCount={onlineUsersCount}
         />
       );
     }
@@ -913,7 +885,7 @@ const App: React.FC = () => {
       )}
 
       {/* Floating Donation Button - Hidden when in lesson view */}
-      {!currentTopic && (
+      {!currentTopic && currentPage !== 'shop' && (
         <div className="fixed bottom-6 right-6 z-40 flex flex-col items-end gap-2 sobkru-donate-container">
           <style>{`
             @media (max-width: 640px) {

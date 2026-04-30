@@ -93,7 +93,8 @@ const ShopPage: React.FC<ShopPageProps> = ({ onBack }) => {
   if (selectedProduct) {
     const images = getProductImages(selectedProduct);
     const activeImage = images[activeImageIndex] || selectedProduct.imageUrl;
-    const hasDiscount = selectedProduct.isDiscounted && selectedProduct.originalPrice > selectedProduct.price;
+    const hasDiscount = Boolean(selectedProduct.isDiscounted);
+    const hasOriginalPrice = hasDiscount && selectedProduct.originalPrice > selectedProduct.price;
     const canBuy = selectedProduct.status === 'in_stock' && Boolean(selectedProduct.stripeUrl);
 
     return (
@@ -105,20 +106,17 @@ const ShopPage: React.FC<ShopPageProps> = ({ onBack }) => {
 
         <div className="grid gap-10 lg:grid-cols-[minmax(0,1.08fr)_minmax(360px,.92fr)]">
           <section className="space-y-4">
-            <div className="relative overflow-hidden rounded-[32px] border border-amber-100 bg-gradient-to-br from-amber-50 via-white to-orange-50 p-5 shadow-[0_24px_60px_rgba(148,94,22,.10)]">
-              <div className="absolute -right-24 -top-24 h-72 w-72 rounded-full bg-orange-200/40 blur-3xl"></div>
-              <div className="relative flex min-h-[420px] items-center justify-center rounded-[24px] bg-white/70">
-                {activeImage ? (
-                  <img src={activeImage} alt={selectedProduct.name} className="max-h-[520px] w-full object-contain" />
-                ) : (
-                  <Package className="h-20 w-20 text-amber-200" />
-                )}
-              </div>
+            <div className="flex min-h-[440px] items-center justify-center">
+              {activeImage ? (
+                <img src={activeImage} alt={selectedProduct.name} className="max-h-[620px] w-full object-contain drop-shadow-[0_24px_42px_rgba(15,23,42,.12)]" />
+              ) : (
+                <Package className="h-20 w-20 text-amber-200" />
+              )}
             </div>
 
             {images.length > 1 && (
-              <div className="grid grid-cols-3 gap-3">
-                {images.slice(0, 3).map((image, index) => (
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                {images.slice(0, 4).map((image, index) => (
                   <button
                     key={`${image}-${index}`}
                     onClick={() => setActiveImageIndex(index)}
@@ -170,12 +168,12 @@ const ShopPage: React.FC<ShopPageProps> = ({ onBack }) => {
               </div>
             )}
 
-            <div className="mt-auto pt-8">
+            <div className="mt-auto pt-8 text-center">
               <div className="mb-5">
                 <div className="text-xs font-black uppercase tracking-[0.18em] text-slate-400">ราคา</div>
-                <div className="mt-1 flex items-end gap-3">
+                <div className="mt-1 flex items-end justify-center gap-3">
                   <span className="text-5xl font-black text-orange-600">฿{selectedProduct.price.toLocaleString()}</span>
-                  {hasDiscount && <span className="pb-2 text-xl font-bold text-slate-400 line-through">฿{selectedProduct.originalPrice.toLocaleString()}</span>}
+                  {hasOriginalPrice && <span className="pb-2 text-xl font-bold text-slate-400 line-through">฿{selectedProduct.originalPrice.toLocaleString()}</span>}
                 </div>
               </div>
 
@@ -189,14 +187,14 @@ const ShopPage: React.FC<ShopPageProps> = ({ onBack }) => {
                     event.preventDefault();
                   }
                 }}
-                className={`inline-flex w-full items-center justify-center gap-3 rounded-3xl px-6 py-4 text-lg font-black transition-all ${
+                className={`inline-flex w-full items-center justify-center gap-3 rounded-3xl px-6 py-4 text-lg font-black text-white transition-all ${
                   canBuy
-                    ? 'bg-gradient-to-r from-orange-500 to-amber-500 text-white shadow-[0_20px_45px_rgba(234,88,12,.28)] hover:-translate-y-1 hover:shadow-[0_26px_54px_rgba(234,88,12,.34)]'
-                    : 'cursor-not-allowed bg-slate-100 text-slate-400'
+                    ? 'bg-gradient-to-r from-orange-500 to-amber-500 shadow-[0_20px_45px_rgba(234,88,12,.28)] hover:-translate-y-1 hover:shadow-[0_26px_54px_rgba(234,88,12,.34)]'
+                    : 'cursor-not-allowed bg-gradient-to-r from-orange-300 to-amber-300 opacity-70'
                 }`}
               >
                 <ShoppingCart className="h-6 w-6" />
-                {selectedProduct.status === 'out_of_stock' ? 'สินค้าหมด' : selectedProduct.stripeUrl ? 'สั่งซื้อเลย' : 'ยังไม่ได้ตั้งค่าลิงก์ชำระเงิน'}
+                {selectedProduct.status === 'out_of_stock' ? 'สินค้าหมด' : 'สั่งซื้อเลย'}
                 {canBuy && <ExternalLink className="h-5 w-5" />}
               </a>
             </div>
@@ -259,55 +257,78 @@ const ShopPage: React.FC<ShopPageProps> = ({ onBack }) => {
           <p className="text-slate-500">กำลังดึงข้อมูลสินค้าจากระบบกลาง...</p>
         </div>
       ) : filteredProducts.length > 0 ? (
-        <div className="grid max-w-[1020px] grid-cols-[repeat(auto-fit,minmax(240px,292px))] justify-start gap-6">
-          {filteredProducts.map((product) => {
-            const hasDiscount = product.isDiscounted && product.originalPrice > product.price;
-            return (
-              <button
-                type="button"
-                key={product.id}
-                onClick={() => void openProduct(product)}
-                className="group flex h-full flex-col overflow-hidden rounded-[26px] border border-slate-200 bg-white text-left shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-orange-300 hover:shadow-[0_22px_46px_rgba(148,94,22,.14)]"
-              >
-                <div className="relative flex h-48 items-center justify-center overflow-hidden bg-gradient-to-br from-orange-50 via-white to-slate-50 p-3">
-                  {product.imageUrl ? (
-                    <img src={product.imageUrl} alt={product.name} className="h-full w-full object-contain transition-transform duration-500 group-hover:scale-105" />
-                  ) : (
-                    <Package className="w-12 h-12 text-slate-300" />
-                  )}
-                  <div className="absolute left-3 top-3 flex flex-wrap gap-1.5">
-                    {product.isNew && <span className="rounded-full bg-emerald-500 px-2.5 py-1 text-[10px] font-black text-white shadow-sm">NEW</span>}
-                    {hasDiscount && <span className="rounded-full bg-orange-500 px-2.5 py-1 text-[10px] font-black text-white shadow-sm">SALE</span>}
-                  </div>
-                  {product.status === 'out_of_stock' && (
-                    <div className="absolute inset-0 flex items-center justify-center bg-white/70 backdrop-blur-[2px]">
-                      <span className="rotate-[-10deg] rounded-full bg-red-600 px-4 py-2 text-sm font-black text-white">สินค้าหมด</span>
+        <section className="max-w-[980px]">
+          <div className="mb-5 flex items-end justify-between gap-4 border-b border-slate-200 pb-3">
+            <div>
+              <h2 className="text-xl font-black text-slate-900">E-book แนะนำสำหรับคุณ</h2>
+              <p className="text-sm font-medium text-slate-500">เลือกดูไฟล์สรุปเนื้อหาแบบปกหนังสือ เห็นสินค้าได้ชัดก่อนตัดสินใจ</p>
+            </div>
+            <span className="shrink-0 text-sm font-black text-orange-600">
+              {filteredProducts.length} / {products.length} รายการ
+            </span>
+          </div>
+
+          <div className="grid grid-cols-[repeat(auto-fill,minmax(170px,1fr))] gap-x-6 gap-y-10 md:grid-cols-[repeat(auto-fill,minmax(176px,190px))]">
+            {filteredProducts.map((product) => {
+              const hasDiscount = Boolean(product.isDiscounted);
+              const hasOriginalPrice = hasDiscount && product.originalPrice > product.price;
+              return (
+                <button
+                  type="button"
+                  key={product.id}
+                  onClick={() => void openProduct(product)}
+                  className="group block text-left transition-transform duration-300 hover:-translate-y-1 focus:outline-none focus-visible:ring-4 focus-visible:ring-orange-100"
+                >
+                  <div className="relative mx-auto aspect-[3/4] w-full overflow-visible rounded-xl">
+                    <div className="absolute inset-x-3 bottom-0 h-8 rounded-full bg-slate-900/12 blur-xl transition-opacity duration-300 group-hover:opacity-80"></div>
+                    <div className="relative h-full overflow-hidden rounded-xl bg-white shadow-[0_16px_34px_rgba(15,23,42,.13)] ring-1 ring-slate-200 transition-all duration-300 group-hover:shadow-[0_24px_46px_rgba(180,83,9,.18)] group-hover:ring-orange-200">
+                      {product.imageUrl ? (
+                        <img src={product.imageUrl} alt={product.name} className="h-full w-full object-contain transition-transform duration-500 group-hover:scale-[1.03]" />
+                      ) : (
+                        <div className="flex h-full items-center justify-center bg-slate-50">
+                          <Package className="h-12 w-12 text-slate-300" />
+                        </div>
+                      )}
+                      <div className="absolute left-2 top-2 flex flex-col gap-1.5">
+                        {product.isNew && <span className="rounded-full bg-emerald-500 px-2.5 py-1 text-[10px] font-black text-white shadow-sm">NEW</span>}
+                        {hasDiscount && <span className="rounded-full bg-orange-500 px-2.5 py-1 text-[10px] font-black text-white shadow-sm">SALE</span>}
+                      </div>
+                      {product.status === 'out_of_stock' && (
+                        <div className="absolute inset-0 flex items-center justify-center bg-white/75 backdrop-blur-[2px]">
+                          <span className="rotate-[-10deg] rounded-full bg-red-600 px-4 py-2 text-sm font-black text-white">สินค้าหมด</span>
+                        </div>
+                      )}
                     </div>
-                  )}
-                </div>
-                <div className="flex flex-1 flex-col p-5">
-                  <div className="mb-2 flex flex-wrap gap-1.5">
-                    {product.categoryPart && <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-black text-slate-600">{CATEGORY_LABELS[product.categoryPart] || product.categoryPart}</span>}
-                    {product.subject && <span className="rounded-full bg-orange-50 px-2 py-0.5 text-[10px] font-black text-orange-700">{product.subject}</span>}
                   </div>
-                  <h3 className="line-clamp-2 text-lg font-black leading-snug text-slate-900 transition-colors group-hover:text-orange-600">
-                    {product.name}
-                  </h3>
-                  <p className="mt-2 line-clamp-3 text-sm leading-6 text-slate-600">{product.description}</p>
-                  <div className="mt-auto flex items-end justify-between border-t border-slate-100 pt-4">
-                    <div>
-                      {hasDiscount && <div className="text-xs font-bold text-slate-400 line-through">฿{product.originalPrice.toLocaleString()}</div>}
-                      <div className="text-2xl font-black text-orange-600">฿{product.price.toLocaleString()}</div>
+
+                  <div className="mt-4">
+                    <h3 className="line-clamp-2 text-base font-black leading-snug text-slate-950 transition-colors group-hover:text-orange-600">
+                      {product.name}
+                    </h3>
+                    <div className="mt-1 flex flex-wrap gap-1.5">
+                      {product.categoryPart && <span className="text-xs font-bold text-slate-500">{CATEGORY_LABELS[product.categoryPart] || product.categoryPart}</span>}
+                      {product.subject && <span className="text-xs font-bold text-orange-600">{product.subject}</span>}
                     </div>
-                    <span className="rounded-full bg-orange-50 px-3 py-1.5 text-xs font-black text-orange-700 transition-colors group-hover:bg-orange-500 group-hover:text-white">
-                      ดูรายละเอียด
-                    </span>
+                    <p className="mt-1 line-clamp-2 text-xs leading-5 text-slate-500">{product.description}</p>
+                    <div className="mt-3 flex items-end justify-between gap-3">
+                      <div>
+                        {hasOriginalPrice && <div className="text-xs font-bold text-slate-400 line-through">฿{product.originalPrice.toLocaleString()}</div>}
+                        <div className="text-2xl font-black text-orange-600">฿{product.price.toLocaleString()}</div>
+                      </div>
+                      <span className="rounded-full bg-blue-700 p-2.5 text-white shadow-lg shadow-blue-900/20 transition-colors group-hover:bg-orange-500">
+                        <ShoppingCart className="h-4 w-4" />
+                      </span>
+                    </div>
                   </div>
-                </div>
-              </button>
-            );
-          })}
-        </div>
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="mt-9 rounded-2xl border border-slate-200 bg-white/70 px-5 py-3 text-center text-sm font-bold text-slate-600">
+            แสดงสินค้า {filteredProducts.length} รายการ จากสินค้าทั้งหมด {products.length} รายการ
+          </div>
+        </section>
       ) : (
         <div className="bg-white p-12 rounded-2xl border border-slate-200 text-center flex flex-col items-center justify-center">
           <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-4">

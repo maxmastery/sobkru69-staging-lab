@@ -1,4 +1,4 @@
-import { getSupabaseConfig, isSupabaseConfigured, supabaseRest, uploadBucketFile } from './supabaseRest';
+import { getSupabaseConfig, isSupabaseConfigured, supabaseRest, uploadBucketFile, uploadPublicImage } from './supabaseRest';
 
 type NewsRow = {
   id: string;
@@ -303,7 +303,7 @@ const parseProductFeatures = (features: unknown) => {
       ? value.items.filter((item: unknown) => typeof item === 'string')
       : [];
     const galleryImages = Array.isArray(value.galleryImages)
-      ? value.galleryImages.filter((item: unknown) => typeof item === 'string').slice(0, 2)
+      ? value.galleryImages.filter((item: unknown) => typeof item === 'string').slice(0, 3)
       : [];
 
     return {
@@ -332,7 +332,7 @@ const parseProductFeatures = (features: unknown) => {
 
 const toProductFeaturesPayload = (product: Partial<ContentProductItem>) => ({
   items: product.features || [],
-  galleryImages: (product.galleryImages || []).filter(Boolean).slice(0, 2),
+  galleryImages: (product.galleryImages || []).filter(Boolean).slice(0, 3),
   categoryPart: product.categoryPart || '',
   subject: product.subject || '',
   stripeUrl: product.stripeUrl || '',
@@ -699,6 +699,12 @@ export const contentService = {
   async deleteProduct(id: string) {
     ensureSupabase();
     await supabaseRest.delete<ProductRow[]>('products', `id=eq.${encodeValue(id)}`);
+  },
+
+  async uploadProductImage(file: File, slot = 'cover') {
+    ensureSupabase();
+    const safeSlot = slot.replace(/[^a-zA-Z0-9_-]+/g, '-').slice(0, 40) || 'image';
+    return uploadPublicImage(file, `products/${safeSlot}`);
   },
 
   async getDonationHistory(params: { userId?: string; userEmail?: string }): Promise<ContentDonationRecord[]> {
