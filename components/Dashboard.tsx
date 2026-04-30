@@ -151,10 +151,8 @@ const Dashboard: React.FC<DashboardProps> = ({ onSelectPart, onNavigateToNews, o
         {/* Slim Shop Button */}
         {showShopButton && (
           <div className="flex justify-center px-1">
-            <button onClick={onNavigateToShop} className="group relative flex min-h-[48px] w-full max-w-[294px] items-center justify-center overflow-hidden rounded-full bg-gradient-to-r from-[#C47A08] via-[#F59E0B] to-[#F7C948] px-5 py-2.5 text-white ring-1 ring-amber-200/80 shadow-[0_18px_38px_rgba(180,83,9,.30)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_24px_52px_rgba(180,83,9,.36)] active:translate-y-0 active:scale-[.98]">
-              <div className="absolute inset-0 bg-[radial-gradient(circle_at_24%_12%,rgba(255,255,255,.42),transparent_30%),linear-gradient(110deg,rgba(120,53,15,.20),transparent_38%,rgba(255,255,255,.22)_62%,rgba(146,64,14,.18))]"></div>
-              <div className="absolute inset-y-1 left-1 w-12 rounded-full bg-white/16 blur-sm transition-transform duration-500 group-hover:translate-x-[220px]"></div>
-              <div className="mr-2.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/22 ring-1 ring-white/35 transition-transform duration-300 group-hover:rotate-6 group-hover:scale-110">
+            <button onClick={onNavigateToShop} className="group relative flex min-h-[48px] w-full max-w-[294px] items-center justify-center overflow-hidden rounded-full bg-[#D89A16] px-5 py-2.5 text-white ring-1 ring-[#E8B33E] shadow-[0_18px_38px_rgba(180,83,9,.28)] transition-all duration-300 hover:-translate-y-1 hover:bg-[#C9870D] hover:shadow-[0_24px_52px_rgba(180,83,9,.34)] active:translate-y-0 active:scale-[.98]">
+              <div className="mr-2.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/20 ring-1 ring-white/35 transition-transform duration-300 group-hover:rotate-6 group-hover:scale-110">
                 <ShoppingCart className="w-4 h-4 text-white drop-shadow-sm" />
               </div>
               <div className="relative min-w-0">

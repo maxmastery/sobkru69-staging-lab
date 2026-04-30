@@ -187,10 +187,10 @@ const ShopPage: React.FC<ShopPageProps> = ({ onBack }) => {
                     event.preventDefault();
                   }
                 }}
-                className={`inline-flex w-full items-center justify-center gap-3 rounded-3xl px-6 py-4 text-lg font-black text-white transition-all ${
+                className={`inline-flex w-full items-center justify-center gap-3 rounded-3xl px-6 py-[17px] text-lg font-black text-white transition-all ${
                   canBuy
-                    ? 'bg-gradient-to-r from-orange-500 to-amber-500 shadow-[0_20px_45px_rgba(234,88,12,.28)] hover:-translate-y-1 hover:shadow-[0_26px_54px_rgba(234,88,12,.34)]'
-                    : 'cursor-not-allowed bg-gradient-to-r from-orange-300 to-amber-300 opacity-70'
+                    ? 'bg-[#F97316] shadow-[0_20px_45px_rgba(234,88,12,.28)] hover:-translate-y-1 hover:bg-[#EA580C] hover:shadow-[0_26px_54px_rgba(234,88,12,.34)]'
+                    : 'cursor-not-allowed bg-[#F97316] opacity-70'
                 }`}
               >
                 <ShoppingCart className="h-6 w-6" />
@@ -312,8 +312,14 @@ const ShopPage: React.FC<ShopPageProps> = ({ onBack }) => {
                     <p className="mt-1 line-clamp-2 text-xs leading-5 text-slate-500">{product.description}</p>
                     <div className="mt-3 flex items-end justify-between gap-3">
                       <div>
-                        {hasOriginalPrice && <div className="text-xs font-bold text-slate-400 line-through">฿{product.originalPrice.toLocaleString()}</div>}
-                        <div className="text-2xl font-black text-orange-600">฿{product.price.toLocaleString()}</div>
+                        <div className={hasDiscount ? 'text-2xl font-black text-blue-700' : 'text-2xl font-black text-orange-600'}>
+                          ฿{product.price.toLocaleString()}
+                        </div>
+                        {hasOriginalPrice && (
+                          <div className="mt-0.5 text-sm font-bold text-slate-400 line-through">
+                            ฿{product.originalPrice.toLocaleString()}
+                          </div>
+                        )}
                       </div>
                       <span className="rounded-full bg-blue-700 p-2.5 text-white shadow-lg shadow-blue-900/20 transition-colors group-hover:bg-orange-500">
                         <ShoppingCart className="h-4 w-4" />

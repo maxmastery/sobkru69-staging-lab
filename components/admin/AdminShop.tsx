@@ -135,10 +135,13 @@ const AdminShop: React.FC<AdminShopProps> = ({ onPreviewShop, onShopButtonVisibi
 
   const handleDiscountToggle = (checked: boolean) => {
     const currentPrice = Number(currentProduct.price || 0);
+    const currentOriginalPrice = Number(currentProduct.originalPrice || 0);
     setCurrentProduct({
       ...currentProduct,
       isDiscounted: checked,
-      originalPrice: checked && !currentProduct.originalPrice ? currentPrice : Number(currentProduct.originalPrice || 0),
+      originalPrice: checked && currentPrice > 0 && currentOriginalPrice <= currentPrice
+        ? Math.ceil(currentPrice * 1.25)
+        : currentOriginalPrice,
     });
   };
 
