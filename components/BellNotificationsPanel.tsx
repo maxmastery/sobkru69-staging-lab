@@ -11,6 +11,7 @@ interface BellNotificationsPanelProps {
 const BellNotificationsPanel: React.FC<BellNotificationsPanelProps> = ({ notifications, onClose, onMarkAsRead }) => {
   const [isVisible, setIsVisible] = useState(false);
   const [selectedNotif, setSelectedNotif] = useState<BellNotification | null>(null);
+  const visibleNotifications = notifications.filter((notif) => !notif.isRead);
 
   useEffect(() => {
     // Trigger slide-in animation after mount
@@ -59,13 +60,13 @@ const BellNotificationsPanel: React.FC<BellNotificationsPanelProps> = ({ notific
 
         {/* Content */}
         <div className="flex-1 overflow-y-auto p-4 space-y-2">
-          {notifications.length === 0 ? (
+          {visibleNotifications.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full text-slate-500 space-y-3">
               <Bell className="w-12 h-12 text-slate-200" />
               <p>ไม่มีการแจ้งเตือนใหม่</p>
             </div>
           ) : (
-            notifications.map((notif) => (
+            visibleNotifications.map((notif) => (
               <button 
                 key={notif.id} 
                 onClick={() => handleNotifClick(notif)}

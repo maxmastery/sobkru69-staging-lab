@@ -103,11 +103,15 @@ const Auth: React.FC<AuthProps> = ({ onLogin, initialError = '', maintenanceMode
     await onLogin(user);
   };
 
+  const canLoginDuringMaintenance = (identifier: string) => {
+    return ['krumax', 'test01', 'test02'].includes(identifier.trim().toLowerCase());
+  };
+
   const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const identifier = formData.email.trim();
-    if (maintenanceMode?.isActive && identifier !== 'Krumax') {
-      setError('ระบบอยู่ในช่วงปิดปรับปรุงชั่วคราว ขณะนี้เปิดให้เฉพาะผู้ดูแลระบบเข้าใช้งาน');
+    if (maintenanceMode?.isActive && !canLoginDuringMaintenance(identifier)) {
+      setError('ระบบอยู่ในช่วงปิดปรับปรุงชั่วคราว ขณะนี้เปิดให้เฉพาะผู้ดูแลระบบและบัญชีทดสอบเข้าใช้งาน');
       return;
     }
     setIsLoading(true);
@@ -248,7 +252,7 @@ const Auth: React.FC<AuthProps> = ({ onLogin, initialError = '', maintenanceMode
           <div className="flex flex-col items-center text-center mb-8 mt-4">
             <h1 className="text-3xl font-bold text-slate-900 tracking-tight mb-6">SOBKRU <span className="text-amber-500">69</span></h1>
             <h2 className="text-2xl font-bold text-slate-800 mb-2">ระบบติวสอบครูออนไลน์ฟรี</h2>
-            <p className="text-slate-500">{adminOnlyMode ? 'โหมดปิดปรับปรุง เปิดให้ผู้ดูแลระบบเข้าใช้งานเท่านั้น' : 'กรุณากรอกข้อมูลเพื่อเข้าสู่ระบบเตรียมสอบ'}</p>
+            <p className="text-slate-500">{adminOnlyMode ? 'โหมดปิดปรับปรุง เปิดให้ผู้ดูแลระบบและบัญชีทดสอบเข้าใช้งาน' : 'กรุณากรอกข้อมูลเพื่อเข้าสู่ระบบเตรียมสอบ'}</p>
           </div>
 
           {maintenanceMode?.isActive && (

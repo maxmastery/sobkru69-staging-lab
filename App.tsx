@@ -48,7 +48,7 @@ const EMPTY_UI_STATE: UserUiState = {
 
 const POPUP_NOTIFICATION_KEY = 'popup_notification';
 const POPUP_NOTIFICATION_MAX_PER_DAY = 2;
-const POPUP_NOTIFICATION_COOLDOWN_MS = 6 * 60 * 60 * 1000;
+const POPUP_NOTIFICATION_COOLDOWN_MS = 8 * 60 * 60 * 1000;
 const GOOGLE_LOGIN_RECOVERY_MESSAGE = 'Google login ยังไม่สมบูรณ์ กรุณาลองใหม่อีกครั้งจากลิงก์เดิม และระหว่างทั้งขั้นตอนให้ใช้โดเมนเดียวกัน เช่น 127.0.0.1 เดิมตลอด ไม่สลับกับ localhost';
 const DEFAULT_MAINTENANCE_MODE: MaintenanceModeState = {
   isActive: false,
@@ -501,6 +501,8 @@ const App: React.FC = () => {
   };
 
   const isAdminUser = user?.email === 'Krumax';
+  const isTestUser = user?.authProvider === 'local-test';
+  const canBypassMaintenance = isAdminUser || isTestUser;
 
   const MaintenanceScreen = ({ allowAdminEntry = false, showLogout = false }: { allowAdminEntry?: boolean; showLogout?: boolean }) => (
     <div className="min-h-screen bg-[radial-gradient(circle_at_top,_#dcfce7,_#f8fafc_42%,_#e2e8f0)] flex items-center justify-center px-6">
@@ -575,7 +577,7 @@ const App: React.FC = () => {
     return <Auth onLogin={handleLogin} initialError={authBootstrapError} maintenanceMode={maintenanceMode} adminOnlyMode={maintenanceMode.isActive} />;
   }
 
-  if (maintenanceMode.isActive && !isAdminUser) {
+  if (maintenanceMode.isActive && !canBypassMaintenance) {
     return <MaintenanceScreen showLogout />;
   }
 

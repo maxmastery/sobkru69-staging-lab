@@ -4,12 +4,35 @@ import { getSupabaseClient } from './supabaseClient';
 
 const USER_CACHE_STORAGE_KEY = 'sobkru69_current_user';
 const ADMIN_SESSION_STORAGE_KEY = 'sobkru69_admin_session';
+const TEST_SESSION_STORAGE_KEY = 'sobkru69_test_session';
+const LOCAL_UI_STATE_STORAGE_PREFIX = 'sobkru69_local_ui_state:';
 const GOOGLE_PKCE_VERIFIER_KEY = 'sobkru69_google_pkce_verifier';
 const GOOGLE_OAUTH_STATE_KEY = 'sobkru69_google_oauth_state';
 const GOOGLE_LOGIN_PENDING_KEY = 'sobkru69_google_login_pending';
 
 const ADMIN_EMAIL = 'Krumax';
 const ADMIN_PASSWORD = '@max123456';
+const TEST_PASSWORD = 't123456';
+const TEST_USERS: Record<string, User> = {
+  test01: {
+    id: 'test-user-01',
+    name: 'test01',
+    email: 'test01',
+    role: 'student',
+    authProvider: 'local-test',
+    isActive: true,
+    createdAt: '2026-01-01T00:00:00.000Z',
+  },
+  test02: {
+    id: 'test-user-02',
+    name: 'test02',
+    email: 'test02',
+    role: 'student',
+    authProvider: 'local-test',
+    isActive: true,
+    createdAt: '2026-01-01T00:00:00.000Z',
+  },
+};
 
 type AuthApiUser = {
   id: string;
@@ -261,12 +284,38 @@ const isAdminCredentials = (identifier: string, password: string) => {
   return identifier.trim() === ADMIN_EMAIL && password === ADMIN_PASSWORD;
 };
 
+const normalizeIdentifier = (identifier: string) => identifier.trim().toLowerCase();
+
+const getTestUser = (identifier: string, password: string): User | null => {
+  if (password !== TEST_PASSWORD) return null;
+  return TEST_USERS[normalizeIdentifier(identifier)] || null;
+};
+
 const storeAdminSession = () => {
   safeStorage.setSession(ADMIN_SESSION_STORAGE_KEY, JSON.stringify(createAdminUser()));
 };
 
 const clearAdminSession = () => {
   safeStorage.removeSession(ADMIN_SESSION_STORAGE_KEY);
+};
+
+const storeTestSession = (user: User) => {
+  safeStorage.setLocal(TEST_SESSION_STORAGE_KEY, JSON.stringify(user));
+};
+
+const clearTestSession = () => {
+  safeStorage.removeLocal(TEST_SESSION_STORAGE_KEY);
+};
+
+const getStoredTestSession = (): User | null => {
+  const raw = safeStorage.getLocal(TEST_SESSION_STORAGE_KEY);
+  if (!raw) return null;
+  try {
+    const parsed = JSON.parse(raw) as User;
+    return parsed?.authProvider === 'local-test' ? parsed : null;
+  } catch {
+    return null;
+  }
 };
 
 const getStoredAdminSession = (): User | null => {
@@ -301,6 +350,27 @@ const getCurrentUser = (): User | null => {
   } catch {
     return null;
   }
+};
+
+const isLocalOnlyUiUser = (userId: string) => userId === 'admin-001' || userId.startsWith('test-user-');
+
+const getLocalUiState = (userId: string): UserUiState => {
+  try {
+    const raw = safeStorage.getLocal(`${LOCAL_UI_STATE_STORAGE_PREFIX}${userId}`);
+    if (!raw) return emptyUiState();
+    const parsed = JSON.parse(raw) as Partial<UserUiState>;
+    return {
+      readNotificationIds: ensureStringArray(parsed.readNotificationIds),
+      readSupportMessageIds: ensureStringArray(parsed.readSupportMessageIds),
+      popupSeenMap: ensureStringMap(parsed.popupSeenMap),
+    };
+  } catch {
+    return emptyUiState();
+  }
+};
+
+const saveLocalUiState = (userId: string, state: UserUiState) => {
+  safeStorage.setLocal(`${LOCAL_UI_STATE_STORAGE_PREFIX}${userId}`, JSON.stringify(state));
 };
 
 const clearStoredSession = () => {
@@ -784,6 +854,12 @@ export const authService = {
         return { success: true, user: adminUser };
       }
 
+      const testUser = getStoredTestSession();
+      if (testUser) {
+        storeCurrentUser(testUser);
+        return { success: true, user: testUser };
+      }
+
       // Skip OAuth processing if already processed (prevents back button from re-triggering OAuth)
       const oauthAlreadyProcessed = hasOAuthProcessed();
 
@@ -843,6 +919,14 @@ export const authService = {
       storeAdminSession();
       storeCurrentUser(adminUser);
       return { success: true, user: adminUser };
+    }
+
+    const testUser = getTestUser(identifier, password);
+    if (testUser) {
+      clearAdminSession();
+      storeTestSession(testUser);
+      storeCurrentUser(testUser);
+      return { success: true, user: testUser };
     }
 
     try {
@@ -981,7 +1065,24 @@ export const authService = {
     const supabase = getSupabaseClient();
     const { data } = supabase.auth.onAuthStateChange((event, rawSession) => {
       void (async () => {
-        if (event === 'SIGNED_OUT' || !rawSession) {
+        if (event === 'SIGNED_OUT') {
+          clearCurrentUser();
+          clearStoredSession();
+          clearAdminSession();
+          clearTestSession();
+          clearGoogleLoginPending();
+          callback({ event, user: null });
+          return;
+        }
+
+        if (!rawSession) {
+          const staticSessionUser = getStoredAdminSession() || getStoredTestSession();
+          if (staticSessionUser) {
+            storeCurrentUser(staticSessionUser);
+            callback({ event, user: staticSessionUser });
+            return;
+          }
+
           clearCurrentUser();
           clearStoredSession();
           clearGoogleLoginPending();
@@ -1028,6 +1129,7 @@ export const authService = {
       clearStoredSession();
       clearCurrentUser();
       clearAdminSession();
+      clearTestSession();
       clearOAuthState();
       clearGoogleLoginPending();
     }
@@ -1191,14 +1293,18 @@ export const authService = {
   },
 
   async getUserUiState(userId: string): Promise<{ success: boolean; state: UserUiState; message?: string }> {
-    if (!userId || userId === 'admin-001') {
+    if (!userId) {
       return { success: true, state: emptyUiState() };
+    }
+
+    if (isLocalOnlyUiUser(userId)) {
+      return { success: true, state: getLocalUiState(userId) };
     }
 
     try {
       const accessToken = await getOwnAccessToken(userId);
       if (!accessToken) {
-        return { success: true, state: emptyUiState() };
+        return { success: true, state: getLocalUiState(userId) };
       }
 
       const rows = await supabaseRest.select<UserUiStateRow[]>('user_ui_state', `select=*&user_id=eq.${encodeValue(userId)}&limit=1`, accessToken);
@@ -1227,14 +1333,32 @@ export const authService = {
   },
 
   async saveUserUiState(userId: string, patch: Partial<UserUiState>): Promise<{ success: boolean; state: UserUiState; message?: string }> {
-    if (!userId || userId === 'admin-001') {
+    if (!userId) {
       return { success: true, state: emptyUiState() };
+    }
+
+    if (isLocalOnlyUiUser(userId)) {
+      const current = getLocalUiState(userId);
+      const nextState: UserUiState = {
+        readNotificationIds: patch.readNotificationIds ?? current.readNotificationIds,
+        readSupportMessageIds: patch.readSupportMessageIds ?? current.readSupportMessageIds,
+        popupSeenMap: patch.popupSeenMap ?? current.popupSeenMap,
+      };
+      saveLocalUiState(userId, nextState);
+      return { success: true, state: nextState };
     }
 
     try {
       const accessToken = await getOwnAccessToken(userId);
       if (!accessToken) {
-        return { success: false, state: emptyUiState(), message: 'ไม่พบ session ผู้ใช้งาน' };
+        const current = getLocalUiState(userId);
+        const nextState: UserUiState = {
+          readNotificationIds: patch.readNotificationIds ?? current.readNotificationIds,
+          readSupportMessageIds: patch.readSupportMessageIds ?? current.readSupportMessageIds,
+          popupSeenMap: patch.popupSeenMap ?? current.popupSeenMap,
+        };
+        saveLocalUiState(userId, nextState);
+        return { success: true, state: nextState };
       }
 
       const current = await this.getUserUiState(userId);
