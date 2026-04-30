@@ -210,37 +210,34 @@ const ShopPage: React.FC<ShopPageProps> = ({ onBack }) => {
         <ArrowLeft className="w-5 h-5 mr-2" />
         กลับหน้าหลัก
       </button>
-      <div className="mb-8 flex items-end justify-between gap-4 border-b border-slate-200 pb-4">
+      <div className="mb-8 border-b border-slate-200 pb-4">
         <h1 className="text-3xl md:text-4xl font-black text-slate-900">E-book แนะนำสำหรับคุณ</h1>
-        <span className="shrink-0 text-sm font-black text-orange-600">
-          {filteredProducts.length} / {products.length} รายการ
-        </span>
       </div>
 
-      <div className="mb-12 grid gap-3 rounded-[28px] border border-slate-100 bg-white/80 p-3 shadow-sm md:grid-cols-[1.35fr_.8fr_.8fr_.8fr]">
+      <div className="mb-12 grid gap-3 rounded-[32px] border border-orange-100/70 bg-[linear-gradient(135deg,rgba(255,255,255,.96),rgba(255,247,237,.82))] p-3 shadow-[0_18px_45px_rgba(15,23,42,.08)] ring-1 ring-white/70 backdrop-blur md:grid-cols-[1.35fr_.8fr_.8fr_.8fr]">
         <label className="relative">
-          <Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
+          <Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-orange-400" />
           <input
             value={searchTerm}
             onChange={(event) => setSearchTerm(event.target.value)}
             placeholder="ค้นหาชื่อสินค้า หรือคำสำคัญ..."
-            className="h-12 w-full rounded-2xl border border-slate-200 bg-slate-50 pl-11 pr-4 text-sm font-medium outline-none transition-all focus:border-orange-400 focus:bg-white focus:ring-4 focus:ring-orange-100"
+            className="h-[52px] w-full rounded-[22px] border border-white bg-white/90 pl-11 pr-4 text-sm font-bold text-slate-800 shadow-inner shadow-slate-900/[.03] outline-none transition-all placeholder:text-slate-400 focus:border-orange-300 focus:bg-white focus:ring-4 focus:ring-orange-100"
           />
         </label>
         <label className="relative">
-          <SlidersHorizontal className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
-          <select value={categoryFilter} onChange={(event) => setCategoryFilter(event.target.value)} className="h-12 w-full appearance-none rounded-2xl border border-slate-200 bg-slate-50 pl-11 pr-4 text-sm font-bold outline-none transition-all focus:border-orange-400 focus:bg-white focus:ring-4 focus:ring-orange-100">
+          <SlidersHorizontal className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-orange-400" />
+          <select value={categoryFilter} onChange={(event) => setCategoryFilter(event.target.value)} className="h-[52px] w-full appearance-none rounded-[22px] border border-white bg-white/90 pl-11 pr-4 text-sm font-black text-slate-800 shadow-inner shadow-slate-900/[.03] outline-none transition-all focus:border-orange-300 focus:bg-white focus:ring-4 focus:ring-orange-100">
             <option value="all">ทุกภาค</option>
             <option value="part_a">ภาค ก</option>
             <option value="part_b">ภาค ข</option>
             <option value="part_c">ภาค ค</option>
           </select>
         </label>
-        <select value={subjectFilter} onChange={(event) => setSubjectFilter(event.target.value)} className="h-12 rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm font-bold outline-none transition-all focus:border-orange-400 focus:bg-white focus:ring-4 focus:ring-orange-100">
+        <select value={subjectFilter} onChange={(event) => setSubjectFilter(event.target.value)} className="h-[52px] rounded-[22px] border border-white bg-white/90 px-4 text-sm font-black text-slate-800 shadow-inner shadow-slate-900/[.03] outline-none transition-all focus:border-orange-300 focus:bg-white focus:ring-4 focus:ring-orange-100">
           <option value="all">ทุกวิชา</option>
           {subjects.map(subject => <option key={subject} value={subject}>{subject}</option>)}
         </select>
-        <select value={sortOrder} onChange={(event) => setSortOrder(event.target.value)} className="h-12 rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm font-bold outline-none transition-all focus:border-orange-400 focus:bg-white focus:ring-4 focus:ring-orange-100">
+        <select value={sortOrder} onChange={(event) => setSortOrder(event.target.value)} className="h-[52px] rounded-[22px] border border-white bg-white/90 px-4 text-sm font-black text-slate-800 shadow-inner shadow-slate-900/[.03] outline-none transition-all focus:border-orange-300 focus:bg-white focus:ring-4 focus:ring-orange-100">
           <option value="newest">ใหม่ล่าสุด</option>
           <option value="oldest">เก่าสุด</option>
           <option value="price_low">ราคาต่ำสุด</option>
@@ -291,7 +288,7 @@ const ShopPage: React.FC<ShopPageProps> = ({ onBack }) => {
                     </div>
                   </div>
 
-                  <div className="mt-4 flex min-h-[176px] flex-1 flex-col">
+                  <div className="mt-4 flex min-h-[124px] flex-1 flex-col">
                     <h3 className="line-clamp-2 min-h-[44px] text-base font-black leading-snug text-slate-950 transition-colors group-hover:text-orange-600">
                       {product.name}
                     </h3>
@@ -299,17 +296,18 @@ const ShopPage: React.FC<ShopPageProps> = ({ onBack }) => {
                       {product.categoryPart && <span className="text-xs font-bold text-slate-500">{CATEGORY_LABELS[product.categoryPart] || product.categoryPart}</span>}
                       {product.subject && <span className="text-xs font-bold text-orange-600">{product.subject}</span>}
                     </div>
-                    <p className="mt-1 line-clamp-2 min-h-[40px] text-xs leading-5 text-slate-500">{product.description}</p>
-                    <div className="mt-auto flex items-end justify-between gap-3 pt-3">
-                      <div>
-                        <div className="text-2xl font-black text-[#FA6B19]">
+                    <div className="mt-2 flex items-center justify-between gap-3">
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-baseline gap-2">
+                          <span className="text-2xl font-black text-[#FA6B19]">
                           ฿{product.price.toLocaleString()}
+                          </span>
+                          {hasOriginalPrice && (
+                            <span className="text-sm font-bold text-slate-400 line-through">
+                              ฿{product.originalPrice.toLocaleString()}
+                            </span>
+                          )}
                         </div>
-                        {hasOriginalPrice && (
-                          <div className="mt-0.5 text-sm font-bold text-slate-400 line-through">
-                            ฿{product.originalPrice.toLocaleString()}
-                          </div>
-                        )}
                       </div>
                       <span className="rounded-full bg-[#FA6B19] p-2.5 text-white shadow-lg shadow-orange-900/20 transition-colors group-hover:bg-[#E75F13]">
                         <ShoppingCart className="h-4 w-4" />
