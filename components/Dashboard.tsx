@@ -12,9 +12,10 @@ interface DashboardProps {
   onNavigateToMockExam: () => void;
   onNavigateToLeaderboard?: () => void;
   showShopButton?: boolean;
+  onlineUsersCount?: number;
 }
 
-const Dashboard: React.FC<DashboardProps> = ({ onSelectPart, onNavigateToNews, onNavigateToDiscussion, onNavigateToShop, onNavigateToMockExam, onNavigateToLeaderboard, showShopButton = true }) => {
+const Dashboard: React.FC<DashboardProps> = ({ onSelectPart, onNavigateToNews, onNavigateToDiscussion, onNavigateToShop, onNavigateToMockExam, onNavigateToLeaderboard, showShopButton = true, onlineUsersCount = 0 }) => {
   const getIcon = (id: PartId) => {
     switch (id) {
       case PartId.PART_A: return <BookOpen className="w-12 h-12 text-white mb-4" />;
@@ -37,7 +38,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onSelectPart, onNavigateToNews, o
   const LOGO_URL = `https://drive.google.com/thumbnail?id=${LOGO_ID}&sz=w400`;
 
   return (
-    <div className="w-full max-w-[1200px] mx-auto px-6 md:px-[80px] pt-6 md:pt-10 pb-6">
+    <div className="relative w-full max-w-[1200px] mx-auto px-6 md:px-[80px] pt-6 md:pt-10 pb-6">
       <header className="text-center mb-8 flex flex-col items-center">
         <div className="mb-4">
           <h1 className="text-3xl md:text-4xl font-bold text-slate-900 tracking-tight">SOBKRU <span className="text-amber-500">69</span></h1>
@@ -151,20 +152,28 @@ const Dashboard: React.FC<DashboardProps> = ({ onSelectPart, onNavigateToNews, o
         {/* Slim Shop Button */}
         {showShopButton && (
           <div className="flex justify-center px-1">
-            <button onClick={onNavigateToShop} className="group relative flex min-h-[46px] w-full max-w-[420px] items-center justify-center overflow-hidden rounded-2xl border border-amber-200 bg-white/80 px-5 py-2 text-left shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-amber-400 hover:bg-amber-50 hover:shadow-lg hover:shadow-amber-900/10">
-              <div className="absolute inset-x-8 bottom-0 h-px bg-gradient-to-r from-transparent via-amber-300 to-transparent opacity-70"></div>
-              <div className="mr-3 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-amber-100 transition-all duration-300 group-hover:bg-amber-500">
-                <ShoppingCart className="w-4 h-4 text-amber-700 transition-colors group-hover:text-white" />
+            <button onClick={onNavigateToShop} className="group relative flex min-h-[48px] w-full max-w-[294px] items-center justify-center overflow-hidden rounded-full bg-gradient-to-r from-[#F59E0B] via-[#F97316] to-[#EA580C] px-5 py-2.5 text-white shadow-[0_18px_36px_rgba(234,88,12,.28)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_24px_48px_rgba(234,88,12,.34)] active:translate-y-0 active:scale-[.98]">
+              <div className="absolute inset-0 bg-[radial-gradient(circle_at_25%_15%,rgba(255,255,255,.34),transparent_30%),linear-gradient(90deg,transparent,rgba(255,255,255,.16),transparent)] opacity-80"></div>
+              <div className="mr-2.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/20 ring-1 ring-white/25 transition-transform duration-300 group-hover:rotate-6 group-hover:scale-110">
+                <ShoppingCart className="w-4 h-4 text-white" />
               </div>
-              <div className="min-w-0">
-                <h4 className="truncate text-sm font-black text-slate-800 transition-colors group-hover:text-amber-700">ไฟล์ E-book สรุปเนื้อหา</h4>
-                <p className="truncate text-[11px] font-medium text-slate-500">เปิดดูไฟล์สรุปเนื้อหาและรายละเอียดสินค้า</p>
+              <div className="relative min-w-0">
+                <h4 className="truncate text-sm font-black tracking-wide text-white drop-shadow-[0_1px_1px_rgba(124,45,18,.2)]">ไฟล์ E-book สรุปเนื้อหา</h4>
               </div>
             </button>
           </div>
         )}
-        
 
+      </div>
+
+      <div className="fixed bottom-5 left-4 z-40 md:absolute md:-left-10 md:bottom-0 md:z-10 px-1 py-1 text-emerald-700">
+        <div className="flex items-center gap-2 text-sm font-black drop-shadow-[0_1px_0_rgba(255,255,255,.9)]">
+          <span className="relative flex h-3 w-3">
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-60"></span>
+            <span className="relative inline-flex h-3 w-3 rounded-full bg-emerald-500"></span>
+          </span>
+          {onlineUsersCount} Online
+        </div>
       </div>
     </div>
   );

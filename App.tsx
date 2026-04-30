@@ -47,6 +47,8 @@ const EMPTY_UI_STATE: UserUiState = {
 };
 
 const POPUP_NOTIFICATION_KEY = 'popup_notification';
+const POPUP_NOTIFICATION_MAX_PER_DAY = 2;
+const POPUP_NOTIFICATION_COOLDOWN_MS = 6 * 60 * 60 * 1000;
 const GOOGLE_LOGIN_RECOVERY_MESSAGE = 'Google login ยังไม่สมบูรณ์ กรุณาลองใหม่อีกครั้งจากลิงก์เดิม และระหว่างทั้งขั้นตอนให้ใช้โดเมนเดียวกัน เช่น 127.0.0.1 เดิมตลอด ไม่สลับกับ localhost';
 const DEFAULT_MAINTENANCE_MODE: MaintenanceModeState = {
   isActive: false,
@@ -54,6 +56,31 @@ const DEFAULT_MAINTENANCE_MODE: MaintenanceModeState = {
   message: 'ระบบอยู่ระหว่างอัปเดตและปรับปรุงประสิทธิภาพ ขออภัยในความไม่สะดวก',
   startAt: '',
   endAt: '',
+};
+
+const getLocalDateKey = (date = new Date()) => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+const parsePopupSeenRecord = (rawValue?: string) => {
+  if (!rawValue) {
+    return null;
+  }
+
+  try {
+    const parsed = JSON.parse(rawValue) as {
+      updatedAt?: string;
+      dateKey?: string;
+      count?: number;
+      lastShownAt?: string;
+    };
+    return parsed && typeof parsed === 'object' ? parsed : { updatedAt: rawValue };
+  } catch {
+    return { updatedAt: rawValue };
+  }
 };
 
 const requiresGoogleProfileCompletion = (activeUser: User | null) => {
@@ -397,23 +424,35 @@ const App: React.FC = () => {
       const res = await authService.getNotification();
       if (res.success && res.notification && (res.notification as any).isActive) {
         const notif = res.notification as any;
-        const lastSeen = popupSeenMap[POPUP_NOTIFICATION_KEY];
-        if (!lastSeen || lastSeen !== notif.updatedAt) {
+        const record = parsePopupSeenRecord(popupSeenMap[POPUP_NOTIFICATION_KEY]);
+        const notificationVersion = notif.updatedAt || 'active-popup';
+        const todayKey = getLocalDateKey();
+        const isSameVersion = record?.updatedAt === notificationVersion;
+        const countToday = isSameVersion && record?.dateKey === todayKey ? Number(record.count || 0) : 0;
+        const lastShownAt = isSameVersion && record?.lastShownAt ? new Date(record.lastShownAt).getTime() : 0;
+        const hasCooldownPassed = !lastShownAt || Date.now() - lastShownAt >= POPUP_NOTIFICATION_COOLDOWN_MS;
+        const shouldShowPopup = countToday < POPUP_NOTIFICATION_MAX_PER_DAY && hasCooldownPassed;
+
+        if (shouldShowPopup) {
           setNotificationModal(notif);
-          if (notif.updatedAt) {
-            await authService.saveUserUiState(userId, {
-              popupSeenMap: {
-                [POPUP_NOTIFICATION_KEY]: notif.updatedAt,
-              },
-            });
-            setUserUiState(current => ({
-              ...current,
-              popupSeenMap: {
-                ...current.popupSeenMap,
-                [POPUP_NOTIFICATION_KEY]: notif.updatedAt,
-              },
-            }));
-          }
+          const nextSeenValue = JSON.stringify({
+            updatedAt: notificationVersion,
+            dateKey: todayKey,
+            count: countToday + 1,
+            lastShownAt: new Date().toISOString(),
+          });
+          await authService.saveUserUiState(userId, {
+            popupSeenMap: {
+              [POPUP_NOTIFICATION_KEY]: nextSeenValue,
+            },
+          });
+          setUserUiState(current => ({
+            ...current,
+            popupSeenMap: {
+              ...current.popupSeenMap,
+              [POPUP_NOTIFICATION_KEY]: nextSeenValue,
+            },
+          }));
         }
       }
     } catch (error) {
@@ -634,6 +673,7 @@ const App: React.FC = () => {
           onNavigateToMockExam={() => setCurrentPage('mock-exam')}
           onNavigateToLeaderboard={() => setCurrentPage('user-stats')}
           showShopButton={showShopButton}
+          onlineUsersCount={onlineUsersCount}
         />
       );
     }
@@ -1022,18 +1062,6 @@ const App: React.FC = () => {
               ประวัติการเลี้ยงกาแฟ
             </button>
           )}
-        </div>
-      )}
-
-      {!currentTopic && (
-        <div className="fixed bottom-6 left-6 z-40 px-1 py-1 text-emerald-700">
-          <div className="flex items-center gap-2 text-sm font-black drop-shadow-[0_1px_0_rgba(255,255,255,.9)]">
-            <span className="relative flex h-3 w-3">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-60"></span>
-              <span className="relative inline-flex h-3 w-3 rounded-full bg-emerald-500"></span>
-            </span>
-            {onlineUsersCount} Online
-          </div>
         </div>
       )}
 

@@ -868,6 +868,9 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, onPreviewShop,
                   <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-500"></div>
                 </label>
               </div>
+              <div className="rounded-2xl border border-amber-100 bg-amber-50/70 px-4 py-3 text-sm leading-6 text-amber-900">
+                เมื่อเปิดใช้งาน ผู้ใช้แต่ละคนจะเห็น Pop-up ได้ไม่เกิน 2 ครั้งต่อวัน และแต่ละครั้งต้องห่างกันอย่างน้อย 6 ชั่วโมง
+              </div>
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-2">หัวข้อแจ้งเตือน</label>
                 <input

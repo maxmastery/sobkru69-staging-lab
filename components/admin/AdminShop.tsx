@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Edit2, Trash2, Image as ImageIcon, Search, DollarSign, Package, X, Save, CheckCircle2, ShoppingCart, Eye, EyeOff, Store } from 'lucide-react';
+import { Plus, Edit2, Trash2, Image as ImageIcon, Search, DollarSign, Package, X, Save, CheckCircle2, ShoppingCart, Eye, EyeOff, Store, Link as LinkIcon, Sparkles, Percent, Tag } from 'lucide-react';
 import { contentService } from '../../services/contentService';
 
 export interface ProductItem {
@@ -11,6 +11,14 @@ export interface ProductItem {
   features: string[];
   status: 'in_stock' | 'out_of_stock';
   viewCount: number;
+  galleryImages: string[];
+  categoryPart: string;
+  subject: string;
+  stripeUrl: string;
+  isDiscounted: boolean;
+  originalPrice: number;
+  isNew: boolean;
+  createdAt: string;
 }
 
 interface AdminShopProps {
@@ -68,6 +76,13 @@ const AdminShop: React.FC<AdminShopProps> = ({ onPreviewShop, onShopButtonVisibi
       features: [],
       status: 'in_stock',
       viewCount: 0,
+      galleryImages: ['', ''],
+      categoryPart: '',
+      subject: '',
+      stripeUrl: '',
+      isDiscounted: false,
+      originalPrice: 0,
+      isNew: false,
     });
     setFeatureInput('');
     setIsEditing(true);
@@ -112,6 +127,12 @@ const AdminShop: React.FC<AdminShopProps> = ({ onPreviewShop, onShopButtonVisibi
     const newFeatures = [...(currentProduct.features || [])];
     newFeatures.splice(index, 1);
     setCurrentProduct({ ...currentProduct, features: newFeatures });
+  };
+
+  const handleGalleryImageChange = (index: number, value: string) => {
+    const nextImages = [...(currentProduct.galleryImages || [])];
+    nextImages[index] = value;
+    setCurrentProduct({ ...currentProduct, galleryImages: nextImages.slice(0, 2) });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -223,6 +244,96 @@ const AdminShop: React.FC<AdminShopProps> = ({ onPreviewShop, onShopButtonVisibi
               </select>
             </div>
 
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-2 flex items-center gap-2">
+                <Tag className="w-4 h-4 text-slate-400" /> หมวดภาค
+              </label>
+              <select
+                value={currentProduct.categoryPart || ''}
+                onChange={(e) => setCurrentProduct({ ...currentProduct, categoryPart: e.target.value })}
+                className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-amber-500 outline-none transition-all"
+              >
+                <option value="">ทุกภาค / ไม่ระบุ</option>
+                <option value="part_a">ภาค ก</option>
+                <option value="part_b">ภาค ข</option>
+                <option value="part_c">ภาค ค</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-2 flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-slate-400" /> วิชา / คำสำคัญ
+              </label>
+              <input
+                type="text"
+                value={currentProduct.subject || ''}
+                onChange={(e) => setCurrentProduct({ ...currentProduct, subject: e.target.value })}
+                className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-amber-500 outline-none transition-all"
+                placeholder="เช่น ภาษาไทย, กฎหมาย, วิชาชีพครู"
+              />
+            </div>
+
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium text-slate-700 mb-2 flex items-center gap-2">
+                <LinkIcon className="w-4 h-4 text-slate-400" /> ลิงก์ชำระเงิน Stripe
+              </label>
+              <input
+                type="url"
+                value={currentProduct.stripeUrl || ''}
+                onChange={(e) => setCurrentProduct({ ...currentProduct, stripeUrl: e.target.value })}
+                className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-amber-500 outline-none transition-all"
+                placeholder="https://buy.stripe.com/..."
+              />
+            </div>
+
+            <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="rounded-2xl border border-orange-100 bg-orange-50/70 p-4">
+                <label className="flex cursor-pointer items-center justify-between gap-4">
+                  <span>
+                    <span className="flex items-center gap-2 text-sm font-black text-orange-900">
+                      <Percent className="w-4 h-4" /> เปิดป้ายลดราคา
+                    </span>
+                    <span className="mt-1 block text-xs text-orange-700">แสดงราคาเต็มแบบขีดฆ่า + ป้าย SALE</span>
+                  </span>
+                  <input
+                    type="checkbox"
+                    className="sr-only peer"
+                    checked={Boolean(currentProduct.isDiscounted)}
+                    onChange={(e) => setCurrentProduct({ ...currentProduct, isDiscounted: e.target.checked })}
+                  />
+                  <span className="relative h-7 w-14 rounded-full bg-orange-200 transition-colors peer-checked:bg-orange-500 after:absolute after:left-1 after:top-1 after:h-5 after:w-5 after:rounded-full after:bg-white after:shadow-sm after:transition-transform peer-checked:after:translate-x-7"></span>
+                </label>
+                {currentProduct.isDiscounted && (
+                  <input
+                    type="number"
+                    min="0"
+                    value={currentProduct.originalPrice || 0}
+                    onChange={(e) => setCurrentProduct({ ...currentProduct, originalPrice: Number(e.target.value) })}
+                    className="mt-4 w-full px-4 py-2.5 bg-white border border-orange-200 rounded-xl focus:ring-2 focus:ring-orange-500 outline-none transition-all"
+                    placeholder="ราคาเต็มก่อนลด"
+                  />
+                )}
+              </div>
+
+              <div className="rounded-2xl border border-emerald-100 bg-emerald-50/70 p-4">
+                <label className="flex cursor-pointer items-center justify-between gap-4">
+                  <span>
+                    <span className="flex items-center gap-2 text-sm font-black text-emerald-900">
+                      <Sparkles className="w-4 h-4" /> เปิดป้าย New
+                    </span>
+                    <span className="mt-1 block text-xs text-emerald-700">ใช้เน้นสินค้าใหม่บนหน้าร้าน</span>
+                  </span>
+                  <input
+                    type="checkbox"
+                    className="sr-only peer"
+                    checked={Boolean(currentProduct.isNew)}
+                    onChange={(e) => setCurrentProduct({ ...currentProduct, isNew: e.target.checked })}
+                  />
+                  <span className="relative h-7 w-14 rounded-full bg-emerald-200 transition-colors peer-checked:bg-emerald-500 after:absolute after:left-1 after:top-1 after:h-5 after:w-5 after:rounded-full after:bg-white after:shadow-sm after:transition-transform peer-checked:after:translate-x-7"></span>
+                </label>
+              </div>
+            </div>
+
             <div className="md:col-span-2">
               <label className="block text-sm font-medium text-slate-700 mb-2">จุดเด่นสินค้า (Features)</label>
               <div className="flex gap-2 mb-3">
@@ -260,7 +371,7 @@ const AdminShop: React.FC<AdminShopProps> = ({ onPreviewShop, onShopButtonVisibi
 
             <div className="md:col-span-2">
               <label className="block text-sm font-medium text-slate-700 mb-2 flex items-center gap-2">
-                <ImageIcon className="w-4 h-4 text-slate-400" /> URL รูปภาพสินค้า
+                <ImageIcon className="w-4 h-4 text-slate-400" /> URL รูปภาพปกสินค้า
               </label>
               <input
                 type="url"
@@ -274,6 +385,23 @@ const AdminShop: React.FC<AdminShopProps> = ({ onPreviewShop, onShopButtonVisibi
                   <img src={currentProduct.imageUrl} alt="Preview" className="w-full h-full object-cover" onError={(e) => (e.currentTarget.src = 'https://placehold.co/400x400?text=Image+Error')} />
                 </div>
               )}
+            </div>
+
+            <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">
+              {[0, 1].map((index) => (
+                <div key={index}>
+                  <label className="block text-sm font-medium text-slate-700 mb-2 flex items-center gap-2">
+                    <ImageIcon className="w-4 h-4 text-slate-400" /> URL ภาพรอง {index + 1}
+                  </label>
+                  <input
+                    type="url"
+                    value={(currentProduct.galleryImages || [])[index] || ''}
+                    onChange={(e) => handleGalleryImageChange(index, e.target.value)}
+                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-amber-500 outline-none transition-all"
+                    placeholder="https://example.com/product-preview.jpg"
+                  />
+                </div>
+              ))}
             </div>
           </div>
 
@@ -406,9 +534,19 @@ const AdminShop: React.FC<AdminShopProps> = ({ onPreviewShop, onShopButtonVisibi
                   <td className="px-6 py-4">
                     <div className="font-medium text-slate-900 line-clamp-1">{item.name}</div>
                     <div className="text-xs text-slate-500 line-clamp-1 mt-1">{item.description}</div>
+                    <div className="mt-2 flex flex-wrap gap-1.5">
+                      {item.isNew && <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-black text-emerald-700">NEW</span>}
+                      {item.isDiscounted && <span className="rounded-full bg-orange-100 px-2 py-0.5 text-[10px] font-black text-orange-700">SALE</span>}
+                      {item.subject && <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-600">{item.subject}</span>}
+                    </div>
                   </td>
                   <td className="px-6 py-4">
-                    <span className="font-bold text-amber-600">฿{item.price.toLocaleString()}</span>
+                    <div className="flex flex-col">
+                      {item.isDiscounted && item.originalPrice > item.price && (
+                        <span className="text-xs text-slate-400 line-through">฿{item.originalPrice.toLocaleString()}</span>
+                      )}
+                      <span className="font-bold text-amber-600">฿{item.price.toLocaleString()}</span>
+                    </div>
                   </td>
                   <td className="px-6 py-4 text-center">
                     <span className="inline-flex items-center justify-center min-w-10 rounded-full bg-amber-50 px-3 py-1.5 text-sm font-bold text-amber-700">

@@ -64,8 +64,9 @@ type ProductRow = {
   description: string;
   price: string | number;
   image_url: string | null;
-  features: string[] | null;
+  features: unknown;
   status: 'in_stock' | 'out_of_stock';
+  created_at?: string;
   view_count?: number | null;
 };
 
@@ -167,6 +168,14 @@ export interface ContentProductItem {
   features: string[];
   status: 'in_stock' | 'out_of_stock';
   viewCount: number;
+  galleryImages: string[];
+  categoryPart: string;
+  subject: string;
+  stripeUrl: string;
+  isDiscounted: boolean;
+  originalPrice: number;
+  isNew: boolean;
+  createdAt: string;
 }
 
 export interface ContentDonationRecord {
@@ -274,16 +283,86 @@ const toBannedUser = (row: BannedUserRow): ContentBannedUser => ({
   bannedBy: 'Admin ผู้ดูแลระบบ',
 });
 
-const toProductItem = (row: ProductRow): ContentProductItem => ({
-  id: row.id,
-  name: row.name,
-  description: row.description,
-  price: Number(row.price || 0),
-  imageUrl: row.image_url || '',
-  features: Array.isArray(row.features) ? row.features : [],
-  status: row.status,
-  viewCount: Number(row.view_count || 0),
+const parseProductFeatures = (features: unknown) => {
+  if (Array.isArray(features)) {
+    return {
+      items: features.filter(item => typeof item === 'string') as string[],
+      galleryImages: [] as string[],
+      categoryPart: '',
+      subject: '',
+      stripeUrl: '',
+      isDiscounted: false,
+      originalPrice: 0,
+      isNew: false,
+    };
+  }
+
+  if (features && typeof features === 'object') {
+    const value = features as Record<string, any>;
+    const items = Array.isArray(value.items)
+      ? value.items.filter((item: unknown) => typeof item === 'string')
+      : [];
+    const galleryImages = Array.isArray(value.galleryImages)
+      ? value.galleryImages.filter((item: unknown) => typeof item === 'string').slice(0, 2)
+      : [];
+
+    return {
+      items,
+      galleryImages,
+      categoryPart: typeof value.categoryPart === 'string' ? value.categoryPart : '',
+      subject: typeof value.subject === 'string' ? value.subject : '',
+      stripeUrl: typeof value.stripeUrl === 'string' ? value.stripeUrl : '',
+      isDiscounted: Boolean(value.isDiscounted),
+      originalPrice: Number(value.originalPrice || 0),
+      isNew: Boolean(value.isNew),
+    };
+  }
+
+  return {
+    items: [] as string[],
+    galleryImages: [] as string[],
+    categoryPart: '',
+    subject: '',
+    stripeUrl: '',
+    isDiscounted: false,
+    originalPrice: 0,
+    isNew: false,
+  };
+};
+
+const toProductFeaturesPayload = (product: Partial<ContentProductItem>) => ({
+  items: product.features || [],
+  galleryImages: (product.galleryImages || []).filter(Boolean).slice(0, 2),
+  categoryPart: product.categoryPart || '',
+  subject: product.subject || '',
+  stripeUrl: product.stripeUrl || '',
+  isDiscounted: Boolean(product.isDiscounted),
+  originalPrice: Number(product.originalPrice || 0),
+  isNew: Boolean(product.isNew),
 });
+
+const toProductItem = (row: ProductRow): ContentProductItem => {
+  const meta = parseProductFeatures(row.features);
+
+  return {
+    id: row.id,
+    name: row.name,
+    description: row.description,
+    price: Number(row.price || 0),
+    imageUrl: row.image_url || '',
+    features: meta.items,
+    status: row.status,
+    viewCount: Number(row.view_count || 0),
+    galleryImages: meta.galleryImages,
+    categoryPart: meta.categoryPart,
+    subject: meta.subject,
+    stripeUrl: meta.stripeUrl,
+    isDiscounted: meta.isDiscounted,
+    originalPrice: meta.originalPrice,
+    isNew: meta.isNew,
+    createdAt: row.created_at || '',
+  };
+};
 
 const getAnonymousViewerKey = () => {
   try {
@@ -605,7 +684,7 @@ export const contentService = {
       description: product.description || '',
       price: Number(product.price || 0),
       image_url: product.imageUrl || '',
-      features: product.features || [],
+      features: toProductFeaturesPayload(product),
       status: product.status || 'in_stock',
       updated_at: new Date().toISOString(),
     };
