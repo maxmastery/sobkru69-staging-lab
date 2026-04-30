@@ -47,7 +47,7 @@ create or replace function public.delete_user_profile_full(p_user_id uuid)
 returns boolean
 language plpgsql
 security definer
-set search_path = public, auth
+set search_path = public
 as $$
 declare
   target_id text := p_user_id::text;
@@ -63,11 +63,20 @@ begin
   delete from public.donations where user_id = target_id;
   delete from public.reports where reporter_id = target_id or reported_user_id = target_id;
   delete from public.banned_users where user_id = target_id;
+  delete from public.content_views where viewer_key = target_id;
 
   delete from public.user_profiles where id = p_user_id;
   get diagnostics deleted_count = row_count;
 
-  delete from auth.users where id = p_user_id;
+  -- Some Supabase projects restrict auth schema mutations from PostgREST RPC.
+  -- Do not let that roll back the public data deletion that removes the user
+  -- from the admin system.
+  begin
+    delete from auth.users where id = p_user_id;
+  exception
+    when others then
+      null;
+  end;
 
   return deleted_count > 0;
 end;
