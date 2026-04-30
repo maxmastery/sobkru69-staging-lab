@@ -14,7 +14,7 @@ interface DashboardProps {
   showShopButton?: boolean;
 }
 
-const Dashboard: React.FC<DashboardProps> = ({ onSelectPart, onNavigateToNews, onNavigateToDiscussion, onNavigateToShop, onNavigateToMockExam, onNavigateToLeaderboard, showShopButton = true }) => {
+const Dashboard: React.FC<DashboardProps> = ({ onSelectPart, onNavigateToNews, onNavigateToDiscussion, onNavigateToShop, onNavigateToMockExam, onNavigateToLeaderboard, showShopButton = false }) => {
   const getIcon = (id: PartId) => {
     switch (id) {
       case PartId.PART_A: return <BookOpen className="w-12 h-12 text-white mb-4" />;
@@ -151,9 +151,9 @@ const Dashboard: React.FC<DashboardProps> = ({ onSelectPart, onNavigateToNews, o
         {/* Slim Shop Button */}
         {showShopButton && (
           <div className="flex justify-center px-1">
-            <button onClick={onNavigateToShop} className="group relative flex min-h-[48px] w-full max-w-[265px] items-center justify-center overflow-hidden rounded-full border border-[#B97808] bg-[#D4940D] px-4 py-2.5 text-white shadow-[0_14px_30px_rgba(146,64,14,.26)] transition-all duration-300 hover:-translate-y-1 hover:bg-[#C78307] hover:shadow-[0_20px_42px_rgba(146,64,14,.32)] active:translate-y-0 active:scale-[.98]">
+            <button onClick={onNavigateToShop} className="group relative flex min-h-[48px] w-full max-w-[265px] items-center justify-center overflow-hidden rounded-full border border-[#FA6B19] bg-[#FA6B19] px-4 py-2.5 text-white shadow-[0_16px_34px_rgba(250,107,25,.30)] transition-all duration-300 hover:-translate-y-1 hover:bg-[#E75F13] hover:shadow-[0_22px_46px_rgba(250,107,25,.36)] active:translate-y-0 active:scale-[.98]">
               <span className="absolute inset-x-3 top-1 h-px bg-white/35"></span>
-              <div className="mr-2.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-white/35 bg-[#B97808] transition-transform duration-300 group-hover:rotate-6 group-hover:scale-110">
+              <div className="mr-2.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-white/35 bg-white/18 transition-transform duration-300 group-hover:rotate-6 group-hover:scale-110">
                 <ShoppingCart className="w-4 h-4 text-white" />
               </div>
               <div className="relative min-w-0">

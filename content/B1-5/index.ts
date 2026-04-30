@@ -248,23 +248,23 @@ export const B1_5_CHAPTER2 = `
 
 ## <span class="text-4xl font-black text-slate-900">SAR ต้องทำทุกปี</span>
 
-<div class="rounded-3xl bg-gradient-to-r from-slate-900 to-slate-800 text-white p-6 my-6 shadow-md">
-  <div class="text-4xl font-black mb-3">SAR = Self-Assessment Report</div>
-  <div class="text-xl leading-relaxed text-slate-100">
+<div class="rounded-3xl border-2 border-orange-200 bg-white p-6 my-6 shadow-[0_18px_45px_rgba(15,23,42,.08)]">
+  <div class="text-4xl font-black text-slate-950 mb-3">SAR = Self-Assessment Report</div>
+  <div class="text-xl leading-relaxed text-slate-700">
     สถานศึกษาต้องจัดทำรายงานการประเมินตนเองเป็นประจำทุกปี เสนอต่อหน่วยงานต้นสังกัด หน่วยงานที่เกี่ยวข้อง และเปิดเผยต่อสาธารณชน เพื่อนำไปสู่การพัฒนาคุณภาพและมาตรฐานการศึกษา รวมทั้งรองรับการประกันคุณภาพภายนอก
   </div>
   <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mt-5">
-    <div class="rounded-2xl bg-white/10 p-4 border border-white/20">
-      <div class="text-2xl font-black text-amber-200">ทุกปี</div>
-      <div class="text-slate-100">สถานศึกษาประเมินและรายงานตนเอง</div>
+    <div class="rounded-2xl bg-amber-50 p-4 border border-amber-200">
+      <div class="text-2xl font-black text-amber-700">ทุกปี</div>
+      <div class="text-slate-700">สถานศึกษาประเมินและรายงานตนเอง</div>
     </div>
-    <div class="rounded-2xl bg-white/10 p-4 border border-white/20">
-      <div class="text-2xl font-black text-sky-200">ต้นสังกัด</div>
-      <div class="text-slate-100">ติดตามตรวจสอบอย่างน้อย 1 ครั้งภายใน 3 ปี</div>
+    <div class="rounded-2xl bg-sky-50 p-4 border border-sky-200">
+      <div class="text-2xl font-black text-sky-700">ต้นสังกัด</div>
+      <div class="text-slate-700">ติดตามตรวจสอบอย่างน้อย 1 ครั้งภายใน 3 ปี</div>
     </div>
-    <div class="rounded-2xl bg-white/10 p-4 border border-white/20">
-      <div class="text-2xl font-black text-emerald-200">ภายนอก</div>
-      <div class="text-slate-100">ใช้ข้อมูลภายในและบริบทของสถานศึกษาเป็นฐาน</div>
+    <div class="rounded-2xl bg-emerald-50 p-4 border border-emerald-200">
+      <div class="text-2xl font-black text-emerald-700">ภายนอก</div>
+      <div class="text-slate-700">ใช้ข้อมูลภายในและบริบทของสถานศึกษาเป็นฐาน</div>
     </div>
   </div>
 </div>

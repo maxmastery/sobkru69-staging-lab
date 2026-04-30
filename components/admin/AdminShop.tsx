@@ -35,7 +35,7 @@ const AdminShop: React.FC<AdminShopProps> = ({ onPreviewShop, onShopButtonVisibi
   const [featureInput, setFeatureInput] = useState('');
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [isShopButtonVisible, setIsShopButtonVisible] = useState(true);
+  const [isShopButtonVisible, setIsShopButtonVisible] = useState(false);
   const [isSavingVisibility, setIsSavingVisibility] = useState(false);
   const [uploadingImageKey, setUploadingImageKey] = useState<string | null>(null);
 
@@ -51,7 +51,7 @@ const AdminShop: React.FC<AdminShopProps> = ({ onPreviewShop, onShopButtonVisibi
       onShopButtonVisibilityChange?.(settings.isVisible);
     } catch (error) {
       console.error('Failed to load shop button settings', error);
-      setIsShopButtonVisible(true);
+      setIsShopButtonVisible(false);
     }
   };
 
@@ -381,7 +381,7 @@ const AdminShop: React.FC<AdminShopProps> = ({ onPreviewShop, onShopButtonVisibi
                     checked={Boolean(currentProduct.isDiscounted)}
                     onChange={(e) => handleDiscountToggle(e.target.checked)}
                   />
-                  <span className="relative h-7 w-14 rounded-full bg-orange-200 transition-colors peer-checked:bg-orange-500 after:absolute after:left-1 after:top-1 after:h-5 after:w-5 after:rounded-full after:bg-white after:shadow-sm after:transition-transform peer-checked:after:translate-x-7"></span>
+                  <span className="relative block h-8 w-[58px] rounded-full bg-orange-200 shadow-inner shadow-orange-300/30 transition-colors duration-300 peer-checked:bg-orange-500 after:absolute after:left-1 after:top-1 after:h-6 after:w-6 after:rounded-full after:bg-white after:shadow-[0_3px_10px_rgba(15,23,42,.22)] after:transition-transform after:duration-300 peer-checked:after:translate-x-[26px] peer-focus-visible:ring-4 peer-focus-visible:ring-orange-100"></span>
                 </label>
                 {currentProduct.isDiscounted && (
                   <input
@@ -414,7 +414,7 @@ const AdminShop: React.FC<AdminShopProps> = ({ onPreviewShop, onShopButtonVisibi
                     checked={Boolean(currentProduct.isNew)}
                     onChange={(e) => setCurrentProduct({ ...currentProduct, isNew: e.target.checked })}
                   />
-                  <span className="relative h-7 w-14 rounded-full bg-emerald-200 transition-colors peer-checked:bg-emerald-500 after:absolute after:left-1 after:top-1 after:h-5 after:w-5 after:rounded-full after:bg-white after:shadow-sm after:transition-transform peer-checked:after:translate-x-7"></span>
+                  <span className="relative block h-8 w-[58px] rounded-full bg-emerald-200 shadow-inner shadow-emerald-300/30 transition-colors duration-300 peer-checked:bg-emerald-500 after:absolute after:left-1 after:top-1 after:h-6 after:w-6 after:rounded-full after:bg-white after:shadow-[0_3px_10px_rgba(15,23,42,.22)] after:transition-transform after:duration-300 peer-checked:after:translate-x-[26px] peer-focus-visible:ring-4 peer-focus-visible:ring-emerald-100"></span>
                 </label>
               </div>
             </div>
@@ -571,7 +571,7 @@ const AdminShop: React.FC<AdminShopProps> = ({ onPreviewShop, onShopButtonVisibi
                 disabled={isSavingVisibility}
                 onChange={(e) => void handleToggleShopButton(e.target.checked)}
               />
-              <span className="relative h-7 w-14 rounded-full bg-slate-300 transition-colors peer-checked:bg-amber-500 peer-disabled:opacity-60 after:absolute after:left-1 after:top-1 after:h-5 after:w-5 after:rounded-full after:bg-white after:shadow-sm after:transition-transform peer-checked:after:translate-x-7"></span>
+              <span className="relative block h-8 w-[58px] rounded-full bg-slate-300 shadow-inner shadow-slate-400/20 transition-colors duration-300 peer-checked:bg-amber-500 peer-disabled:opacity-60 after:absolute after:left-1 after:top-1 after:h-6 after:w-6 after:rounded-full after:bg-white after:shadow-[0_3px_10px_rgba(15,23,42,.22)] after:transition-transform after:duration-300 peer-checked:after:translate-x-[26px] peer-focus-visible:ring-4 peer-focus-visible:ring-amber-100"></span>
             </label>
           </div>
         </div>

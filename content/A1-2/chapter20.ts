@@ -121,24 +121,83 @@ export const CHAPTER_20_LANGUAGE_CONDITION = `
 **ข้อสรุปที่ 1:** C ทำความสะอาดในวันพุธ
 **ข้อสรุปที่ 2:** E ทำความสะอาดในวันจันทร์หรืออังคาร
 
-**วิธีทำตารางวิเคราะห์:**
-จากเงื่อนไข 1: ลำดับคือ A ... C ... D (A มาก่อน C, C มาก่อน D)
-จากเงื่อนไข 3: A ไม่ใช่วันจันทร์ ดังนั้น A อาจเป็นอังคาร 
-หาก A เป็นวันอังคาร -> C ต้องเป็นพุธ -> D ต้องเป็นพฤหัสหรือศุกร์
-แต่ะเงื่อนไข 2 บอกว่า E และ B ต้องติดกัน (E แล้วตามด้วย B) ซึ่งต้องใช้ตาราง 2 วันติดกัน
-ถ้า A(อังคาร), C(พุธ), D(พฤหัส) หรือ D(ศุกร์) วันที่ติดกัน 2 วันจะไม่มีให้ E, B ลง!!
-ดังนั้น E ต้องทำ จันทร์ และ B ต้องทำ อังคาร!
-เมื่อ Monday=E, Tuesday=B $\\rightarrow$ ตำแหน่งสำหรับ A, C, D ที่เหลือคือ พุธ พฤหัส ศุกร์ตามลำดับเป๊ะๆ!
-สรุปเวร:
-วันจันทร์ = E
-วันอังคาร = B
-วันพุธ = A
-วันพฤหัส = C
-วันศุกร์ = D
+<div class="my-6 overflow-hidden rounded-3xl border border-indigo-100 bg-white shadow-sm">
+  <div class="bg-indigo-50 px-5 py-4">
+    <div class="text-xl font-black text-indigo-950">วิธีทำตารางวิเคราะห์</div>
+    <div class="mt-1 text-sm font-semibold text-indigo-700">เริ่มจากล็อกเงื่อนไขที่ “ติดกัน” ก่อน แล้วค่อยวางลำดับ A → C → D</div>
+  </div>
+  <div class="overflow-x-auto">
+    <table class="w-full min-w-[680px] border-collapse text-sm">
+      <thead>
+        <tr class="bg-slate-900 text-white">
+          <th class="px-4 py-3 text-left">ขั้น</th>
+          <th class="px-4 py-3 text-left">เงื่อนไขที่ใช้</th>
+          <th class="px-4 py-3 text-left">สรุปที่ได้</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-slate-100 text-slate-700">
+        <tr>
+          <td class="px-4 py-3 font-black text-indigo-700">1</td>
+          <td class="px-4 py-3">B ต้องอยู่วันรุ่งขึ้นหลัง E ทันที</td>
+          <td class="px-4 py-3">E และ B ต้องเป็นคู่วันติดกันแบบ E → B</td>
+        </tr>
+        <tr>
+          <td class="px-4 py-3 font-black text-indigo-700">2</td>
+          <td class="px-4 py-3">A ไม่ใช่วันจันทร์ และต้องมาก่อน C กับ D</td>
+          <td class="px-4 py-3">ถ้าให้ A อยู่เร็วเกินไป จะชนพื้นที่ของคู่ E → B</td>
+        </tr>
+        <tr>
+          <td class="px-4 py-3 font-black text-indigo-700">3</td>
+          <td class="px-4 py-3">ต้องเหลือพื้นที่ให้ A → C → D เรียงต่อกัน</td>
+          <td class="px-4 py-3">จึงวาง E = จันทร์, B = อังคาร และ A, C, D อยู่ พุธ-พฤหัส-ศุกร์</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
 
-**การวิเคราะห์ข้อสรุป:**
-ข้อสรุป 1: C ทำความสะอาดวันพุธ (ความจริงคือ C ทำวันพฤหัส) $\\rightarrow$ **เท็จ**
-ข้อสรุป 2: E ทำความสะอาดวันจันทร์หรืออังคาร (E ทำวันจันทร์ ซึ่งเป็นจริงตามเงื่อนไขที่ให้มา "หรือ") $\\rightarrow$ **จริง**
+<div class="my-6 overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+  <div class="grid grid-cols-5 bg-slate-50 text-center text-sm font-black text-slate-500">
+    <div class="px-3 py-3">จันทร์</div>
+    <div class="px-3 py-3">อังคาร</div>
+    <div class="px-3 py-3">พุธ</div>
+    <div class="px-3 py-3">พฤหัส</div>
+    <div class="px-3 py-3">ศุกร์</div>
+  </div>
+  <div class="grid grid-cols-5 text-center">
+    <div class="border-r border-slate-100 px-3 py-5"><div class="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-orange-100 text-2xl font-black text-orange-700">E</div></div>
+    <div class="border-r border-slate-100 px-3 py-5"><div class="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-orange-100 text-2xl font-black text-orange-700">B</div></div>
+    <div class="border-r border-slate-100 px-3 py-5"><div class="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-100 text-2xl font-black text-blue-700">A</div></div>
+    <div class="border-r border-slate-100 px-3 py-5"><div class="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-100 text-2xl font-black text-blue-700">C</div></div>
+    <div class="px-3 py-5"><div class="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-100 text-2xl font-black text-blue-700">D</div></div>
+  </div>
+</div>
+
+<div class="my-6 overflow-hidden rounded-3xl border border-emerald-100 bg-white shadow-sm">
+  <div class="overflow-x-auto">
+    <table class="w-full min-w-[620px] border-collapse text-sm">
+      <thead>
+        <tr class="bg-emerald-50 text-emerald-900">
+          <th class="px-4 py-3 text-left">ข้อสรุป</th>
+          <th class="px-4 py-3 text-left">ตรวจจากตาราง</th>
+          <th class="px-4 py-3 text-center">ผล</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-slate-100 text-slate-700">
+        <tr>
+          <td class="px-4 py-3 font-bold">ข้อสรุป 1: C ทำความสะอาดวันพุธ</td>
+          <td class="px-4 py-3">ตารางจริง C อยู่วันพฤหัส</td>
+          <td class="px-4 py-3 text-center"><span class="rounded-full bg-red-100 px-3 py-1 font-black text-red-700">เท็จ</span></td>
+        </tr>
+        <tr>
+          <td class="px-4 py-3 font-bold">ข้อสรุป 2: E ทำความสะอาดวันจันทร์หรืออังคาร</td>
+          <td class="px-4 py-3">ตารางจริง E อยู่วันจันทร์ จึงเข้าเงื่อนไข “หรือ”</td>
+          <td class="px-4 py-3 text-center"><span class="rounded-full bg-emerald-100 px-3 py-1 font-black text-emerald-700">จริง</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
 
 ข้อสรุปทั้งสองให้คำตอบไม่เหมือนกัน! (อันหนึ่งเท็จ อันหนึ่งจริง)
 **ตอบ ช้อยส์ 4**

@@ -416,11 +416,11 @@ export const contentService = {
       const rows = await supabaseRest.select<AppSettingRow[]>('app_settings', `select=*&key=eq.${encodeValue('shop_button_visibility')}&limit=1`);
       const value = rows?.[0]?.value || {};
       return {
-        isVisible: value.isVisible !== false,
+        isVisible: value.isVisible === true,
       };
     } catch (error) {
       console.warn('Failed to load shop button settings', error);
-      return { isVisible: true };
+      return { isVisible: false };
     }
   },
 

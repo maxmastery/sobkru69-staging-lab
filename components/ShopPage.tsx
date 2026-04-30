@@ -172,7 +172,7 @@ const ShopPage: React.FC<ShopPageProps> = ({ onBack }) => {
               <div className="mb-5">
                 <div className="text-xs font-black uppercase tracking-[0.18em] text-slate-400">ราคา</div>
                 <div className="mt-1 flex items-end justify-center gap-3">
-                  <span className="text-5xl font-black text-orange-600">฿{selectedProduct.price.toLocaleString()}</span>
+                  <span className="text-5xl font-black text-[#FA6B19]">฿{selectedProduct.price.toLocaleString()}</span>
                   {hasOriginalPrice && <span className="pb-2 text-xl font-bold text-slate-400 line-through">฿{selectedProduct.originalPrice.toLocaleString()}</span>}
                 </div>
               </div>
@@ -189,8 +189,8 @@ const ShopPage: React.FC<ShopPageProps> = ({ onBack }) => {
                 }}
                 className={`inline-flex w-full items-center justify-center gap-3 rounded-3xl px-6 py-[17px] text-lg font-black text-white transition-all ${
                   canBuy
-                    ? 'bg-[#F97316] shadow-[0_20px_45px_rgba(234,88,12,.28)] hover:-translate-y-1 hover:bg-[#EA580C] hover:shadow-[0_26px_54px_rgba(234,88,12,.34)]'
-                    : 'cursor-not-allowed bg-[#F97316] opacity-70'
+                    ? 'bg-[#FA6B19] shadow-[0_20px_45px_rgba(250,107,25,.30)] hover:-translate-y-1 hover:bg-[#E75F13] hover:shadow-[0_26px_54px_rgba(250,107,25,.38)]'
+                    : 'cursor-not-allowed bg-[#FA6B19] opacity-70'
                 }`}
               >
                 <ShoppingCart className="h-6 w-6" />
@@ -312,7 +312,7 @@ const ShopPage: React.FC<ShopPageProps> = ({ onBack }) => {
                     <p className="mt-1 line-clamp-2 text-xs leading-5 text-slate-500">{product.description}</p>
                     <div className="mt-3 flex items-end justify-between gap-3">
                       <div>
-                        <div className={hasDiscount ? 'text-2xl font-black text-blue-700' : 'text-2xl font-black text-orange-600'}>
+                        <div className="text-2xl font-black text-[#FA6B19]">
                           ฿{product.price.toLocaleString()}
                         </div>
                         {hasOriginalPrice && (
@@ -321,7 +321,7 @@ const ShopPage: React.FC<ShopPageProps> = ({ onBack }) => {
                           </div>
                         )}
                       </div>
-                      <span className="rounded-full bg-blue-700 p-2.5 text-white shadow-lg shadow-blue-900/20 transition-colors group-hover:bg-orange-500">
+                      <span className="rounded-full bg-[#FA6B19] p-2.5 text-white shadow-lg shadow-orange-900/20 transition-colors group-hover:bg-[#E75F13]">
                         <ShoppingCart className="h-4 w-4" />
                       </span>
                     </div>

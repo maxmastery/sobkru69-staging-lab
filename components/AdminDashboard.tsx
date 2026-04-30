@@ -573,14 +573,14 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, onPreviewShop,
                       {maintenanceMode.isActive ? 'ผู้ใช้ทั่วไปจะเห็นหน้าประกาศปิดปรับปรุง' : 'ระบบใช้งานได้ตามปกติ ไม่มีแสงแจ้งเตือน'}
                     </p>
                   </div>
-                  <label className="relative inline-flex items-center cursor-pointer">
+                  <label className="inline-flex cursor-pointer items-center">
                     <input
                       type="checkbox"
                       className="sr-only peer"
                       checked={maintenanceMode.isActive}
                       onChange={(e) => setMaintenanceMode({ ...maintenanceMode, isActive: e.target.checked })}
                     />
-                    <div className="h-12 w-24 rounded-full bg-slate-300 transition-colors after:absolute after:left-1.5 after:top-1.5 after:h-9 after:w-9 after:rounded-full after:bg-white after:shadow-sm after:transition-all peer-checked:bg-red-600 peer-checked:after:translate-x-12"></div>
+                    <div className="relative h-12 w-[92px] rounded-full bg-slate-300 p-1 shadow-inner shadow-slate-400/20 transition-colors duration-300 after:absolute after:left-1 after:top-1 after:h-10 after:w-10 after:rounded-full after:bg-white after:shadow-[0_4px_14px_rgba(15,23,42,.22)] after:transition-transform after:duration-300 peer-checked:bg-red-600 peer-checked:shadow-red-900/20 peer-checked:after:translate-x-[44px] peer-focus-visible:ring-4 peer-focus-visible:ring-red-100"></div>
                   </label>
                 </div>
 

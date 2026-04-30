@@ -119,7 +119,7 @@ const App: React.FC = () => {
   const [currentPage, setCurrentPage] = useState<PageState>('dashboard');
   const [maintenanceMode, setMaintenanceMode] = useState<MaintenanceModeState>(DEFAULT_MAINTENANCE_MODE);
   const [showMaintenanceAdminLogin, setShowMaintenanceAdminLogin] = useState(false);
-  const [showShopButton, setShowShopButton] = useState(true);
+  const [showShopButton, setShowShopButton] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
   // Bell Notifications
@@ -165,7 +165,7 @@ const App: React.FC = () => {
       setShowShopButton(settings.isVisible);
     } catch (error) {
       console.error('Failed to fetch shop button settings', error);
-      setShowShopButton(true);
+      setShowShopButton(false);
     }
   };
 
