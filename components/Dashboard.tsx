@@ -151,12 +151,13 @@ const Dashboard: React.FC<DashboardProps> = ({ onSelectPart, onNavigateToNews, o
         {/* Slim Shop Button */}
         {showShopButton && (
           <div className="flex justify-center px-1">
-            <button onClick={onNavigateToShop} className="group relative flex min-h-[48px] w-full max-w-[294px] items-center justify-center overflow-hidden rounded-full bg-[#D89A16] px-5 py-2.5 text-white ring-1 ring-[#E8B33E] shadow-[0_18px_38px_rgba(180,83,9,.28)] transition-all duration-300 hover:-translate-y-1 hover:bg-[#C9870D] hover:shadow-[0_24px_52px_rgba(180,83,9,.34)] active:translate-y-0 active:scale-[.98]">
-              <div className="mr-2.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/20 ring-1 ring-white/35 transition-transform duration-300 group-hover:rotate-6 group-hover:scale-110">
-                <ShoppingCart className="w-4 h-4 text-white drop-shadow-sm" />
+            <button onClick={onNavigateToShop} className="group relative flex min-h-[48px] w-full max-w-[265px] items-center justify-center overflow-hidden rounded-full border border-[#B97808] bg-[#D4940D] px-4 py-2.5 text-white shadow-[0_14px_30px_rgba(146,64,14,.26)] transition-all duration-300 hover:-translate-y-1 hover:bg-[#C78307] hover:shadow-[0_20px_42px_rgba(146,64,14,.32)] active:translate-y-0 active:scale-[.98]">
+              <span className="absolute inset-x-3 top-1 h-px bg-white/35"></span>
+              <div className="mr-2.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-white/35 bg-[#B97808] transition-transform duration-300 group-hover:rotate-6 group-hover:scale-110">
+                <ShoppingCart className="w-4 h-4 text-white" />
               </div>
               <div className="relative min-w-0">
-                <h4 className="truncate text-sm font-black tracking-wide text-white drop-shadow-[0_1px_2px_rgba(92,38,8,.38)]">ไฟล์ E-book สรุปเนื้อหา</h4>
+                <h4 className="truncate text-[15px] font-black tracking-wide text-white drop-shadow-[0_2px_2px_rgba(86,38,5,.55)]">ไฟล์ E-book สรุปเนื้อหา</h4>
               </div>
             </button>
           </div>
