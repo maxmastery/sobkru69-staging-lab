@@ -36,6 +36,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, onPreviewShop,
   const [slipsBucket, setSlipsBucket] = useState(localStorage.getItem('VITE_SUPABASE_SLIPS_BUCKET') || viteEnv.VITE_SUPABASE_SLIPS_BUCKET || 'sobkru-slips');
   const [filesBucket, setFilesBucket] = useState(localStorage.getItem('VITE_SUPABASE_FILES_BUCKET') || viteEnv.VITE_SUPABASE_FILES_BUCKET || 'sobkru-files');
   const [users, setUsers] = useState<User[]>([]);
+  const [usersTotalCount, setUsersTotalCount] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [notification, setNotification] = useState({ title: '', message: '', imageUrl: '', isActive: false });
   const [marquee, setMarquee] = useState({ text: '', isActive: true });
@@ -79,7 +80,10 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, onPreviewShop,
   };
 
   useEffect(() => {
-    if (activeTab === 'users' || activeTab === 'statistics' || activeTab === 'user-insights' || activeTab === 'user-active') {
+    if (activeTab === 'users') {
+      return;
+    }
+    if (activeTab === 'statistics' || activeTab === 'user-insights' || activeTab === 'user-active') {
       fetchUsers();
     } else if (activeTab === 'notification') {
       fetchNotification();
@@ -90,6 +94,16 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, onPreviewShop,
     }
     fetchUnreadMessagesCount();
   }, [activeTab]);
+
+  useEffect(() => {
+    if (activeTab !== 'users') {
+      return;
+    }
+    const timeout = window.setTimeout(() => {
+      void fetchUsers();
+    }, 250);
+    return () => window.clearTimeout(timeout);
+  }, [activeTab, currentPage, searchQuery]);
 
   const fetchUnreadMessagesCount = async () => {
     try {
@@ -182,9 +196,23 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, onPreviewShop,
   const fetchUsers = async () => {
     setIsLoading(true);
     try {
+      if (activeTab === 'users') {
+        const res = await authService.getUsersPage(currentPage, itemsPerPage, searchQuery);
+        if (res.success && res.users) {
+          setUsers(res.users);
+          setUsersTotalCount(res.total);
+        }
+        if (res.message) {
+          setSaveMessage(res.message);
+          setTimeout(() => setSaveMessage(''), 4500);
+        }
+        return;
+      }
+
       const res = await authService.getUsers();
       if (res.success && res.users) {
         setUsers(res.users);
+        setUsersTotalCount(res.users.length);
       }
     } catch (error) {
       console.error("Failed to fetch users", error);
@@ -341,6 +369,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, onPreviewShop,
       if (res.success) {
         if (action === 'delete') {
           setUsers(users.filter(u => u.id !== id));
+          setUsersTotalCount(total => Math.max(0, total - 1));
         } else if ('user' in res && res.user) {
           setUsers(users.map(u => u.id === id ? res.user! : u));
         } else {
@@ -363,15 +392,16 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, onPreviewShop,
   const filteredUsers = useMemo(() => {
     return users.map((u, index) => ({
       ...u,
-      skId: `SK${String(index + 1).padStart(5, '0')}`
+      skId: `SK${String((currentPage - 1) * itemsPerPage + index + 1).padStart(5, '0')}`
     })).filter(u => 
       u.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+      u.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
       u.skId.toLowerCase().includes(searchQuery.toLowerCase())
     );
-  }, [users, searchQuery]);
+  }, [currentPage, users, searchQuery]);
 
-  const totalPages = Math.max(1, Math.ceil(filteredUsers.length / itemsPerPage));
-  const paginatedUsers = filteredUsers.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+  const totalPages = Math.max(1, Math.ceil(usersTotalCount / itemsPerPage));
+  const paginatedUsers = filteredUsers;
 
   const handleEditClick = (user: User) => {
     setEditingUser(user);
@@ -754,7 +784,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, onPreviewShop,
             <div className="p-6 border-b border-slate-200 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-slate-50/50">
               <h3 className="text-xl font-bold text-slate-800 flex items-center gap-2">
                 <Users className="w-6 h-6 text-amber-500" />
-                จัดการผู้ใช้งาน ({users.length})
+                จัดการผู้ใช้งาน ({usersTotalCount})
               </h3>
               <div className="flex items-center gap-3 w-full sm:w-auto">
                 <div className="relative flex-1 sm:w-64">
@@ -850,7 +880,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, onPreviewShop,
             {/* Pagination & Info */}
             <div className="p-4 border-t border-slate-200 flex flex-col sm:flex-row justify-between items-center gap-4 bg-slate-50/50">
               <div className="text-sm text-slate-500">
-                แสดงข้อมูล {filteredUsers.length > 0 ? (currentPage - 1) * itemsPerPage + 1 : 0} ถึง {Math.min(currentPage * itemsPerPage, filteredUsers.length)} จากทั้งหมด {filteredUsers.length} รายการ
+                แสดงข้อมูล {usersTotalCount > 0 ? (currentPage - 1) * itemsPerPage + 1 : 0} ถึง {Math.min(currentPage * itemsPerPage, usersTotalCount)} จากทั้งหมด {usersTotalCount} รายการ
               </div>
               <div className="flex items-center gap-2">
                 <button

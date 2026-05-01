@@ -24,6 +24,12 @@ const UserStatistics: React.FC<UserStatisticsProps> = ({ onBack }) => {
   useEffect(() => {
     const fetchStats = async () => {
       try {
+        const summary = await authService.getUserStatisticsSummary();
+        if (summary.success && summary.stats) {
+          setStats(summary.stats);
+          return;
+        }
+
         const res = await authService.getUsers();
         if (res.success && res.users) {
           const users = res.users;

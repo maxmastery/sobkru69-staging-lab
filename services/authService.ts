@@ -86,6 +86,10 @@ type UserProfileRow = {
   updated_at?: string | null;
 };
 
+type UserProfilePageRow = UserProfileRow & {
+  total_count: number | string | null;
+};
+
 type LegacyUserRow = {
   id: string;
   name: string;
@@ -153,6 +157,24 @@ export interface User {
   createdAt?: string;
   authProvider?: string;
   isActive?: boolean;
+}
+
+export interface UsersPageResult {
+  success: boolean;
+  users: User[];
+  total: number;
+  message?: string;
+}
+
+export interface UserStatisticsSummary {
+  totalUsers: number;
+  provinceCount: number;
+  majorCount: number;
+  firstTimeCount: number;
+  byProvince: { name: string; count: number; percentage: number }[];
+  byMajor: { name: string; count: number; percentage: number }[];
+  byGender: { name: string; count: number; percentage: number }[];
+  byExamCount: { name: string; count: number; percentage: number }[];
 }
 
 export interface AuthResult {
@@ -1139,25 +1161,110 @@ export const authService = {
 
   async getUsers(): Promise<{ success: boolean; users: User[]; message?: string }> {
     try {
-      const rows = await supabaseRest.rpc<UserProfileRow[]>('list_user_profiles', {});
+      const pageSize = 500;
+      const firstPage = await supabaseRest.rpc<UserProfilePageRow[]>('list_user_profiles_page', {
+        p_search: null,
+        p_limit: pageSize,
+        p_offset: 0,
+      });
+      const total = firstPage?.[0]?.total_count != null ? Number(firstPage[0].total_count) : firstPage.length;
+      const allRows = [...(firstPage || [])];
+
+      for (let offset = pageSize; offset < total; offset += pageSize) {
+        const rows = await supabaseRest.rpc<UserProfilePageRow[]>('list_user_profiles_page', {
+          p_search: null,
+          p_limit: pageSize,
+          p_offset: offset,
+        });
+        allRows.push(...(rows || []));
+      }
+
+      return {
+        success: true,
+        users: allRows.map(mapProfileRowToUser),
+      };
+    } catch {
+      try {
+        const rows = await supabaseRest.rpc<UserProfileRow[]>('list_user_profiles', {});
+        return {
+          success: true,
+          users: (rows || []).map(mapProfileRowToUser),
+        };
+      } catch (error: any) {
+        try {
+          const legacyRows = await supabaseRest.rpc<LegacyUserRow[]>('list_app_users', {});
+          return {
+            success: true,
+            users: (legacyRows || []).map(mapLegacyUserToUser),
+          };
+        } catch {
+          return {
+            success: false,
+            users: [],
+            message: error?.message || 'ไม่สามารถโหลดรายชื่อผู้ใช้งานได้',
+          };
+        }
+      }
+    }
+  },
+
+  async getUsersPage(page = 1, pageSize = 100, search = ''): Promise<UsersPageResult> {
+    const safePage = Math.max(1, Math.floor(page || 1));
+    const safePageSize = Math.min(500, Math.max(1, Math.floor(pageSize || 100)));
+    const offset = (safePage - 1) * safePageSize;
+
+    try {
+      const rows = await supabaseRest.rpc<UserProfilePageRow[]>('list_user_profiles_page', {
+        p_search: search.trim() || null,
+        p_limit: safePageSize,
+        p_offset: offset,
+      });
+      const total = rows?.[0]?.total_count != null ? Number(rows[0].total_count) : 0;
       return {
         success: true,
         users: (rows || []).map(mapProfileRowToUser),
+        total,
       };
     } catch (error: any) {
-      try {
-        const legacyRows = await supabaseRest.rpc<LegacyUserRow[]>('list_app_users', {});
-        return {
-          success: true,
-          users: (legacyRows || []).map(mapLegacyUserToUser),
-        };
-      } catch {
-        return {
-          success: false,
-          users: [],
-          message: error?.message || 'ไม่สามารถโหลดรายชื่อผู้ใช้งานได้',
-        };
-      }
+      const fallback = await this.getUsers();
+      const normalizedSearch = search.trim().toLowerCase();
+      const filtered = normalizedSearch
+        ? fallback.users.filter((user, index) => {
+            const skId = `SK${String(index + 1).padStart(5, '0')}`.toLowerCase();
+            return user.name.toLowerCase().includes(normalizedSearch) || user.email.toLowerCase().includes(normalizedSearch) || skId.includes(normalizedSearch);
+          })
+        : fallback.users;
+      return {
+        success: fallback.success,
+        users: filtered.slice(offset, offset + safePageSize),
+        total: filtered.length,
+        message: fallback.success ? 'ยังไม่ได้รัน SQL pagination patch จึงใช้ข้อมูล fallback ชั่วคราว' : error?.message,
+      };
+    }
+  },
+
+  async getUserStatisticsSummary(): Promise<{ success: boolean; stats?: UserStatisticsSummary; message?: string }> {
+    try {
+      const rows = await supabaseRest.rpc<any[]>('get_user_statistics_summary', {});
+      const row = rows?.[0] || {};
+      return {
+        success: true,
+        stats: {
+          totalUsers: Number(row.total_users || 0),
+          provinceCount: Number(row.province_count || 0),
+          majorCount: Number(row.major_count || 0),
+          firstTimeCount: Number(row.first_time_count || 0),
+          byProvince: Array.isArray(row.by_province) ? row.by_province : [],
+          byMajor: Array.isArray(row.by_major) ? row.by_major : [],
+          byGender: Array.isArray(row.by_gender) ? row.by_gender : [],
+          byExamCount: Array.isArray(row.by_exam_count) ? row.by_exam_count : [],
+        },
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        message: error?.message || 'ไม่สามารถโหลดสถิติผู้ใช้งานแบบรวมได้',
+      };
     }
   },
 
