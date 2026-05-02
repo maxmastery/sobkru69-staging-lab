@@ -30,7 +30,19 @@ export const CHAPTER_25_REASONING_PRACTICE = `
 <text x="155" y="105" font-size="10" fill="#b91c1c" font-weight="bold">ดอกไม้ในแจกัน</text>
 </svg>
 </div>
-"ดอกกุหลาบ" เป็นวงเล็กในวงใหญ่ "มีสีขาว" จากนั้น "ดอกไม้ในแจกัน" เป็นสิ่งที่เจาะจงลงไป ให้สร้างจุดอยู่ในวง "กุหลาบ" เมื่อดูจากจุด ย่อมอยู่ในวงใหญ่ "มีสีขาว" จึงสรุปได้แน่นอน 100% ว่า ดอกไม้ในแจกันต้องมีสีขาว (ส่วนข้อ ข., ค., ง. เป็นเรื่องที่ไม่ได้กล่าวถึงในเหตุ ถือว่าสรุปไม่ได้ทั้งหมด)
+<div class="my-6 rounded-3xl border border-indigo-100 bg-white shadow-sm overflow-hidden">
+  <div class="bg-indigo-50/80 px-5 py-3 border-b border-indigo-100 font-bold text-indigo-800">อ่านเหตุผลแบบเป็นขั้น</div>
+  <div class="p-5 space-y-4 text-slate-700 leading-8">
+    <div class="grid md:grid-cols-3 gap-3">
+      <div class="rounded-2xl bg-blue-50 border border-blue-100 p-4"><span class="block text-xs font-bold text-blue-600 mb-1">เหตุ 1</span>กุหลาบทุกดอกอยู่ในกลุ่ม “สีขาว”</div>
+      <div class="rounded-2xl bg-emerald-50 border border-emerald-100 p-4"><span class="block text-xs font-bold text-emerald-600 mb-1">เหตุ 2</span>ดอกไม้ในแจกันนี้เป็น “กุหลาบ”</div>
+      <div class="rounded-2xl bg-amber-50 border border-amber-100 p-4"><span class="block text-xs font-bold text-amber-600 mb-1">สรุป</span>จุดของดอกไม้ในแจกันจึงอยู่ในกลุ่ม “สีขาว” แน่นอน</div>
+    </div>
+    <div class="rounded-2xl bg-slate-50 border border-slate-200 p-4">
+      <strong>ตอบ ก.</strong> ดอกไม้ในแจกันนี้มีสีขาว เพราะเป็นผลที่ตามจากเหตุโดยตรง ส่วนความสวย ราคา และกลิ่น ไม่ได้มีข้อมูลรองรับในโจทย์
+    </div>
+  </div>
+</div>
 
 ---
 
@@ -64,8 +76,21 @@ export const CHAPTER_25_REASONING_PRACTICE = `
 <text x="250" y="185" font-size="10" fill="#b91c1c" text-anchor="middle" font-weight="bold">สมศรี</text>
 </svg>
 </div>
-วงกลมเล็กสุดคือ "ชาวสวน" ถูกครอบด้วยวง "คนขยัน" ซึ่งถูกครอบด้วยวง "ร่ำรวย" และทั้งหมดถูกวงใหญ่สุดคือ "กินดีอยู่ดี" ครอบเอาไว้อีกชั้น
-และ "สมศรี" (จุด) อยู่แกนกลางในวงของชาวสวน ดังนั้น จุดที่สมศรีอยู่จึงตกอยู่ในอาณาบริเวณของทุกวงกลมที่กล่าวมาทั้งหมด ทุกตัวเลือกจึงสมเหตุสมผล 
+<div class="my-6 rounded-3xl border border-indigo-100 bg-white shadow-sm overflow-hidden">
+  <div class="bg-indigo-50/80 px-5 py-3 border-b border-indigo-100 font-bold text-indigo-800">อ่านเหตุผลแบบเป็นขั้น</div>
+  <div class="p-5 space-y-4 text-slate-700 leading-8">
+    <div class="rounded-2xl bg-slate-50 border border-slate-200 p-4">
+      โครงสร้างเป็นวงซ้อนกัน: <strong>ชาวสวน → คนขยัน → ร่ำรวย → กินดีอยู่ดี</strong>
+    </div>
+    <div class="grid md:grid-cols-2 gap-3">
+      <div class="rounded-2xl bg-blue-50 border border-blue-100 p-4"><span class="block text-xs font-bold text-blue-600 mb-1">ตำแหน่งของสมศรี</span>สมศรีเป็นชาวสวน จึงอยู่ในวงเล็กสุด</div>
+      <div class="rounded-2xl bg-emerald-50 border border-emerald-100 p-4"><span class="block text-xs font-bold text-emerald-600 mb-1">ผลที่ตามมา</span>เมื่ออยู่ในวงเล็กสุด ก็อยู่ในวงที่ครอบทั้งหมดด้วย</div>
+    </div>
+    <div class="rounded-2xl bg-amber-50 border border-amber-100 p-4">
+      <strong>ตอบ ง.</strong> สมศรีเป็นคนขยัน เป็นคนร่ำรวย และกินดีอยู่ดี ทั้งสามข้อจึงสมเหตุสมผล
+    </div>
+  </div>
+</div>
 
 ---
 
@@ -98,10 +123,19 @@ export const CHAPTER_25_REASONING_PRACTICE = `
 <text x="155" y="125" font-size="14" fill="#1e293b" text-anchor="middle" font-weight="bold">X</text>
 </svg>
 </div>
-- วาดวงกลม "คนเจ้าชู้" อยู่ในวง "คนมีเสน่ห์"
-- เหตุที่ 1 "ดาราบางคนเป็นคนเจ้าชู้" คือให้วาดวงกลม "ดารา" ไปเหลื่อมกับวง "คนเจ้าชู้" ซึ่งแน่นอนว่าพื้นที่บริเวณที่เหลื่อมทับกันจะต้องเกิดการทับซ้อนเข้าไปในวงใหญ่ "คนมีเสน่ห์" ด้วย
-- ดังนั้น ข้อสรุปว่า "ดาราบางคนเป็นคนมีเสน่ห์" จึงเป็นเรื่องจริง 100% (ข้อ ค.)
-- ส่วนจุด "ทิดแสง" ที่เป็นคนมีเสน่ห์ เรารู้เพียงแค่ว่าทิดแสงอยู่ในวงใหญ่ แต่ไม่สามารถระบุได้ชัดเจนว่าทิดแสงไปอยู่ในส่วนที่เป็นคนเจ้าชู้หรือเป็นดาราด้วย (การอยู่ร่วมวงใหญ่ไม่การันตีว่าจะต้องอยู่ในวงเล็กที่อยู่ข้างใน)
+<div class="my-6 rounded-3xl border border-indigo-100 bg-white shadow-sm overflow-hidden">
+  <div class="bg-indigo-50/80 px-5 py-3 border-b border-indigo-100 font-bold text-indigo-800">อ่านเหตุผลแบบเป็นขั้น</div>
+  <div class="p-5 space-y-4 text-slate-700 leading-8">
+    <div class="grid md:grid-cols-3 gap-3">
+      <div class="rounded-2xl bg-blue-50 border border-blue-100 p-4"><span class="block text-xs font-bold text-blue-600 mb-1">เหตุ 1</span>ดาราบางคนทับซ้อนกับกลุ่มคนเจ้าชู้</div>
+      <div class="rounded-2xl bg-emerald-50 border border-emerald-100 p-4"><span class="block text-xs font-bold text-emerald-600 mb-1">เหตุ 2</span>คนเจ้าชู้ทุกคนอยู่ในกลุ่มคนมีเสน่ห์</div>
+      <div class="rounded-2xl bg-amber-50 border border-amber-100 p-4"><span class="block text-xs font-bold text-amber-600 mb-1">จุดสำคัญ</span>พื้นที่ที่ดาราทับกับคนเจ้าชู้จึงทับกับคนมีเสน่ห์ด้วย</div>
+    </div>
+    <div class="rounded-2xl bg-slate-50 border border-slate-200 p-4">
+      <strong>ตอบ ค.</strong> สรุปได้แน่นอนว่า “ดาราบางคนเป็นคนมีเสน่ห์” แต่ยังสรุปไม่ได้ว่าทิดแสงเป็นดาราหรือเป็นคนเจ้าชู้ เพราะโจทย์บอกเพียงว่าทิดแสงเป็นคนมีเสน่ห์
+    </div>
+  </div>
+</div>
 
 ---
 
@@ -134,10 +168,19 @@ export const CHAPTER_25_REASONING_PRACTICE = `
 <text x="120" y="145" font-size="10" fill="#1e40af" text-anchor="middle" font-weight="bold">สมปอง</text>
 </svg>
 </div>
-- "สมปองเป็นหมอ" (สมปองอยู่ในจุดของวง หมอ)
-- "ไม่มีหมอคนไหนที่ยากจน" แปลว่า วงกลมหมอ แยกกันเด็ดขาดจากวงกลมยากจน
-- ในเมื่อสมปองคือจุดในวงกลมหมอ ย่อมไม่ได้อยู่ในวงกลมยากจนแน่นอน จึงสรุปได้ชัวร์ๆ ว่า สมปองไม่ยากจน (ได้ข้อ ก.)
-- ส่วนสมปองชอบกินมาม่าไหม? เราตอบไม่ได้ เพราะวงคนชอบกินมาม่าใหญ่กว่าและครอบคนยากจนอยู่ แต่วงหมออาจจะไปเกี่ยวเหลื่อมกับวงมาม่าก็ได้ (ก็คือรวยแต่ชอบกินมาม่า)
+<div class="my-6 rounded-3xl border border-indigo-100 bg-white shadow-sm overflow-hidden">
+  <div class="bg-indigo-50/80 px-5 py-3 border-b border-indigo-100 font-bold text-indigo-800">อ่านเหตุผลแบบเป็นขั้น</div>
+  <div class="p-5 space-y-4 text-slate-700 leading-8">
+    <div class="grid md:grid-cols-3 gap-3">
+      <div class="rounded-2xl bg-blue-50 border border-blue-100 p-4"><span class="block text-xs font-bold text-blue-600 mb-1">เหตุ 1</span>หมอทุกคนแยกออกจากกลุ่มยากจน</div>
+      <div class="rounded-2xl bg-emerald-50 border border-emerald-100 p-4"><span class="block text-xs font-bold text-emerald-600 mb-1">เหตุ 2</span>คนยากจนอยู่ในกลุ่มคนชอบกินมาม่า</div>
+      <div class="rounded-2xl bg-amber-50 border border-amber-100 p-4"><span class="block text-xs font-bold text-amber-600 mb-1">เหตุ 3</span>สมปองเป็นหมอ จึงไม่อยู่ในกลุ่มยากจนแน่นอน</div>
+    </div>
+    <div class="rounded-2xl bg-slate-50 border border-slate-200 p-4">
+      <strong>ตอบ ก.</strong> สมปองไม่ยากจน ส่วนสมปองชอบกินมาม่าหรือไม่ ยังสรุปไม่ได้ เพราะโจทย์ไม่ได้ห้ามหมอชอบกินมาม่า
+    </div>
+  </div>
+</div>
 
 ---
 
@@ -177,11 +220,25 @@ export const CHAPTER_25_REASONING_PRACTICE = `
 <text x="40" y="110" font-size="12" fill="#ef4444" text-anchor="middle">ฝนไม่ตก</text>
 </svg>
 </div>
-จากเหตุ 1 ถึง 3 เป็นการส่งต่อลำดับ: ฝนตกหนัก ($P → Q → R → S$)
-สรุปได้ว่า ถ้าฝนตกหนักแล้วประชาชนจะยากจน ($P → S$)
-จากเหตุข้อ 4 ระบุเหตุการณ์จริง: ประชาชนไม่ยากจน (~S)
-เมื่อเกิดเรื่องตรงข้ามกับผลลัพธ์ นำไปหักล้างกับประโยคเงื่อนไข จะได้ว่าสาเหตุต้นทางจะต้องไม่เกิด (~P)
-นั่นคือ สรุปได้ว่า ฝนไม่ตกหนัก
+<div class="my-6 rounded-3xl border border-indigo-100 bg-white shadow-sm overflow-hidden">
+  <div class="bg-indigo-50/80 px-5 py-3 border-b border-indigo-100 font-bold text-indigo-800">อ่านเหตุผลแบบเป็นขั้น</div>
+  <div class="p-5 space-y-4 text-slate-700 leading-8">
+    <div class="rounded-2xl bg-slate-50 border border-slate-200 p-4">
+      โครงสร้างถ่ายทอด: <strong>P → Q → R → S</strong><br />
+      แปลว่า <strong>ฝนตกหนัก → น้ำท่วม → โรคระบาด → ประชาชนยากจน</strong>
+    </div>
+    <div class="grid md:grid-cols-2 gap-3">
+      <div class="rounded-2xl bg-blue-50 border border-blue-100 p-4"><span class="block text-xs font-bold text-blue-600 mb-1">รวมเงื่อนไข</span>ถ้าฝนตกหนัก จะทำให้ประชาชนยากจน หรือ <strong>P → S</strong></div>
+      <div class="rounded-2xl bg-red-50 border border-red-100 p-4"><span class="block text-xs font-bold text-red-600 mb-1">ข้อเท็จจริง</span>ประชาชนไม่ยากจน คือ <strong>¬S</strong></div>
+    </div>
+    <div class="rounded-2xl bg-amber-50 border border-amber-100 p-4">
+      ใช้กฎแย้งสลับที่: เมื่อ <strong>P → S</strong> และเกิด <strong>¬S</strong> จึงย้อนกลับได้ว่า <strong>¬P</strong>
+    </div>
+    <div class="rounded-2xl bg-emerald-50 border border-emerald-100 p-4">
+      <strong>ตอบ ค.</strong> ฝนไม่ตกหนัก
+    </div>
+  </div>
+</div>
 
 ---
 
@@ -215,16 +272,31 @@ export const CHAPTER_25_REASONING_PRACTICE = `
 <text x="300" y="40" font-size="12" fill="#3b82f6" text-anchor="middle">อุบัติเหตุ</text>
 <line x1="340" y1="35" x2="390" y2="35" stroke="#3b82f6" stroke-width="2" marker-end="url(#arrow-blue)" />
 <text x="440" y="40" font-size="12" fill="#3b82f6" text-anchor="middle">พิการ</text>
-<text x="50" y="80" font-size="20" fill="#ef4444" text-anchor="middle" font-weight="bold">/ (ไม่ดื่มสุรา)</text>
+<text x="50" y="80" font-size="18" fill="#ef4444" text-anchor="middle" font-weight="bold">¬P (ไม่ดื่มสุรา)</text>
 <text x="250" y="110" font-size="14" fill="#94a3b8" text-anchor="middle" font-style="italic">เมื่อต้นทางไม่เกิด ผลลัพธ์อาจจะเกิดจากสาเหตุอื่นก็ได้</text>
 <text x="250" y="130" font-size="14" fill="#94a3b8" text-anchor="middle" font-style="italic">(จึงสรุปแน่นอนไม่ได้)</text>
 </svg>
 </div>
-โครงสร้างถ่ายทอด: ดื่มสุรา ($P → Q → R → S → T$)
-สรุปได้ว่า $P → T$ (ถ้าดื่มสุราแล้วครอบครัวลำบาก)
-แต่เหตุข้อ 5 ระบุความเป็นจริงว่า **คนขับรถไม่ดื่มสุรา (~P)**
-ตามหลักตรรกศาสตร์ หาก "เหตุต้นทางไม่เกิด (~P)" ผลลัพธ์สุดท้ายจะเกิดขึ้นหรือไม่อาจทราบได้ (อาจจะเกิดอุบัติเหตุจากคนอื่นขับมาชน หรืออาจจะขับประมาทเพราะเล่นมือถือ ไม่ใช่เพราะสุรา)
-สรุปได้เพียงอย่างเดียวคือ **"สรุปไม่ได้"** ไม่สามารถฟันธงได้ว่าเขาจะไม่ประมาท หรือจะไม่เกิดอุบัติเหตุครับ
+<div class="my-6 rounded-3xl border border-indigo-100 bg-white shadow-sm overflow-hidden">
+  <div class="bg-indigo-50/80 px-5 py-3 border-b border-indigo-100 font-bold text-indigo-800">อ่านเหตุผลแบบเป็นขั้น</div>
+  <div class="p-5 space-y-4 text-slate-700 leading-8">
+    <div class="rounded-2xl bg-slate-50 border border-slate-200 p-4">
+      โครงสร้างถ่ายทอด: <strong>P → Q → R → S → T</strong><br />
+      แปลว่า <strong>ดื่มสุรา → ประมาท → อุบัติเหตุ → พิการ → ครอบครัวลำบาก</strong>
+    </div>
+    <div class="grid md:grid-cols-2 gap-3">
+      <div class="rounded-2xl bg-blue-50 border border-blue-100 p-4"><span class="block text-xs font-bold text-blue-600 mb-1">สรุปจากสายเหตุ</span>ถ้าดื่มสุรา ครอบครัวจะลำบาก หรือ <strong>P → T</strong></div>
+      <div class="rounded-2xl bg-red-50 border border-red-100 p-4"><span class="block text-xs font-bold text-red-600 mb-1">ข้อเท็จจริง</span>คนขับรถไม่ดื่มสุรา คือ <strong>¬P</strong></div>
+    </div>
+    <div class="rounded-2xl bg-amber-50 border border-amber-100 p-4">
+      จุดหลอกของข้อนี้คือ <strong>¬P ไม่ได้แปลว่า ¬T</strong><br />
+      เมื่อเหตุต้นทางไม่เกิด เราฟันธงไม่ได้ว่าผลปลายทางจะเกิดหรือไม่ เพราะอาจมีสาเหตุอื่น เช่น คนอื่นขับมาชน หรือขับประมาทเพราะเล่นมือถือ
+    </div>
+    <div class="rounded-2xl bg-emerald-50 border border-emerald-100 p-4">
+      <strong>ตอบ ง.</strong> ไม่มีข้อสรุปใดสมเหตุสมผล
+    </div>
+  </div>
+</div>
 
 ---
 
@@ -240,7 +312,7 @@ export const CHAPTER_25_REASONING_PRACTICE = `
 ค. ฉันไปเที่ยวอย่างแน่นอน
 ง. สรุปไม่ได้
 
-**✅ เฉลย: ง. สรุปไม่ได้ (ทริกหลอกซ้อนทริค)** 
+**✅ เฉลย: ง. สรุปไม่ได้ (ทริกหลอกซ้อนทริก)** 
 **วิธีคิด:** (ระวังสุดๆ ข้อนี้)
 <div class="flex justify-center my-6 text-center">
 <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 w-full max-w-sm">
@@ -253,11 +325,25 @@ export const CHAPTER_25_REASONING_PRACTICE = `
 <div class="text-slate-500 text-xs italic">ต้นทางไม่เกิด = สรุปปลายทางไม่ได้</div>
 </div>
 </div>
-- เหตุ 1: มีเงิน ($A$) → ซื้อมือถือใหม่ ($B$)
-- เหตุ 3 บอกว่า: ไม่มีเงิน (~A)
-- นำ (~A) ไปเทียบเงื่อนไขเหตุ 1 "ถ้าสาเหตุไม่เกิด (ไม่มีเงิน)" บทสรุปทางตรรกศาสตร์คือ **"สรุปไม่ได้"** ว่าผลลัพธ์ (จะซื้อหรือไม่ซื้อมือถือ) เกิดหรือไม่
-- ในเมื่อเรา**ไม่รู้แน่นอน**ว่าฉันจะซื้อมือถือใหม่ไหม ทำให้เราวิเคราะห์เหตุขัอที่ 2 (ซื้อมือถือใหม่ หรือ ไปเที่ยว) ต่อไม่ได้ เพราะเราไม่สามารถตัดชอยส์ที่แน่นอนได้เลย 
-- **ดังนั้น ตอบ ง. สรุปไม่ได้**
+<div class="my-6 rounded-3xl border border-indigo-100 bg-white shadow-sm overflow-hidden">
+  <div class="bg-indigo-50/80 px-5 py-3 border-b border-indigo-100 font-bold text-indigo-800">อ่านเหตุผลแบบเป็นขั้น</div>
+  <div class="p-5 space-y-4 text-slate-700 leading-8">
+    <div class="grid md:grid-cols-2 gap-3">
+      <div class="rounded-2xl bg-blue-50 border border-blue-100 p-4"><span class="block text-xs font-bold text-blue-600 mb-1">เหตุ 1</span>มีเงิน → ซื้อมือถือใหม่ หรือ <strong>A → B</strong></div>
+      <div class="rounded-2xl bg-red-50 border border-red-100 p-4"><span class="block text-xs font-bold text-red-600 mb-1">เหตุ 3</span>ไม่มีเงิน คือ <strong>¬A</strong></div>
+    </div>
+    <div class="rounded-2xl bg-amber-50 border border-amber-100 p-4">
+      <strong>ระวัง!</strong> จาก <strong>A → B</strong> แล้วรู้ว่า <strong>¬A</strong> ยังสรุปไม่ได้ว่า <strong>¬B</strong><br />
+      แปลว่า “ไม่มีเงิน” ไม่ได้บังคับว่า “ไม่ซื้อมือถือ” เพราะอาจซื้อด้วยวิธีอื่น หรืออาจไม่ซื้อก็ได้
+    </div>
+    <div class="rounded-2xl bg-slate-50 border border-slate-200 p-4">
+      เหตุ 2 บอกว่า “ซื้อมือถือใหม่ หรือ ไปเที่ยว” แต่เราไม่รู้แน่นอนว่าฝั่ง “ซื้อมือถือใหม่” จริงหรือเท็จ จึงตัดเหลือ “ไปเที่ยว” ไม่ได้
+    </div>
+    <div class="rounded-2xl bg-emerald-50 border border-emerald-100 p-4">
+      <strong>ตอบ ง.</strong> สรุปไม่ได้
+    </div>
+  </div>
+</div>
 
 ---
 
@@ -275,10 +361,22 @@ export const CHAPTER_25_REASONING_PRACTICE = `
 
 **✅ เฉลย: ข. วันนี้ฝนไม่ตก**
 **วิธีคิด:**
-- ถ่ายทอด: ฝนตก ($P$) → เมฆมาก ($Q$) → ลมสงบ ($R$)
-- ได้ความสัมพันธ์หลัก: $P → R$
-- เหตุการณ์จริง: ลมไม่สงบ (~R)
-- แย้งสลับที่: $~R → ~P$ (ฝนไม่ตก)
+<div class="my-6 rounded-3xl border border-indigo-100 bg-white shadow-sm overflow-hidden">
+  <div class="bg-indigo-50/80 px-5 py-3 border-b border-indigo-100 font-bold text-indigo-800">อ่านเหตุผลแบบเป็นขั้น</div>
+  <div class="p-5 space-y-4 text-slate-700 leading-8">
+    <div class="rounded-2xl bg-slate-50 border border-slate-200 p-4">
+      โครงสร้างถ่ายทอด: <strong>ฝนตก → เมฆมาก → ลมสงบ</strong> หรือ <strong>P → Q → R</strong>
+    </div>
+    <div class="grid md:grid-cols-2 gap-3">
+      <div class="rounded-2xl bg-blue-50 border border-blue-100 p-4"><span class="block text-xs font-bold text-blue-600 mb-1">รวมเงื่อนไข</span>ถ้าฝนตก ลมจะสงบ หรือ <strong>P → R</strong></div>
+      <div class="rounded-2xl bg-red-50 border border-red-100 p-4"><span class="block text-xs font-bold text-red-600 mb-1">ข้อเท็จจริง</span>วันนี้ลมไม่สงบ คือ <strong>¬R</strong></div>
+    </div>
+    <div class="rounded-2xl bg-emerald-50 border border-emerald-100 p-4">
+      ใช้กฎแย้งสลับที่: <strong>P → R</strong> และ <strong>¬R</strong> จึงได้ <strong>¬P</strong><br />
+      <strong>ตอบ ข.</strong> วันนี้ฝนไม่ตก
+    </div>
+  </div>
+</div>
 
 ---
 
@@ -295,9 +393,19 @@ export const CHAPTER_25_REASONING_PRACTICE = `
 
 **✅ เฉลย: ก. สมัครไม่ได้เป็นตำรวจ**
 **วิธีคิด:**
-- เงื่อนไข: ตำรวจ ($P$) → กล้าหาญ ($Q$)
-- เหตุการณ์จริง: ไม่กล้าหาญ (~Q)
-- แย้งสลับที่: $~Q → ~P$ (ไม่ใชตำรวจ)
+<div class="my-6 rounded-3xl border border-indigo-100 bg-white shadow-sm overflow-hidden">
+  <div class="bg-indigo-50/80 px-5 py-3 border-b border-indigo-100 font-bold text-indigo-800">อ่านเหตุผลแบบเป็นขั้น</div>
+  <div class="p-5 space-y-4 text-slate-700 leading-8">
+    <div class="grid md:grid-cols-2 gap-3">
+      <div class="rounded-2xl bg-blue-50 border border-blue-100 p-4"><span class="block text-xs font-bold text-blue-600 mb-1">เงื่อนไข</span>ตำรวจ → กล้าหาญ หรือ <strong>P → Q</strong></div>
+      <div class="rounded-2xl bg-red-50 border border-red-100 p-4"><span class="block text-xs font-bold text-red-600 mb-1">ข้อเท็จจริง</span>สมัครไม่กล้าหาญ คือ <strong>¬Q</strong></div>
+    </div>
+    <div class="rounded-2xl bg-emerald-50 border border-emerald-100 p-4">
+      ใช้กฎแย้งสลับที่: <strong>P → Q</strong> และ <strong>¬Q</strong> จึงได้ <strong>¬P</strong><br />
+      <strong>ตอบ ก.</strong> สมัครไม่ได้เป็นตำรวจ
+    </div>
+  </div>
+</div>
 
 ---
 
@@ -314,9 +422,22 @@ export const CHAPTER_25_REASONING_PRACTICE = `
 
 **✅ เฉลย: ง. สรุปไม่ได้**
 **วิธีคิด:**
-- เงื่อนไข: เศรษฐกิจดี ($P$) → หุ้นขึ้น ($Q$)
-- เหตุการณ์จริง: หุ้นขึ้น ($Q$)
-- วิเคราะห์: ผลเกิด ($Q$) อาจจะมาจากสาเหตุอื่นก็ได้ ไม่จำเป็นต้องเป็น $P$ (เศรษฐกิจอาจจะยังแย่แต่หุ้นขึ้นชั่วคราวก็ได้)
+<div class="my-6 rounded-3xl border border-indigo-100 bg-white shadow-sm overflow-hidden">
+  <div class="bg-indigo-50/80 px-5 py-3 border-b border-indigo-100 font-bold text-indigo-800">อ่านเหตุผลแบบเป็นขั้น</div>
+  <div class="p-5 space-y-4 text-slate-700 leading-8">
+    <div class="grid md:grid-cols-2 gap-3">
+      <div class="rounded-2xl bg-blue-50 border border-blue-100 p-4"><span class="block text-xs font-bold text-blue-600 mb-1">เงื่อนไข</span>เศรษฐกิจดี → หุ้นขึ้น หรือ <strong>P → Q</strong></div>
+      <div class="rounded-2xl bg-amber-50 border border-amber-100 p-4"><span class="block text-xs font-bold text-amber-600 mb-1">ข้อเท็จจริง</span>วันนี้หุ้นขึ้น คือ <strong>Q</strong></div>
+    </div>
+    <div class="rounded-2xl bg-red-50 border border-red-100 p-4">
+      จุดหลอกของข้อนี้คือ <strong>Q ไม่ได้แปลว่า P</strong><br />
+      ผลเกิดแล้ว อาจเกิดจากหลายสาเหตุ เช่น ต่างชาติซื้อ ข่าวดีเฉพาะหุ้น หรือแรงเก็งกำไร ไม่จำเป็นต้องแปลว่าเศรษฐกิจดีแน่นอน
+    </div>
+    <div class="rounded-2xl bg-emerald-50 border border-emerald-100 p-4">
+      <strong>ตอบ ง.</strong> สรุปไม่ได้
+    </div>
+  </div>
+</div>
 
 ---
 
@@ -333,9 +454,22 @@ export const CHAPTER_25_REASONING_PRACTICE = `
 
 **✅ เฉลย: ก. ประสิทธิ์เป็นนักเทนนิส**
 **วิธีคิด:**
-- ทางเลือก "หรือ": กอล์ฟ ($A$) หรือ เทนนิส ($B$)
-- ข้อเท็จจริง: ไม่ใช่กอล์ฟ (~A)
-- กฎ "หรือ": เมื่อฝั่งหนึ่งไม่เกิด กฎบังคับว่าต้องเป็นอีกฝั่งที่เหลือทันที
+<div class="my-6 rounded-3xl border border-indigo-100 bg-white shadow-sm overflow-hidden">
+  <div class="bg-indigo-50/80 px-5 py-3 border-b border-indigo-100 font-bold text-indigo-800">อ่านเหตุผลแบบเป็นขั้น</div>
+  <div class="p-5 space-y-4 text-slate-700 leading-8">
+    <div class="rounded-2xl bg-slate-50 border border-slate-200 p-4">
+      ทางเลือกของสมาชิกสโมสรมี 2 ทาง: <strong>นักกอล์ฟ ∨ นักเทนนิส</strong>
+    </div>
+    <div class="grid md:grid-cols-2 gap-3">
+      <div class="rounded-2xl bg-blue-50 border border-blue-100 p-4"><span class="block text-xs font-bold text-blue-600 mb-1">กำหนดสัญลักษณ์</span>นักกอล์ฟ = <strong>A</strong>, นักเทนนิส = <strong>B</strong></div>
+      <div class="rounded-2xl bg-red-50 border border-red-100 p-4"><span class="block text-xs font-bold text-red-600 mb-1">ข้อเท็จจริง</span>ประสิทธิ์ไม่ใช่นักกอล์ฟ คือ <strong>¬A</strong></div>
+    </div>
+    <div class="rounded-2xl bg-emerald-50 border border-emerald-100 p-4">
+      เมื่อโจทย์บอกว่า <strong>A ∨ B</strong> และรู้ว่า <strong>¬A</strong> จึงเหลือ <strong>B</strong><br />
+      <strong>ตอบ ก.</strong> ประสิทธิ์เป็นนักเทนนิส
+    </div>
+  </div>
+</div>
 
 ---
 
@@ -354,10 +488,25 @@ export const CHAPTER_25_REASONING_PRACTICE = `
 
 **✅ เฉลย: ง. ถูกทุกข้อ**
 **วิธีคิด:**
-- ความสัมพันธ์ยาว: ปลูก ($P$) → กินผล ($Q$) → สุข ($R$) → สุขภาพดี ($S$)
-- ข้อเท็จจริง: สุขภาพไม่ดี (~S)
-- แย้งสลับที่ย้อนกลับทั้งหมด: $~S → ~R → ~Q → ~P$
-- ดังนั้นจึงสรุปได้ว่า ไม่มีความสุข, ไม่ได้กินผล และไม่ได้ปลูกมะม่วง ข้อ ง. จึงรวมทุกข้อที่ถูกครับ
+<div class="my-6 rounded-3xl border border-indigo-100 bg-white shadow-sm overflow-hidden">
+  <div class="bg-indigo-50/80 px-5 py-3 border-b border-indigo-100 font-bold text-indigo-800">อ่านเหตุผลแบบเป็นขั้น</div>
+  <div class="p-5 space-y-4 text-slate-700 leading-8">
+    <div class="rounded-2xl bg-slate-50 border border-slate-200 p-4">
+      โครงสร้างถ่ายทอด: <strong>ปลูกมะม่วง → ได้กินผล → มีความสุข → สุขภาพดี</strong><br />
+      หรือเขียนเป็นสัญลักษณ์ได้ว่า <strong>P → Q → R → S</strong>
+    </div>
+    <div class="rounded-2xl bg-red-50 border border-red-100 p-4">
+      ข้อเท็จจริง: นายสมชายสุขภาพไม่ดี คือ <strong>¬S</strong>
+    </div>
+    <div class="rounded-2xl bg-amber-50 border border-amber-100 p-4">
+      ใช้กฎแย้งสลับที่ย้อนกลับทีละชั้น: <strong>¬S → ¬R → ¬Q → ¬P</strong>
+    </div>
+    <div class="rounded-2xl bg-emerald-50 border border-emerald-100 p-4">
+      จึงสรุปได้ครบว่า สมชายไม่มีความสุข, ไม่ได้กินผล และไม่ได้ปลูกมะม่วง<br />
+      <strong>ตอบ ง.</strong> ถูกทุกข้อ
+    </div>
+  </div>
+</div>
 
 ---
 
@@ -387,7 +536,22 @@ export const CHAPTER_25_REASONING_PRACTICE = `
 <text x="90" y="70" font-size="12" fill="#1e40af" text-anchor="middle">ชาวนา</text>
 </svg>
 </div>
-- วาดวง "คนสบาย" อยู่ในวง "ไม่มีหนี้สิน"
-- วาดวง "ชาวนา" ไปเหลื่อมกับวง "ไม่มีหนี้สิน"
-- สังเกตว่า วง "ชาวนา" ที่เหลื่อมเข้าไปนั้น อาจจะไม่ได้เข้าไปโดนเขตของวง "คนสบาย" ก็ได้ จึงฟันธงไม่ได้ว่าชาวนาที่ไม่มีหนี้จะสบายทุกคนหรือบางคนครับ
+<div class="my-6 rounded-3xl border border-indigo-100 bg-white shadow-sm overflow-hidden">
+  <div class="bg-indigo-50/80 px-5 py-3 border-b border-indigo-100 font-bold text-indigo-800">อ่านเหตุผลแบบเป็นขั้น</div>
+  <div class="p-5 space-y-4 text-slate-700 leading-8">
+    <div class="grid md:grid-cols-2 gap-3">
+      <div class="rounded-2xl bg-blue-50 border border-blue-100 p-4"><span class="block text-xs font-bold text-blue-600 mb-1">เหตุ 1</span>ชาวนาบางคนอยู่ในกลุ่ม “ไม่มีหนี้สิน”</div>
+      <div class="rounded-2xl bg-emerald-50 border border-emerald-100 p-4"><span class="block text-xs font-bold text-emerald-600 mb-1">เหตุ 2</span>คนสบายอยู่ในกลุ่ม “ไม่มีหนี้สิน”</div>
+    </div>
+    <div class="rounded-2xl bg-amber-50 border border-amber-100 p-4">
+      ทั้ง “ชาวนาบางคน” และ “คนสบาย” มีจุดเชื่อมคือ “ไม่มีหนี้สิน” แต่โจทย์ไม่ได้บอกว่าพื้นที่ของสองกลุ่มนี้ต้องทับกัน
+    </div>
+    <div class="rounded-2xl bg-red-50 border border-red-100 p-4">
+      ดังนั้นยังฟันธงไม่ได้ว่า “ชาวนาบางคนสบาย” หรือ “คนไม่มีหนี้สินเป็นชาวนา”
+    </div>
+    <div class="rounded-2xl bg-emerald-50 border border-emerald-100 p-4">
+      <strong>ตอบ ง.</strong> สรุปไม่ได้
+    </div>
+  </div>
+</div>
 `;
