@@ -867,6 +867,8 @@ const getOwnAccessToken = async (targetUserId?: string) => {
 };
 
 export const authService = {
+  getOwnAccessToken,
+
   async restoreSession(): Promise<AuthResult> {
     const pendingGoogleLogin = hasPendingGoogleLogin();
     try {

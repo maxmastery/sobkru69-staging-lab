@@ -114,7 +114,7 @@ export function getSupabaseConfig(): SupabaseRuntimeConfig {
   const anonKey = getLocalValue('VITE_SUPABASE_ANON_KEY') || getEnvValue('VITE_SUPABASE_ANON_KEY');
   
   // For debugging in development
-  if (import.meta.env.DEV) {
+  if ((import.meta as any).env?.DEV) {
     console.log('Supabase config URL:', url ? 'configured' : 'MISSING', 'Key:', anonKey ? 'configured' : 'MISSING');
   }
 

@@ -13,6 +13,7 @@ interface DonationModalProps {
 type ViewState = 'intro' | 'tiers' | 'qr' | 'verifying' | 'success' | 'error' | 'history';
 
 interface DonationRecord {
+  id?: string;
   date: string;
   type: string;
   amount: number;

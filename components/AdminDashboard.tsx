@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Settings, Users, Bell, Save, Trash2, Edit2, Loader2, Plus, X, ArrowLeft, CheckCircle2, Megaphone, Newspaper, MessageSquare, ShoppingCart, Search, BarChart3, Eye, Image as ImageIcon, ShieldAlert, Coffee, UserCheck, RadioTower } from 'lucide-react';
+import { Settings, Users, Bell, Save, Trash2, Edit2, Loader2, Plus, X, ArrowLeft, CheckCircle2, Megaphone, Newspaper, MessageSquare, ShoppingCart, Search, BarChart3, Eye, Image as ImageIcon, ShieldAlert, Coffee, UserCheck, RadioTower, Mail } from 'lucide-react';
 import { authService, MaintenanceModeState, User } from '../services/authService';
 import AdminNews from './admin/AdminNews';
 import AdminDiscussion from './admin/AdminDiscussion';
@@ -11,6 +11,7 @@ import AdminReports from './admin/AdminReports';
 import AdminUserInsights from './admin/AdminUserInsights';
 import AdminUserActive from './admin/AdminUserActive';
 import AdminDonations from './admin/AdminDonations';
+import AdminEmailCampaigns from './admin/AdminEmailCampaigns';
 import { contentService } from '../services/contentService';
 import { getStoredUser, userActivityService } from '../services/userActivityService';
 
@@ -22,7 +23,7 @@ interface AdminDashboardProps {
 
 const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, onPreviewShop, onShopButtonVisibilityChange }) => {
   const viteEnv = (import.meta as any).env || {};
-  const [activeTab, setActiveTab] = useState<'settings' | 'users' | 'notification' | 'bell' | 'messages' | 'marquee' | 'news' | 'discussion' | 'shop' | 'statistics' | 'reports' | 'user-insights' | 'user-active' | 'donations'>('settings');
+  const [activeTab, setActiveTab] = useState<'settings' | 'users' | 'notification' | 'bell' | 'messages' | 'marquee' | 'email-campaigns' | 'news' | 'discussion' | 'shop' | 'statistics' | 'reports' | 'user-insights' | 'user-active' | 'donations'>('settings');
   const normalizeSupabaseUrl = (rawValue: string) => {
     const value = rawValue.trim();
     const markdownMatch = value.match(/\((https?:\/\/[^)\s]+)\)/i);
@@ -371,7 +372,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, onPreviewShop,
           setUsers(users.filter(u => u.id !== id));
           setUsersTotalCount(total => Math.max(0, total - 1));
         } else if ('user' in res && res.user) {
-          setUsers(users.map(u => u.id === id ? res.user! : u));
+          const updatedUser = res.user as User;
+          setUsers(users.map(u => u.id === id ? updatedUser : u));
         } else {
           setUsers(users.map(u => u.id === id ? { ...u, isActive: action === 'reactivate' } : u));
         }
@@ -554,6 +556,15 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, onPreviewShop,
           >
             <Megaphone className="w-5 h-5" />
             ข้อความประชาสัมพันธ์
+          </button>
+          <button
+            onClick={() => setActiveTab('email-campaigns')}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-colors ${
+              activeTab === 'email-campaigns' ? 'bg-orange-600 text-white' : 'text-slate-600 hover:bg-slate-100'
+            }`}
+          >
+            <Mail className="w-5 h-5" />
+            ส่งอีเมลประชาสัมพันธ์
           </button>
 
           <div className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 px-4 mt-6">ระบบเนื้อหา</div>
@@ -1121,6 +1132,18 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, onPreviewShop,
               ข้อความติดต่อจากผู้ใช้
             </h3>
             <AdminMessages />
+          </div>
+        )}
+
+        {activeTab === 'email-campaigns' && (
+          <div className="w-full max-w-7xl">
+            <h3 className="text-2xl font-bold text-slate-800 mb-6 flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-orange-100 flex items-center justify-center">
+                <Mail className="w-6 h-6 text-orange-600" />
+              </div>
+              ส่งอีเมลประชาสัมพันธ์
+            </h3>
+            <AdminEmailCampaigns />
           </div>
         )}
 
