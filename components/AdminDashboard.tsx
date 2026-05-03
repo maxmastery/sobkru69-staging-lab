@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Settings, Users, Bell, Save, Trash2, Edit2, Loader2, Plus, X, ArrowLeft, CheckCircle2, Megaphone, Newspaper, MessageSquare, ShoppingCart, Search, BarChart3, Eye, Image as ImageIcon, ShieldAlert, Coffee, UserCheck, RadioTower, Mail } from 'lucide-react';
+import { Settings, Users, Bell, Save, Trash2, Edit2, Loader2, Plus, X, ArrowLeft, CheckCircle2, Megaphone, Newspaper, MessageSquare, ShoppingCart, Search, BarChart3, Eye, Image as ImageIcon, ShieldAlert, Coffee, UserCheck, RadioTower, Mail, Inbox } from 'lucide-react';
 import { authService, MaintenanceModeState, User } from '../services/authService';
 import AdminNews from './admin/AdminNews';
 import AdminDiscussion from './admin/AdminDiscussion';
@@ -12,6 +12,7 @@ import AdminUserInsights from './admin/AdminUserInsights';
 import AdminUserActive from './admin/AdminUserActive';
 import AdminDonations from './admin/AdminDonations';
 import AdminEmailCampaigns from './admin/AdminEmailCampaigns';
+import AdminEmailInbox from './admin/AdminEmailInbox';
 import { contentService } from '../services/contentService';
 import { getStoredUser, userActivityService } from '../services/userActivityService';
 
@@ -23,7 +24,7 @@ interface AdminDashboardProps {
 
 const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, onPreviewShop, onShopButtonVisibilityChange }) => {
   const viteEnv = (import.meta as any).env || {};
-  const [activeTab, setActiveTab] = useState<'settings' | 'users' | 'notification' | 'bell' | 'messages' | 'marquee' | 'email-campaigns' | 'news' | 'discussion' | 'shop' | 'statistics' | 'reports' | 'user-insights' | 'user-active' | 'donations'>('settings');
+  const [activeTab, setActiveTab] = useState<'settings' | 'users' | 'notification' | 'bell' | 'messages' | 'marquee' | 'email-campaigns' | 'email-inbox' | 'news' | 'discussion' | 'shop' | 'statistics' | 'reports' | 'user-insights' | 'user-active' | 'donations'>('settings');
   const normalizeSupabaseUrl = (rawValue: string) => {
     const value = rawValue.trim();
     const markdownMatch = value.match(/\((https?:\/\/[^)\s]+)\)/i);
@@ -565,6 +566,15 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, onPreviewShop,
           >
             <Mail className="w-5 h-5" />
             ส่งอีเมลประชาสัมพันธ์
+          </button>
+          <button
+            onClick={() => setActiveTab('email-inbox')}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-colors ${
+              activeTab === 'email-inbox' ? 'bg-sky-600 text-white' : 'text-slate-600 hover:bg-slate-100'
+            }`}
+          >
+            <Inbox className="w-5 h-5" />
+            Inbox อีเมลตอบกลับ
           </button>
 
           <div className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 px-4 mt-6">ระบบเนื้อหา</div>
@@ -1144,6 +1154,18 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, onPreviewShop,
               ส่งอีเมลประชาสัมพันธ์
             </h3>
             <AdminEmailCampaigns />
+          </div>
+        )}
+
+        {activeTab === 'email-inbox' && (
+          <div className="w-full max-w-7xl">
+            <h3 className="text-2xl font-bold text-slate-800 mb-6 flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-sky-100 flex items-center justify-center">
+                <Inbox className="w-6 h-6 text-sky-600" />
+              </div>
+              Inbox อีเมลตอบกลับ
+            </h3>
+            <AdminEmailInbox />
           </div>
         )}
 

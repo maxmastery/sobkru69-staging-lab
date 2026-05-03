@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { AlertTriangle, CheckCircle2, KeyRound, Loader2, Mail, Search, Send, Sparkles, Users } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, Clock3, Image as ImageIcon, KeyRound, Loader2, Mail, RefreshCw, Search, Send, Sparkles, UploadCloud, Users, X } from 'lucide-react';
 import { authService, User } from '../../services/authService';
-import { emailCampaignService, EmailRecipientMode, SendEmailCampaignResult, userToEmailRecipient } from '../../services/emailCampaignService';
+import { emailCampaignService, EmailCampaignHistoryItem, EmailRecipientMode, SendEmailCampaignResult, userToEmailRecipient } from '../../services/emailCampaignService';
 
 type RecipientMode = Exclude<EmailRecipientMode, 'test'>;
 
@@ -10,11 +10,20 @@ const defaultForm = {
   preheader: 'อัปเดตใหม่จาก SobKru69 เข้าไปดูรายละเอียดได้เลย',
   title: 'มีอัปเดตใหม่ใน SobKru69',
   message: 'เราเพิ่มฟีเจอร์และเนื้อหาใหม่เพื่อช่วยให้การเตรียมสอบสะดวกขึ้น ลองเข้าไปดูรายละเอียดในระบบได้เลยครับ',
+  imageUrl: '',
   ctaLabel: 'เปิดดูอัปเดตใหม่',
   ctaUrl: 'https://www.coolcom.click/',
 };
 
 const isEmail = (value: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
+
+const formatDateTime = (value?: string) => {
+  if (!value) return '-';
+  return new Date(value).toLocaleString('th-TH', {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  });
+};
 
 const AdminEmailCampaigns: React.FC = () => {
   const [users, setUsers] = useState<User[]>([]);
@@ -28,6 +37,10 @@ const AdminEmailCampaigns: React.FC = () => {
   const [form, setForm] = useState(defaultForm);
   const [result, setResult] = useState<SendEmailCampaignResult | null>(null);
   const [loadMessage, setLoadMessage] = useState('');
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+  const [history, setHistory] = useState<EmailCampaignHistoryItem[]>([]);
+  const [historyMessage, setHistoryMessage] = useState('');
 
   useEffect(() => {
     const loadUsers = async () => {
@@ -92,6 +105,38 @@ const AdminEmailCampaigns: React.FC = () => {
     setForm((current) => ({ ...current, [key]: value }));
   };
 
+  const uploadCampaignImage = async (file?: File) => {
+    if (!file) return;
+    setIsUploadingImage(true);
+    try {
+      const response = await authService.uploadImage(file);
+      if (response.success && response.url) {
+        updateForm('imageUrl', response.url);
+      } else {
+        window.alert(response.message || 'อัปโหลดรูปภาพไม่สำเร็จ');
+      }
+    } finally {
+      setIsUploadingImage(false);
+    }
+  };
+
+  const loadHistory = async () => {
+    if (!adminToken.trim()) {
+      setHistoryMessage('กรุณากรอกรหัสส่งอีเมลก่อนโหลดประวัติ');
+      return;
+    }
+
+    setIsLoadingHistory(true);
+    setHistoryMessage('');
+    try {
+      const response = await emailCampaignService.getHistory(adminToken);
+      setHistory(response.history);
+      setHistoryMessage(response.message);
+    } finally {
+      setIsLoadingHistory(false);
+    }
+  };
+
   const toggleUser = (id: string) => {
     setSelectedIds((current) => {
       const next = new Set(current);
@@ -133,6 +178,7 @@ const AdminEmailCampaigns: React.FC = () => {
         testEmail,
       });
       setResult(response);
+      void loadHistory();
     } finally {
       setIsSending(false);
     }
@@ -154,6 +200,7 @@ const AdminEmailCampaigns: React.FC = () => {
         recipients: campaignRecipients,
       });
       setResult(response);
+      void loadHistory();
     } finally {
       setIsSending(false);
     }
@@ -230,6 +277,54 @@ const AdminEmailCampaigns: React.FC = () => {
                   className="min-h-[180px] w-full resize-none rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-medium leading-7 outline-none transition focus:border-orange-400 focus:ring-4 focus:ring-orange-100"
                   placeholder="เขียนเนื้อหาประกาศ..."
                 />
+              </div>
+              <div className="rounded-3xl border border-orange-100 bg-orange-50/60 p-4">
+                <div className="mb-3 flex items-center justify-between gap-3">
+                  <label className="flex items-center gap-2 text-sm font-black text-slate-800">
+                    <ImageIcon className="h-5 w-5 text-orange-500" />
+                    รูปภาพประกอบอีเมล
+                  </label>
+                  {form.imageUrl && (
+                    <button
+                      type="button"
+                      onClick={() => updateForm('imageUrl', '')}
+                      className="inline-flex items-center gap-1 rounded-full bg-white px-3 py-1.5 text-xs font-black text-slate-500 shadow-sm hover:text-red-600"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                      เอารูปออก
+                    </button>
+                  )}
+                </div>
+                <div className="grid grid-cols-1 gap-3 lg:grid-cols-[auto_1fr]">
+                  <label className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-2xl bg-white px-5 py-3 text-sm font-black text-orange-600 shadow-sm ring-1 ring-orange-100 transition hover:-translate-y-0.5 hover:shadow-md">
+                    {isUploadingImage ? <Loader2 className="h-5 w-5 animate-spin" /> : <UploadCloud className="h-5 w-5" />}
+                    อัปโหลดรูป
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      disabled={isUploadingImage}
+                      onChange={(event) => {
+                        void uploadCampaignImage(event.target.files?.[0]);
+                        event.currentTarget.value = '';
+                      }}
+                    />
+                  </label>
+                  <input
+                    value={form.imageUrl}
+                    onChange={(event) => updateForm('imageUrl', event.target.value)}
+                    className="w-full rounded-2xl border border-orange-100 bg-white px-4 py-3 text-sm font-semibold outline-none transition focus:border-orange-400 focus:ring-4 focus:ring-orange-100"
+                    placeholder="หรือวาง URL รูปภาพ https://..."
+                  />
+                </div>
+                {form.imageUrl && (
+                  <div className="mt-4 overflow-hidden rounded-3xl border border-orange-100 bg-white shadow-sm">
+                    <img src={form.imageUrl} alt="Email preview" className="h-48 w-full object-cover" />
+                  </div>
+                )}
+                <p className="mt-3 text-xs font-semibold leading-5 text-orange-900/70">
+                  แนะนำรูปแนวนอนขนาดไม่เกิน 1200px เพื่อให้โหลดเร็ว และลดโอกาสมือถือแสดงผลเพี้ยน
+                </p>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
@@ -398,6 +493,9 @@ const AdminEmailCampaigns: React.FC = () => {
                   <p className="mt-1 text-sm text-slate-600">
                     ผู้รับ {result.recipientCount?.toLocaleString('th-TH') || 0} คน, สำเร็จ {result.successCount?.toLocaleString('th-TH') || 0}, ไม่สำเร็จ {result.failedCount?.toLocaleString('th-TH') || 0}, จำนวนชุด {result.batches || 0}
                   </p>
+                  {result.historySaved === false && result.historyMessage && (
+                    <p className="mt-2 text-xs font-bold text-amber-700">หมายเหตุ: {result.historyMessage}</p>
+                  )}
                   {result.errors && result.errors.length > 0 && (
                     <div className="mt-3 space-y-1 text-xs font-semibold text-red-700">
                       {result.errors.slice(0, 5).map((error, index) => <p key={`${error}-${index}`}>{error}</p>)}
@@ -408,6 +506,74 @@ const AdminEmailCampaigns: React.FC = () => {
             </div>
           )}
         </div>
+      </div>
+
+      <div className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="mb-5 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <div>
+            <h4 className="flex items-center gap-2 text-xl font-black text-slate-900">
+              <Clock3 className="h-6 w-6 text-orange-500" />
+              ประวัติการส่งอีเมล
+            </h4>
+            <p className="mt-1 text-sm text-slate-500">ดูย้อนหลังว่าเคยส่งหัวข้อไหน ส่งถึงกี่คน และส่งสำเร็จเท่าไร</p>
+          </div>
+          <button
+            type="button"
+            onClick={loadHistory}
+            disabled={isLoadingHistory}
+            className="inline-flex items-center justify-center gap-2 rounded-2xl bg-slate-900 px-5 py-3 text-sm font-black text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {isLoadingHistory ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+            โหลดประวัติ
+          </button>
+        </div>
+
+        {historyMessage && (
+          <div className="mb-4 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-600">
+            {historyMessage}
+          </div>
+        )}
+
+        {history.length === 0 ? (
+          <div className="rounded-3xl border border-dashed border-slate-200 bg-slate-50 p-8 text-center text-sm font-semibold text-slate-500">
+            ยังไม่มีประวัติการส่ง หรือยังไม่ได้กดโหลดประวัติ
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+            {history.map((item) => (
+              <div key={item.id} className="overflow-hidden rounded-3xl border border-slate-200 bg-slate-50">
+                {item.image_url && (
+                  <img src={item.image_url} alt="" className="h-32 w-full object-cover" />
+                )}
+                <div className="p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="truncate text-base font-black text-slate-950">{item.subject}</p>
+                      <p className="mt-1 text-xs font-bold text-slate-500">{formatDateTime(item.created_at)}</p>
+                    </div>
+                    <span className="rounded-full bg-white px-3 py-1 text-xs font-black text-orange-600 shadow-sm">
+                      {item.mode === 'test' ? 'ทดสอบ' : item.mode === 'all' ? 'ทั้งหมด' : item.mode === 'active' ? 'Active' : 'เลือกเอง'}
+                    </span>
+                  </div>
+                  <div className="mt-4 grid grid-cols-3 gap-2 text-center">
+                    <div className="rounded-2xl bg-white p-3">
+                      <p className="text-[11px] font-bold text-slate-400">ผู้รับ</p>
+                      <p className="text-lg font-black text-slate-950">{item.recipient_count?.toLocaleString('th-TH') || 0}</p>
+                    </div>
+                    <div className="rounded-2xl bg-white p-3">
+                      <p className="text-[11px] font-bold text-slate-400">สำเร็จ</p>
+                      <p className="text-lg font-black text-emerald-600">{item.success_count?.toLocaleString('th-TH') || 0}</p>
+                    </div>
+                    <div className="rounded-2xl bg-white p-3">
+                      <p className="text-[11px] font-bold text-slate-400">ไม่สำเร็จ</p>
+                      <p className="text-lg font-black text-red-500">{item.failed_count?.toLocaleString('th-TH') || 0}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

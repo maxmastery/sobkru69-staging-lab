@@ -15,6 +15,7 @@ export interface SendEmailCampaignPayload {
   preheader?: string;
   title: string;
   message: string;
+  imageUrl?: string;
   ctaLabel?: string;
   ctaUrl?: string;
   testEmail?: string;
@@ -29,6 +30,32 @@ export interface SendEmailCampaignResult {
   failedCount?: number;
   batches?: number;
   errors?: string[];
+  historySaved?: boolean;
+  historyMessage?: string;
+}
+
+export interface EmailCampaignHistoryItem {
+  id: string;
+  mode: EmailRecipientMode;
+  subject: string;
+  title?: string;
+  message?: string;
+  cta_label?: string;
+  cta_url?: string;
+  image_url?: string;
+  recipient_count: number;
+  success_count: number;
+  failed_count: number;
+  batches: number;
+  errors?: string[];
+  sent_by?: string;
+  created_at: string;
+}
+
+export interface EmailCampaignHistoryResult {
+  success: boolean;
+  message: string;
+  history: EmailCampaignHistoryItem[];
 }
 
 const normalizeEmail = (value: string) => value.trim().toLowerCase();
@@ -60,6 +87,7 @@ export const emailCampaignService = {
         preheader: payload.preheader,
         title: payload.title,
         message: payload.message,
+        imageUrl: payload.imageUrl,
         ctaLabel: payload.ctaLabel,
         ctaUrl: payload.ctaUrl,
         testEmail: payload.testEmail,
@@ -81,5 +109,25 @@ export const emailCampaignService = {
     }
 
     return data as SendEmailCampaignResult;
+  },
+
+  async getHistory(adminToken: string): Promise<EmailCampaignHistoryResult> {
+    const response = await fetch('/api/email-campaign-history?limit=50', {
+      headers: {
+        'x-email-campaign-token': adminToken,
+      },
+    });
+
+    const data = await response.json().catch(() => ({
+      success: false,
+      message: 'ไม่สามารถอ่านประวัติการส่งจาก Server ได้',
+      history: [],
+    }));
+
+    return {
+      success: response.ok && Boolean(data?.success),
+      message: data?.message || (response.ok ? 'โหลดประวัติสำเร็จ' : 'โหลดประวัติไม่สำเร็จ'),
+      history: Array.isArray(data?.history) ? data.history : [],
+    };
   },
 };
