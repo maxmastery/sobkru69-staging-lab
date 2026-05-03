@@ -14,6 +14,7 @@ import AdminDonations from './admin/AdminDonations';
 import AdminEmailCampaigns from './admin/AdminEmailCampaigns';
 import AdminEmailInbox from './admin/AdminEmailInbox';
 import { contentService } from '../services/contentService';
+import { emailInboxService } from '../services/emailInboxService';
 import { getStoredUser, userActivityService } from '../services/userActivityService';
 
 interface AdminDashboardProps {
@@ -51,6 +52,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, onPreviewShop,
   });
   const [saveMessage, setSaveMessage] = useState('');
   const [unreadMessagesCount, setUnreadMessagesCount] = useState(0);
+  const [emailInboxUnreadCount, setEmailInboxUnreadCount] = useState(0);
   const [onlineUsersCount, setOnlineUsersCount] = useState(0);
   const [showMaintenanceConfirm, setShowMaintenanceConfirm] = useState(false);
   const [isMaintenanceActivating, setIsMaintenanceActivating] = useState(false);
@@ -107,6 +109,14 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, onPreviewShop,
     return () => window.clearTimeout(timeout);
   }, [activeTab, currentPage, searchQuery]);
 
+  useEffect(() => {
+    void fetchEmailInboxUnreadCount();
+    const interval = window.setInterval(() => {
+      void fetchEmailInboxUnreadCount();
+    }, 120000);
+    return () => window.clearInterval(interval);
+  }, []);
+
   const fetchUnreadMessagesCount = async () => {
     try {
       const res = await authService.getSupportMessages();
@@ -116,6 +126,23 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, onPreviewShop,
       }
     } catch (error) {
       console.error("Failed to fetch messages count", error);
+    }
+  };
+
+  const fetchEmailInboxUnreadCount = async () => {
+    const storedToken = emailInboxService.getStoredToken();
+    if (!storedToken) {
+      setEmailInboxUnreadCount(0);
+      return;
+    }
+
+    try {
+      const response = await emailInboxService.getMessages(storedToken, 30);
+      if (response.success) {
+        setEmailInboxUnreadCount(emailInboxService.getUnreadCount(response.messages));
+      }
+    } catch (error) {
+      console.error('Failed to fetch email inbox count', error);
     }
   };
 
@@ -569,12 +596,19 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, onPreviewShop,
           </button>
           <button
             onClick={() => setActiveTab('email-inbox')}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-colors ${
+            className={`w-full flex items-center justify-between px-4 py-3 rounded-xl text-sm font-medium transition-colors ${
               activeTab === 'email-inbox' ? 'bg-sky-600 text-white' : 'text-slate-600 hover:bg-slate-100'
             }`}
           >
-            <Inbox className="w-5 h-5" />
-            Inbox อีเมลตอบกลับ
+            <div className="flex items-center gap-3">
+              <Inbox className="w-5 h-5" />
+              Inbox อีเมลตอบกลับ
+            </div>
+            {emailInboxUnreadCount > 0 && (
+              <span className="bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
+                {emailInboxUnreadCount}
+              </span>
+            )}
           </button>
 
           <div className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 px-4 mt-6">ระบบเนื้อหา</div>
@@ -1165,7 +1199,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, onPreviewShop,
               </div>
               Inbox อีเมลตอบกลับ
             </h3>
-            <AdminEmailInbox />
+            <AdminEmailInbox onUnreadCountChange={setEmailInboxUnreadCount} />
           </div>
         )}
 
