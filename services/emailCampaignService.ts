@@ -29,6 +29,7 @@ export interface SendEmailCampaignResult {
   successCount?: number;
   failedCount?: number;
   batches?: number;
+  deliveryMode?: 'individual' | 'bcc';
   errors?: string[];
   historySaved?: boolean;
   historyMessage?: string;

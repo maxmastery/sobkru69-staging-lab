@@ -379,6 +379,7 @@ const AdminEmailCampaigns: React.FC = () => {
             </div>
             <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm leading-6 text-amber-900">
               ต้องตั้งค่า Environment Variables บน Vercel ก่อนใช้งานจริง: SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, EMAIL_FROM, EMAIL_CAMPAIGN_ADMIN_TOKEN
+              และแนะนำให้ใช้ EMAIL_DELIVERY_MODE=individual เพื่อเลี่ยงการโดนบล็อกจากการส่งแบบ BCC จำนวนมาก
             </div>
           </div>
         </div>
@@ -470,7 +471,12 @@ const AdminEmailCampaigns: React.FC = () => {
               <div>
                 <p className="text-sm font-bold text-orange-700">พร้อมส่งถึง</p>
                 <p className="mt-1 text-4xl font-black text-slate-950">{campaignRecipients.length.toLocaleString('th-TH')}</p>
-                <p className="text-sm text-slate-600">ระบบจะส่งแบบ BCC เป็นชุด ๆ เพื่อไม่ให้ผู้รับเห็นอีเมลกันเอง</p>
+                <p className="text-sm text-slate-600">ระบบจะส่งแบบรายคนจากฝั่ง Server เพื่อให้ปลอดภัยกว่า BCC จำนวนมาก</p>
+                {campaignRecipients.length > 80 && (
+                  <p className="mt-2 text-xs font-bold leading-5 text-amber-700">
+                    แนะนำแบ่งส่งครั้งละไม่เกิน 80 คน หรือเพิ่ม EMAIL_MAX_RECIPIENTS_PER_REQUEST อย่างระวัง เพราะ Hostinger/MailChannels อาจบล็อกการส่งจำนวนมาก
+                  </p>
+                )}
               </div>
               <Mail className="h-10 w-10 text-orange-500" />
             </div>
@@ -493,6 +499,11 @@ const AdminEmailCampaigns: React.FC = () => {
                   <p className="mt-1 text-sm text-slate-600">
                     ผู้รับ {result.recipientCount?.toLocaleString('th-TH') || 0} คน, สำเร็จ {result.successCount?.toLocaleString('th-TH') || 0}, ไม่สำเร็จ {result.failedCount?.toLocaleString('th-TH') || 0}, จำนวนชุด {result.batches || 0}
                   </p>
+                  {result.deliveryMode && (
+                    <p className="mt-1 text-xs font-bold text-slate-500">
+                      รูปแบบการส่ง: {result.deliveryMode === 'individual' ? 'ส่งรายคน' : 'ส่งแบบ BCC'}
+                    </p>
+                  )}
                   {result.historySaved === false && result.historyMessage && (
                     <p className="mt-2 text-xs font-bold text-amber-700">หมายเหตุ: {result.historyMessage}</p>
                   )}

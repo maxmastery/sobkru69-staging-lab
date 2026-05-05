@@ -1,4 +1,5 @@
 import nodemailer from 'nodemailer';
+import { randomUUID } from 'crypto';
 
 const json = (res, statusCode, data) => {
   res.statusCode = statusCode;
@@ -66,6 +67,18 @@ const chunk = (items, size) => {
     chunks.push(items.slice(index, index + size));
   }
   return chunks;
+};
+
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+const getEmailDomain = (email = '') => {
+  const domain = String(email).split('@')[1]?.trim().toLowerCase();
+  return domain && domain.includes('.') ? domain : 'coolcom.click';
+};
+
+const getDeliveryMode = () => {
+  const mode = String(env('EMAIL_DELIVERY_MODE', 'individual')).trim().toLowerCase();
+  return mode === 'bcc' ? 'bcc' : 'individual';
 };
 
 const getSupabaseServerConfig = () => {
@@ -193,6 +206,7 @@ const createTransport = () => {
   const pass = env('SMTP_PASS') || env('HOSTINGER_SMTP_PASS');
   const port = toNumber(env('SMTP_PORT') || env('HOSTINGER_SMTP_PORT'), 465);
   const secure = toBoolean(env('SMTP_SECURE') || env('HOSTINGER_SMTP_SECURE'), port === 465);
+  const pool = toBoolean(env('SMTP_POOL'), true);
 
   if (!host || !user || !pass) {
     throw new Error('ยังไม่ได้ตั้งค่า SMTP_HOST, SMTP_USER, SMTP_PASS ใน Environment Variables');
@@ -202,6 +216,9 @@ const createTransport = () => {
     host,
     port,
     secure,
+    pool,
+    maxConnections: Math.max(1, toNumber(env('SMTP_MAX_CONNECTIONS'), 1)),
+    maxMessages: Math.max(1, toNumber(env('SMTP_MAX_MESSAGES'), 100)),
     auth: { user, pass },
   });
 };
@@ -235,9 +252,10 @@ export default async function handler(req, res) {
       return json(res, 400, { success: false, message: 'กรุณากรอกหัวข้ออีเมล หัวข้อหลัก และเนื้อหาให้ครบ' });
     }
 
-    const maxRecipients = toNumber(env('EMAIL_MAX_RECIPIENTS_PER_REQUEST'), 3000);
-    const batchSize = Math.min(100, Math.max(1, toNumber(env('EMAIL_BATCH_SIZE'), 40)));
-    const batchDelayMs = Math.max(0, toNumber(env('EMAIL_BATCH_DELAY_MS'), 250));
+    const deliveryMode = mode === 'test' ? 'individual' : getDeliveryMode();
+    const maxRecipients = toNumber(env('EMAIL_MAX_RECIPIENTS_PER_REQUEST'), 80);
+    const batchSize = Math.min(100, Math.max(1, toNumber(env('EMAIL_BATCH_SIZE'), 10)));
+    const batchDelayMs = Math.max(0, toNumber(env('EMAIL_BATCH_DELAY_MS'), 500));
     const testEmail = normalizeEmail(body.testEmail || '');
     const recipients = mode === 'test'
       ? cleanRecipients([{ email: testEmail, name: 'Test recipient' }])
@@ -258,45 +276,73 @@ export default async function handler(req, res) {
     const fromEmail = env('EMAIL_FROM') || env('SMTP_FROM') || env('SMTP_USER') || env('HOSTINGER_SMTP_USER');
     const fromName = env('EMAIL_FROM_NAME', 'SobKru69');
     const replyTo = env('EMAIL_REPLY_TO') || fromEmail;
+    const unsubscribeUrl = env('EMAIL_UNSUBSCRIBE_URL', '').trim();
+    const messageIdDomain = env('EMAIL_MESSAGE_ID_DOMAIN') || getEmailDomain(fromEmail);
     const html = buildEmailHtml({ title, message, ctaLabel, ctaUrl, preheader, imageUrl });
     const text = buildEmailText({ title, message, ctaLabel, ctaUrl, imageUrl });
-    const batches = mode === 'test' ? [recipients] : chunk(recipients, batchSize);
+    const deliveryUnits = (mode === 'test' || deliveryMode === 'individual')
+      ? recipients.map((recipient) => ({ type: 'individual', recipients: [recipient] }))
+      : chunk(recipients, batchSize).map((batch) => ({ type: 'bcc', recipients: batch }));
+
+    const buildMailOptions = (unit) => {
+      const recipientEmails = unit.recipients.map((recipient) => recipient.email);
+      const headers = {
+        'X-Entity-Ref-ID': `sobkru69-${Date.now()}-${randomUUID()}`,
+      };
+
+      if (isSafeHttpUrl(unsubscribeUrl)) {
+        headers['List-Unsubscribe'] = `<${unsubscribeUrl}>`;
+        headers['List-Unsubscribe-Post'] = 'List-Unsubscribe=One-Click';
+      }
+
+      const common = {
+        from: `"${fromName}" <${fromEmail}>`,
+        replyTo,
+        subject,
+        html,
+        text,
+        headers,
+        messageId: `<sobkru69-${Date.now()}-${randomUUID()}@${messageIdDomain}>`,
+        envelope: {
+          from: fromEmail,
+          to: recipientEmails,
+        },
+      };
+
+      if (unit.type === 'bcc') {
+        return {
+          ...common,
+          to: `"${fromName}" <${fromEmail}>`,
+          bcc: recipientEmails,
+        };
+      }
+
+      return {
+        ...common,
+        to: recipientEmails[0],
+      };
+    };
 
     let successCount = 0;
     let failedCount = 0;
     const errors = [];
 
-    for (const [index, batch] of batches.entries()) {
-      try {
-        if (mode === 'test') {
-          await transporter.sendMail({
-            from: `"${fromName}" <${fromEmail}>`,
-            to: batch[0].email,
-            replyTo,
-            subject,
-            html,
-            text,
-          });
-        } else {
-          await transporter.sendMail({
-            from: `"${fromName}" <${fromEmail}>`,
-            to: `"${fromName}" <${fromEmail}>`,
-            bcc: batch.map((recipient) => recipient.email),
-            replyTo,
-            subject,
-            html,
-            text,
-          });
+    try {
+      for (const [index, unit] of deliveryUnits.entries()) {
+        try {
+          await transporter.sendMail(buildMailOptions(unit));
+          successCount += unit.recipients.length;
+        } catch (error) {
+          failedCount += unit.recipients.length;
+          errors.push(error?.message || 'ส่งบางชุดไม่สำเร็จ');
         }
-        successCount += batch.length;
-      } catch (error) {
-        failedCount += batch.length;
-        errors.push(error?.message || 'ส่งบางชุดไม่สำเร็จ');
-      }
 
-      if (batchDelayMs > 0 && index < batches.length - 1) {
-        await new Promise((resolve) => setTimeout(resolve, batchDelayMs));
+        if (batchDelayMs > 0 && index < deliveryUnits.length - 1) {
+          await sleep(batchDelayMs);
+        }
       }
+    } finally {
+      transporter.close?.();
     }
 
     const history = await saveCampaignLog({
@@ -310,7 +356,7 @@ export default async function handler(req, res) {
       recipient_count: recipients.length,
       success_count: successCount,
       failed_count: failedCount,
-      batches: batches.length,
+      batches: deliveryUnits.length,
       errors,
       sent_by: req.headers['x-admin-name'] ? String(req.headers['x-admin-name']).slice(0, 120) : 'admin',
     }).catch((error) => ({ saved: false, message: error?.message || 'บันทึกประวัติไม่สำเร็จ' }));
@@ -321,7 +367,8 @@ export default async function handler(req, res) {
       recipientCount: recipients.length,
       successCount,
       failedCount,
-      batches: batches.length,
+      batches: deliveryUnits.length,
+      deliveryMode,
       errors,
       historySaved: history.saved,
       historyMessage: history.message,
