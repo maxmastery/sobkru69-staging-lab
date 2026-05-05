@@ -326,15 +326,34 @@ export default async function handler(req, res) {
     let successCount = 0;
     let failedCount = 0;
     const errors = [];
+    const recipientResults = [];
 
     try {
       for (const [index, unit] of deliveryUnits.entries()) {
         try {
           await transporter.sendMail(buildMailOptions(unit));
           successCount += unit.recipients.length;
+          unit.recipients.forEach((recipient) => {
+            recipientResults.push({
+              id: recipient.id,
+              name: recipient.name,
+              email: recipient.email,
+              status: 'sent',
+            });
+          });
         } catch (error) {
+          const errorMessage = error?.message || 'ส่งบางชุดไม่สำเร็จ';
           failedCount += unit.recipients.length;
-          errors.push(error?.message || 'ส่งบางชุดไม่สำเร็จ');
+          errors.push(errorMessage);
+          unit.recipients.forEach((recipient) => {
+            recipientResults.push({
+              id: recipient.id,
+              name: recipient.name,
+              email: recipient.email,
+              status: 'failed',
+              error: errorMessage,
+            });
+          });
         }
 
         if (batchDelayMs > 0 && index < deliveryUnits.length - 1) {
@@ -369,6 +388,7 @@ export default async function handler(req, res) {
       failedCount,
       batches: deliveryUnits.length,
       deliveryMode,
+      recipientResults,
       errors,
       historySaved: history.saved,
       historyMessage: history.message,

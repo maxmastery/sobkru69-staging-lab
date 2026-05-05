@@ -1,9 +1,22 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { AlertTriangle, CheckCircle2, Clock3, Image as ImageIcon, KeyRound, Loader2, Mail, RefreshCw, Search, Send, Sparkles, UploadCloud, Users, X } from 'lucide-react';
 import { authService, User } from '../../services/authService';
 import { emailCampaignService, EmailCampaignHistoryItem, EmailRecipientMode, SendEmailCampaignResult, userToEmailRecipient } from '../../services/emailCampaignService';
 
 type RecipientMode = Exclude<EmailRecipientMode, 'test'>;
+type DeliveryStatus = 'pending' | 'sending' | 'sent' | 'failed' | 'cancelled';
+
+interface DeliveryRow {
+  id: string;
+  name: string;
+  email: string;
+  status: DeliveryStatus;
+  batchNumber: number;
+  note?: string;
+}
+
+const CAMPAIGN_BATCH_SIZE = 50;
+const CAMPAIGN_BATCH_PAUSE_MS = 5000;
 
 const defaultForm = {
   subject: 'มีฟีเจอร์ใหม่ใน SobKru69 มาให้ลองใช้งานแล้ว',
@@ -17,6 +30,16 @@ const defaultForm = {
 
 const isEmail = (value: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
 
+const chunkItems = <T,>(items: T[], size: number) => {
+  const chunks: T[][] = [];
+  for (let index = 0; index < items.length; index += size) {
+    chunks.push(items.slice(index, index + size));
+  }
+  return chunks;
+};
+
+const pause = (duration: number) => new Promise((resolve) => window.setTimeout(resolve, duration));
+
 const formatDateTime = (value?: string) => {
   if (!value) return '-';
   return new Date(value).toLocaleString('th-TH', {
@@ -29,6 +52,7 @@ const AdminEmailCampaigns: React.FC = () => {
   const [users, setUsers] = useState<User[]>([]);
   const [isLoadingUsers, setIsLoadingUsers] = useState(true);
   const [isSending, setIsSending] = useState(false);
+  const [isCancellingSend, setIsCancellingSend] = useState(false);
   const [recipientMode, setRecipientMode] = useState<RecipientMode>('selected');
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [searchQuery, setSearchQuery] = useState('');
@@ -41,6 +65,9 @@ const AdminEmailCampaigns: React.FC = () => {
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
   const [history, setHistory] = useState<EmailCampaignHistoryItem[]>([]);
   const [historyMessage, setHistoryMessage] = useState('');
+  const [deliveryRows, setDeliveryRows] = useState<DeliveryRow[]>([]);
+  const sendAbortControllerRef = useRef<AbortController | null>(null);
+  const cancelSendRef = useRef(false);
 
   useEffect(() => {
     const loadUsers = async () => {
@@ -100,6 +127,18 @@ const AdminEmailCampaigns: React.FC = () => {
   const selectedCount = selectedIds.size;
   const canSendCampaign = Boolean(adminToken.trim() && form.subject.trim() && form.title.trim() && form.message.trim() && campaignRecipients.length > 0);
   const canSendTest = Boolean(adminToken.trim() && isEmail(testEmail) && form.subject.trim() && form.title.trim() && form.message.trim());
+  const deliveryStats = useMemo(() => {
+    const total = deliveryRows.length;
+    const sent = deliveryRows.filter((row) => row.status === 'sent').length;
+    const failed = deliveryRows.filter((row) => row.status === 'failed').length;
+    const sending = deliveryRows.filter((row) => row.status === 'sending').length;
+    const cancelled = deliveryRows.filter((row) => row.status === 'cancelled').length;
+    const pending = deliveryRows.filter((row) => row.status === 'pending').length;
+    const processed = sent + failed;
+    const percent = total > 0 ? Math.round((processed / total) * 100) : 0;
+
+    return { total, sent, failed, sending, cancelled, pending, processed, percent };
+  }, [deliveryRows]);
 
   const updateForm = (key: keyof typeof form, value: string) => {
     setForm((current) => ({ ...current, [key]: value }));
@@ -165,6 +204,19 @@ const AdminEmailCampaigns: React.FC = () => {
     setSelectedIds(new Set());
   };
 
+  const cancelCampaignSend = () => {
+    if (!isSending) return;
+    cancelSendRef.current = true;
+    setIsCancellingSend(true);
+    sendAbortControllerRef.current?.abort();
+    setDeliveryRows((current) =>
+      current.map((row) => {
+        if (row.status === 'sent' || row.status === 'failed') return row;
+        return { ...row, status: 'cancelled', note: 'ยกเลิกโดยผู้ดูแล' };
+      })
+    );
+  };
+
   const sendTest = async () => {
     if (!canSendTest) return;
 
@@ -187,22 +239,127 @@ const AdminEmailCampaigns: React.FC = () => {
   const sendCampaign = async () => {
     if (!canSendCampaign) return;
 
-    const confirmed = window.confirm(`ยืนยันส่งอีเมลประชาสัมพันธ์ไปยังผู้รับ ${campaignRecipients.length.toLocaleString('th-TH')} คนใช่ไหม?`);
+    const batches = chunkItems(campaignRecipients, CAMPAIGN_BATCH_SIZE);
+    const confirmed = window.confirm(
+      `ยืนยันส่งอีเมลประชาสัมพันธ์ไปยังผู้รับ ${campaignRecipients.length.toLocaleString('th-TH')} คนใช่ไหม?\n\nระบบจะไล่ส่งอัตโนมัติทีละ ${CAMPAIGN_BATCH_SIZE} คน จำนวน ${batches.length.toLocaleString('th-TH')} รอบ กรุณาเปิดหน้านี้ค้างไว้จนส่งเสร็จ`
+    );
     if (!confirmed) return;
 
     setIsSending(true);
+    setIsCancellingSend(false);
     setResult(null);
+    cancelSendRef.current = false;
+    setDeliveryRows(campaignRecipients.map((recipient, index) => ({
+      id: recipient.id || recipient.email,
+      name: recipient.name || recipient.email,
+      email: recipient.email,
+      status: 'pending',
+      batchNumber: Math.floor(index / CAMPAIGN_BATCH_SIZE) + 1,
+    })));
+
+    let successCount = 0;
+    let failedCount = 0;
+    let completedBatches = 0;
+    const errors: string[] = [];
+
     try {
-      const response = await emailCampaignService.sendCampaign({
-        adminToken,
-        mode: recipientMode,
-        ...form,
-        recipients: campaignRecipients,
+      for (const [batchIndex, batch] of batches.entries()) {
+        if (cancelSendRef.current) break;
+
+        const batchEmails = new Set(batch.map((recipient) => recipient.email));
+        setDeliveryRows((current) =>
+          current.map((row) =>
+            batchEmails.has(row.email)
+              ? { ...row, status: 'sending', note: `กำลังส่งรอบที่ ${batchIndex + 1}` }
+              : row
+          )
+        );
+
+        const controller = new AbortController();
+        sendAbortControllerRef.current = controller;
+
+        try {
+          const response = await emailCampaignService.sendCampaign({
+            adminToken,
+            mode: 'selected',
+            ...form,
+            recipients: batch,
+            abortSignal: controller.signal,
+          });
+
+          completedBatches += 1;
+          const hasRecipientResults = Boolean(response.recipientResults?.length);
+          successCount += response.successCount ?? (response.success ? batch.length : 0);
+          failedCount += response.failedCount ?? (!response.success && !hasRecipientResults ? batch.length : 0);
+
+          if (response.errors?.length) {
+            errors.push(...response.errors);
+          }
+
+          const resultByEmail = new Map((response.recipientResults || []).map((item) => [item.email, item]));
+          setDeliveryRows((current) =>
+            current.map((row) => {
+              if (!batchEmails.has(row.email)) return row;
+              const item = resultByEmail.get(row.email);
+              if (item?.status === 'sent') {
+                return { ...row, status: 'sent', note: 'ส่งสำเร็จ' };
+              }
+              if (!item && response.success) {
+                return { ...row, status: 'sent', note: 'ส่งสำเร็จ' };
+              }
+              return {
+                ...row,
+                status: 'failed',
+                note: item?.error || response.message || 'ส่งไม่สำเร็จ',
+              };
+            })
+          );
+        } catch (error: any) {
+          if (cancelSendRef.current || error?.name === 'AbortError') {
+            setDeliveryRows((current) =>
+              current.map((row) =>
+                batchEmails.has(row.email) && row.status === 'sending'
+                  ? { ...row, status: 'cancelled', note: 'ยกเลิกระหว่างส่งรอบนี้' }
+                  : row
+              )
+            );
+            break;
+          }
+
+          const errorMessage = error?.message || 'ส่งรอบนี้ไม่สำเร็จ';
+          errors.push(errorMessage);
+          failedCount += batch.length;
+          completedBatches += 1;
+          setDeliveryRows((current) =>
+            current.map((row) =>
+              batchEmails.has(row.email)
+                ? { ...row, status: 'failed', note: errorMessage }
+                : row
+            )
+          );
+        }
+
+        if (!cancelSendRef.current && batchIndex < batches.length - 1) {
+          await pause(CAMPAIGN_BATCH_PAUSE_MS);
+        }
+      }
+
+      const wasCancelled = cancelSendRef.current;
+      setResult({
+        success: !wasCancelled && failedCount === 0,
+        message: wasCancelled ? 'ยกเลิกการส่งแล้ว' : failedCount > 0 ? 'ส่งอีเมลสำเร็จบางส่วน' : 'ส่งอีเมลสำเร็จครบทุกชุด',
+        recipientCount: campaignRecipients.length,
+        successCount,
+        failedCount,
+        batches: completedBatches,
+        deliveryMode: 'individual',
+        errors,
       });
-      setResult(response);
       void loadHistory();
     } finally {
       setIsSending(false);
+      setIsCancellingSend(false);
+      sendAbortControllerRef.current = null;
     }
   };
 
@@ -472,23 +629,112 @@ const AdminEmailCampaigns: React.FC = () => {
                 <p className="text-sm font-bold text-orange-700">พร้อมส่งถึง</p>
                 <p className="mt-1 text-4xl font-black text-slate-950">{campaignRecipients.length.toLocaleString('th-TH')}</p>
                 <p className="text-sm text-slate-600">ระบบจะส่งแบบรายคนจากฝั่ง Server เพื่อให้ปลอดภัยกว่า BCC จำนวนมาก</p>
-                {campaignRecipients.length > 80 && (
+                {campaignRecipients.length > CAMPAIGN_BATCH_SIZE && (
                   <p className="mt-2 text-xs font-bold leading-5 text-amber-700">
-                    แนะนำแบ่งส่งครั้งละไม่เกิน 80 คน หรือเพิ่ม EMAIL_MAX_RECIPIENTS_PER_REQUEST อย่างระวัง เพราะ Hostinger/MailChannels อาจบล็อกการส่งจำนวนมาก
+                    ระบบจะแบ่งส่งทีละ {CAMPAIGN_BATCH_SIZE} คนต่อรอบให้อัตโนมัติ ลดความเสี่ยงโดนมองเป็นสแปมและไม่ต้องเลือกส่งใหม่เอง
                   </p>
                 )}
               </div>
               <Mail className="h-10 w-10 text-orange-500" />
             </div>
-            <button
-              onClick={sendCampaign}
-              disabled={!canSendCampaign || isSending}
-              className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-[#FA6B19] px-5 py-4 text-sm font-black text-white shadow-[0_18px_38px_rgba(250,107,25,.28)] transition hover:bg-[#e85f12] disabled:cursor-not-allowed disabled:opacity-45"
-            >
-              {isSending ? <Loader2 className="h-5 w-5 animate-spin" /> : <Send className="h-5 w-5" />}
-              ส่งอีเมลประชาสัมพันธ์
-            </button>
+            <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-[1fr_auto]">
+              <button
+                onClick={sendCampaign}
+                disabled={!canSendCampaign || isSending}
+                className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-[#FA6B19] px-5 py-4 text-sm font-black text-white shadow-[0_18px_38px_rgba(250,107,25,.28)] transition hover:bg-[#e85f12] disabled:cursor-not-allowed disabled:opacity-45"
+              >
+                {isSending ? <Loader2 className="h-5 w-5 animate-spin" /> : <Send className="h-5 w-5" />}
+                {isSending ? 'กำลังส่งคิวอีเมล...' : 'ส่งอีเมลประชาสัมพันธ์'}
+              </button>
+              {isSending && (
+                <button
+                  type="button"
+                  onClick={cancelCampaignSend}
+                  disabled={isCancellingSend}
+                  className="inline-flex items-center justify-center gap-2 rounded-2xl border border-red-200 bg-white px-5 py-4 text-sm font-black text-red-600 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-55"
+                >
+                  <X className="h-5 w-5" />
+                  {isCancellingSend ? 'กำลังยกเลิก...' : 'ยกเลิก'}
+                </button>
+              )}
+            </div>
           </div>
+
+          {deliveryRows.length > 0 && (
+            <div className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
+              <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                <div>
+                  <h4 className="flex items-center gap-2 text-xl font-black text-slate-950">
+                    <Send className="h-5 w-5 text-orange-500" />
+                    สถานะการส่งรอบนี้
+                  </h4>
+                  <p className="mt-1 text-sm leading-6 text-slate-500">
+                    ส่งทีละ {CAMPAIGN_BATCH_SIZE} คนต่อรอบ และเว้นช่วง {Math.round(CAMPAIGN_BATCH_PAUSE_MS / 1000)} วินาทีก่อนเริ่มรอบถัดไป
+                  </p>
+                </div>
+                <div className="rounded-2xl bg-slate-50 px-4 py-3 text-right">
+                  <p className="text-xs font-black uppercase tracking-[0.16em] text-slate-400">Progress</p>
+                  <p className="text-3xl font-black text-slate-950">{deliveryStats.percent}%</p>
+                </div>
+              </div>
+
+              <div className="mt-5 h-3 overflow-hidden rounded-full bg-slate-100">
+                <div
+                  className="h-full rounded-full bg-gradient-to-r from-orange-500 via-amber-400 to-emerald-400 transition-all duration-500"
+                  style={{ width: `${deliveryStats.percent}%` }}
+                />
+              </div>
+
+              <div className="mt-5 grid grid-cols-2 gap-3 md:grid-cols-5">
+                {[
+                  { label: 'ส่งแล้ว', value: deliveryStats.sent, className: 'text-emerald-600 bg-emerald-50 border-emerald-100' },
+                  { label: 'กำลังส่ง', value: deliveryStats.sending, className: 'text-orange-600 bg-orange-50 border-orange-100' },
+                  { label: 'รอส่ง', value: deliveryStats.pending, className: 'text-slate-600 bg-slate-50 border-slate-100' },
+                  { label: 'ไม่สำเร็จ', value: deliveryStats.failed, className: 'text-red-600 bg-red-50 border-red-100' },
+                  { label: 'ยกเลิก', value: deliveryStats.cancelled, className: 'text-slate-500 bg-slate-50 border-slate-100' },
+                ].map((item) => (
+                  <div key={item.label} className={`rounded-2xl border p-4 ${item.className}`}>
+                    <p className="text-xs font-black">{item.label}</p>
+                    <p className="mt-1 text-2xl font-black">{item.value.toLocaleString('th-TH')}</p>
+                  </div>
+                ))}
+              </div>
+
+              <div className="mt-5 max-h-[360px] overflow-y-auto rounded-3xl border border-slate-200">
+                {deliveryRows.map((row) => {
+                  const statusStyle = {
+                    pending: 'bg-slate-100 text-slate-600',
+                    sending: 'bg-orange-100 text-orange-700',
+                    sent: 'bg-emerald-100 text-emerald-700',
+                    failed: 'bg-red-100 text-red-700',
+                    cancelled: 'bg-slate-200 text-slate-500',
+                  }[row.status];
+                  const statusLabel = {
+                    pending: 'รอส่ง',
+                    sending: 'กำลังส่ง',
+                    sent: 'ส่งแล้ว',
+                    failed: 'ไม่สำเร็จ',
+                    cancelled: 'ยกเลิก',
+                  }[row.status];
+
+                  return (
+                    <div key={`${row.email}-${row.batchNumber}`} className="grid grid-cols-1 gap-2 border-b border-slate-100 px-4 py-3 last:border-b-0 md:grid-cols-[1fr_auto_auto] md:items-center">
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-black text-slate-900">{row.name || row.email}</p>
+                        <p className="truncate text-xs font-semibold text-slate-500">{row.email}</p>
+                        {row.note && <p className="mt-1 truncate text-xs font-semibold text-slate-400">{row.note}</p>}
+                      </div>
+                      <span className="text-xs font-bold text-slate-400">รอบที่ {row.batchNumber}</span>
+                      <span className={`w-fit rounded-full px-3 py-1 text-xs font-black ${statusStyle}`}>{statusLabel}</span>
+                    </div>
+                  );
+                })}
+              </div>
+              <p className="mt-3 text-xs font-semibold leading-5 text-slate-500">
+                หมายเหตุ: ปุ่มยกเลิกจะหยุดรอบถัดไปทันที แต่ถ้ารอบปัจจุบันเริ่มส่งไปแล้ว บางอีเมลในรอบนั้นอาจถูกส่งออกไปแล้วได้
+              </p>
+            </div>
+          )}
 
           {result && (
             <div className={`rounded-[28px] border p-6 shadow-sm ${result.success ? 'border-emerald-200 bg-emerald-50' : 'border-amber-200 bg-amber-50'}`}>

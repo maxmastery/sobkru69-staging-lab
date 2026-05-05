@@ -8,6 +8,11 @@ export interface EmailRecipient {
   email: string;
 }
 
+export interface EmailRecipientResult extends EmailRecipient {
+  status: 'sent' | 'failed';
+  error?: string;
+}
+
 export interface SendEmailCampaignPayload {
   adminToken: string;
   mode: EmailRecipientMode;
@@ -20,6 +25,7 @@ export interface SendEmailCampaignPayload {
   ctaUrl?: string;
   testEmail?: string;
   recipients?: EmailRecipient[];
+  abortSignal?: AbortSignal;
 }
 
 export interface SendEmailCampaignResult {
@@ -30,6 +36,7 @@ export interface SendEmailCampaignResult {
   failedCount?: number;
   batches?: number;
   deliveryMode?: 'individual' | 'bcc';
+  recipientResults?: EmailRecipientResult[];
   errors?: string[];
   historySaved?: boolean;
   historyMessage?: string;
@@ -82,6 +89,7 @@ export const emailCampaignService = {
         'Content-Type': 'application/json',
         'x-email-campaign-token': payload.adminToken,
       },
+      signal: payload.abortSignal,
       body: JSON.stringify({
         mode: payload.mode,
         subject: payload.subject,
