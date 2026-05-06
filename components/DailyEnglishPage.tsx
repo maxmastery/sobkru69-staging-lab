@@ -88,6 +88,37 @@ const pickEnglishVoice = () => {
     || null;
 };
 
+const normalizeLessonError = (err: any) => {
+  const rawMessage = `${err?.message || err || ''}`;
+  let message = rawMessage;
+
+  try {
+    const jsonStart = rawMessage.indexOf('{');
+    if (jsonStart >= 0) {
+      const parsed = JSON.parse(rawMessage.slice(jsonStart));
+      message = parsed?.error?.message || rawMessage;
+    }
+  } catch {
+    message = rawMessage;
+  }
+
+  const lowerMessage = message.toLowerCase();
+  if (
+    lowerMessage.includes('resource_exhausted') ||
+    lowerMessage.includes('prepayment credits are depleted') ||
+    lowerMessage.includes('quota') ||
+    rawMessage.includes('"code":429')
+  ) {
+    return 'Gemini API เชื่อมต่อได้แล้ว แต่เครดิต/โควต้าใน Google AI Studio หมด กรุณาเติมเครดิตหรือเปิด billing ของโปรเจกต์ แล้วกด “สร้างใหม่” อีกครั้ง';
+  }
+
+  if (lowerMessage.includes('api key')) {
+    return 'ยังไม่ได้ตั้งค่า Gemini API Key หรือคีย์ที่ใช้ไม่ถูกต้อง';
+  }
+
+  return message || 'สร้างบทเรียนภาษาอังกฤษไม่สำเร็จ';
+};
+
 const DailyEnglishPage: React.FC<DailyEnglishPageProps> = ({ onBack }) => {
   const [lesson, setLesson] = useState<DailyEnglishLesson | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -119,7 +150,7 @@ const DailyEnglishPage: React.FC<DailyEnglishPageProps> = ({ onBack }) => {
       localStorage.setItem(key, JSON.stringify(nextLesson));
       setLesson(nextLesson);
     } catch (err: any) {
-      setError(err?.message || 'สร้างบทเรียนภาษาอังกฤษไม่สำเร็จ');
+      setError(normalizeLessonError(err));
     } finally {
       setIsLoading(false);
     }
