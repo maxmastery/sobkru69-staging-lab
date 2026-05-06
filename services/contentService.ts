@@ -175,6 +175,7 @@ export interface ContentProductItem {
   isDiscounted: boolean;
   originalPrice: number;
   isNew: boolean;
+  isUpcoming: boolean;
   createdAt: string;
 }
 
@@ -294,6 +295,7 @@ const parseProductFeatures = (features: unknown) => {
       isDiscounted: false,
       originalPrice: 0,
       isNew: false,
+      isUpcoming: false,
     };
   }
 
@@ -315,6 +317,7 @@ const parseProductFeatures = (features: unknown) => {
       isDiscounted: Boolean(value.isDiscounted),
       originalPrice: Number(value.originalPrice || 0),
       isNew: Boolean(value.isNew),
+      isUpcoming: Boolean(value.isUpcoming),
     };
   }
 
@@ -327,6 +330,7 @@ const parseProductFeatures = (features: unknown) => {
     isDiscounted: false,
     originalPrice: 0,
     isNew: false,
+    isUpcoming: false,
   };
 };
 
@@ -339,6 +343,7 @@ const toProductFeaturesPayload = (product: Partial<ContentProductItem>) => ({
   isDiscounted: Boolean(product.isDiscounted),
   originalPrice: Number(product.originalPrice || 0),
   isNew: Boolean(product.isNew),
+  isUpcoming: Boolean(product.isUpcoming),
 });
 
 const toProductItem = (row: ProductRow): ContentProductItem => {
@@ -360,6 +365,7 @@ const toProductItem = (row: ProductRow): ContentProductItem => {
     isDiscounted: meta.isDiscounted,
     originalPrice: meta.originalPrice,
     isNew: meta.isNew,
+    isUpcoming: meta.isUpcoming,
     createdAt: row.created_at || '',
   };
 };

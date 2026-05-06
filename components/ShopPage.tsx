@@ -18,22 +18,26 @@ const getProductImages = (product: ProductItem) => [
   ...(product.galleryImages || []),
 ].filter(Boolean);
 
-const NewProductRibbon = () => (
+const ProductRibbon = ({ label, tone = 'new' }: { label: string; tone?: 'new' | 'upcoming' }) => (
   <div className="pointer-events-none absolute left-0 top-0 z-20 h-32 w-32 overflow-hidden">
     <div
-      className="absolute bg-gradient-to-r from-orange-700 via-orange-500 to-amber-400 py-2 text-center text-sm font-black uppercase leading-none tracking-[0.2em] text-white shadow-lg shadow-orange-900/30 ring-1 ring-white/50 whitespace-nowrap"
+      className={`absolute flex items-center justify-center py-2 text-center text-[11px] font-black uppercase leading-none tracking-[0.16em] text-white shadow-lg ring-1 ring-white/50 whitespace-nowrap ${
+        tone === 'upcoming'
+          ? 'bg-gradient-to-r from-slate-700 via-slate-500 to-slate-400 shadow-slate-900/25'
+          : 'bg-gradient-to-r from-orange-700 via-orange-500 to-amber-400 shadow-orange-900/30'
+      }`}
       style={{
-        left: '-52px',
-        top: '34px',
-        width: '176px',
+        left: '-64px',
+        top: '38px',
+        width: '210px',
         transform: 'rotate(-45deg)',
         transformOrigin: 'center',
       }}
     >
-      New
+      {label}
     </div>
-    <div className="absolute left-[92px] top-0 h-4 w-4 bg-orange-800/80 shadow-sm" />
-    <div className="absolute left-0 top-[92px] h-4 w-4 bg-orange-800/80 shadow-sm" />
+    <div className={`absolute left-[92px] top-0 h-4 w-4 shadow-sm ${tone === 'upcoming' ? 'bg-slate-800/80' : 'bg-orange-800/80'}`} />
+    <div className={`absolute left-0 top-[92px] h-4 w-4 shadow-sm ${tone === 'upcoming' ? 'bg-slate-800/80' : 'bg-orange-800/80'}`} />
   </div>
 );
 
@@ -100,6 +104,10 @@ const ShopPage: React.FC<ShopPageProps> = ({ onBack }) => {
   }, [categoryFilter, products, searchTerm, sortOrder, subjectFilter]);
 
   const openProduct = async (product: ProductItem) => {
+    if (product.isUpcoming) {
+      return;
+    }
+
     setSelectedProduct(product);
     setActiveImageIndex(0);
     window.scrollTo({ top: 0, behavior: 'auto' });
@@ -155,7 +163,7 @@ const ShopPage: React.FC<ShopPageProps> = ({ onBack }) => {
             <div className="mb-4 flex flex-wrap gap-2">
               {selectedProduct.isNew && (
                 <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-3 py-1 text-xs font-black text-emerald-700">
-                  <Sparkles className="h-3.5 w-3.5" /> NEW
+                  <Sparkles className="h-3.5 w-3.5" /> NEW RELEASE
                 </span>
               )}
               {hasDiscount && (
@@ -292,30 +300,38 @@ const ShopPage: React.FC<ShopPageProps> = ({ onBack }) => {
         <section className="max-w-[980px]">
           <div className="grid items-start grid-cols-[repeat(auto-fill,minmax(170px,1fr))] gap-x-10 gap-y-14 md:grid-cols-[repeat(auto-fill,minmax(176px,190px))]">
             {filteredProducts.map((product) => {
+              const isUpcoming = Boolean(product.isUpcoming);
               const hasDiscount = Boolean(product.isDiscounted);
-              const hasOriginalPrice = hasDiscount && product.originalPrice > product.price;
+              const hasOriginalPrice = !isUpcoming && hasDiscount && product.originalPrice > product.price;
               return (
                 <button
                   type="button"
                   key={product.id}
+                  disabled={isUpcoming}
                   onClick={() => void openProduct(product)}
-                  className="group flex h-full min-h-[500px] flex-col text-left transition-transform duration-300 hover:-translate-y-1 focus:outline-none focus-visible:ring-4 focus-visible:ring-orange-100"
+                  className={`group flex h-full min-h-[500px] flex-col text-left transition-transform duration-300 focus:outline-none focus-visible:ring-4 focus-visible:ring-orange-100 ${
+                    isUpcoming ? 'cursor-default' : 'hover:-translate-y-1'
+                  }`}
                 >
                   <div className="relative mx-auto aspect-[3/4] w-full overflow-visible rounded-xl">
                     <div className="absolute inset-x-3 bottom-0 h-8 rounded-full bg-slate-900/12 blur-xl transition-opacity duration-300 group-hover:opacity-80"></div>
                     <div className="relative h-full overflow-hidden rounded-xl bg-white shadow-[0_16px_34px_rgba(15,23,42,.13)] ring-1 ring-slate-200 transition-all duration-300 group-hover:shadow-[0_24px_46px_rgba(180,83,9,.18)] group-hover:ring-orange-200">
-                      {product.isNew && <NewProductRibbon />}
+                      {isUpcoming ? (
+                        <ProductRibbon label="UPCOMING" tone="upcoming" />
+                      ) : (
+                        product.isNew && <ProductRibbon label="NEW RELEASE" />
+                      )}
                       {product.imageUrl ? (
-                        <img src={product.imageUrl} alt={product.name} className="h-full w-full object-contain transition-transform duration-500 group-hover:scale-[1.03]" />
+                        <img src={product.imageUrl} alt={product.name} className={`h-full w-full object-contain transition-transform duration-500 ${isUpcoming ? 'grayscale opacity-45 saturate-50' : 'group-hover:scale-[1.03]'}`} />
                       ) : (
                         <div className="flex h-full items-center justify-center bg-slate-50">
                           <Package className="h-12 w-12 text-slate-300" />
                         </div>
                       )}
                       <div className="absolute left-2 top-2 flex flex-col gap-1.5">
-                        {hasDiscount && <span className="rounded-full bg-orange-500 px-2.5 py-1 text-[10px] font-black text-white shadow-sm">SALE</span>}
+                        {!isUpcoming && hasDiscount && <span className="rounded-full bg-orange-500 px-2.5 py-1 text-[10px] font-black text-white shadow-sm">SALE</span>}
                       </div>
-                      {product.status === 'out_of_stock' && (
+                      {!isUpcoming && product.status === 'out_of_stock' && (
                         <div className="absolute inset-0 flex items-center justify-center bg-white/75 backdrop-blur-[2px]">
                           <span className="rotate-[-10deg] rounded-full bg-red-600 px-4 py-2 text-sm font-black text-white">สินค้าหมด</span>
                         </div>
@@ -332,22 +348,30 @@ const ShopPage: React.FC<ShopPageProps> = ({ onBack }) => {
                       {product.subject && <span className="text-xs font-bold text-orange-600">{product.subject}</span>}
                     </div>
                     <div className="mt-2 flex items-center justify-between gap-3">
-                      <div className="min-w-0">
-                        <div className="flex flex-wrap items-baseline gap-2">
-                          <span className="text-2xl font-black text-[#FA6B19]">
-                          ฿{product.price.toLocaleString()}
+                      {isUpcoming ? (
+                        <span className="rounded-full bg-slate-100 px-4 py-2 text-sm font-black text-slate-500">
+                          กำลังมาเร็ว ๆ นี้
+                        </span>
+                      ) : (
+                        <>
+                          <div className="min-w-0">
+                            <div className="flex flex-wrap items-baseline gap-2">
+                              <span className="text-2xl font-black text-[#FA6B19]">
+                              ฿{product.price.toLocaleString()}
+                              </span>
+                              {hasOriginalPrice && (
+                                <span className="text-sm font-bold text-slate-400 line-through">
+                                  ฿{product.originalPrice.toLocaleString()}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          <span className="rounded-full bg-[#FA6B19] p-2.5 text-white shadow-lg shadow-orange-900/20 transition-colors group-hover:bg-[#E75F13]">
+                            <ShoppingCart className="h-4 w-4" />
                           </span>
-                          {hasOriginalPrice && (
-                            <span className="text-sm font-bold text-slate-400 line-through">
-                              ฿{product.originalPrice.toLocaleString()}
-                            </span>
-                          )}
+                        </>
+                      )}
                         </div>
-                      </div>
-                      <span className="rounded-full bg-[#FA6B19] p-2.5 text-white shadow-lg shadow-orange-900/20 transition-colors group-hover:bg-[#E75F13]">
-                        <ShoppingCart className="h-4 w-4" />
-                      </span>
-                    </div>
                   </div>
                 </button>
               );

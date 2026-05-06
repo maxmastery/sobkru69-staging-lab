@@ -18,6 +18,7 @@ export interface ProductItem {
   isDiscounted: boolean;
   originalPrice: number;
   isNew: boolean;
+  isUpcoming: boolean;
   createdAt: string;
 }
 
@@ -82,6 +83,7 @@ const AdminShop: React.FC<AdminShopProps> = ({ onPreviewShop, onShopButtonVisibi
       stripeUrl: '',
       isDiscounted: false,
       isNew: false,
+      isUpcoming: false,
     });
     setFeatureInput('');
     setIsEditing(true);
@@ -365,7 +367,7 @@ const AdminShop: React.FC<AdminShopProps> = ({ onPreviewShop, onShopButtonVisibi
               />
             </div>
 
-            <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="rounded-2xl border border-orange-100 bg-orange-50/70 p-4">
                 <label className="flex cursor-pointer items-center justify-between gap-4">
                   <span>
@@ -413,10 +415,30 @@ const AdminShop: React.FC<AdminShopProps> = ({ onPreviewShop, onShopButtonVisibi
                     type="checkbox"
                     className="sr-only peer"
                     checked={Boolean(currentProduct.isNew)}
-                    onChange={(e) => setCurrentProduct({ ...currentProduct, isNew: e.target.checked })}
+                    onChange={(e) => setCurrentProduct({ ...currentProduct, isNew: e.target.checked, isUpcoming: e.target.checked ? false : currentProduct.isUpcoming })}
                   />
                   <span className={`relative block h-8 w-14 shrink-0 rounded-full p-1 shadow-inner transition-colors duration-300 ${currentProduct.isNew ? 'bg-emerald-500 shadow-emerald-900/20' : 'bg-emerald-200 shadow-emerald-300/30'}`}>
                     <span className={`block h-6 w-6 rounded-full bg-white shadow-[0_3px_10px_rgba(15,23,42,.22)] transition-transform duration-300 ${currentProduct.isNew ? 'translate-x-6' : 'translate-x-0'}`}></span>
+                  </span>
+                </label>
+              </div>
+
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                <label className="flex cursor-pointer items-center justify-between gap-4">
+                  <span>
+                    <span className="flex items-center gap-2 text-sm font-black text-slate-900">
+                      <Package className="w-4 h-4" /> เปิดป้ายกำลังมา
+                    </span>
+                    <span className="mt-1 block text-xs text-slate-600">แสดง UPCOMING และปิดการสั่งซื้อหน้าร้าน</span>
+                  </span>
+                  <input
+                    type="checkbox"
+                    className="sr-only peer"
+                    checked={Boolean(currentProduct.isUpcoming)}
+                    onChange={(e) => setCurrentProduct({ ...currentProduct, isUpcoming: e.target.checked, isNew: e.target.checked ? false : currentProduct.isNew })}
+                  />
+                  <span className={`relative block h-8 w-14 shrink-0 rounded-full p-1 shadow-inner transition-colors duration-300 ${currentProduct.isUpcoming ? 'bg-slate-700 shadow-slate-900/20' : 'bg-slate-200 shadow-slate-300/30'}`}>
+                    <span className={`block h-6 w-6 rounded-full bg-white shadow-[0_3px_10px_rgba(15,23,42,.22)] transition-transform duration-300 ${currentProduct.isUpcoming ? 'translate-x-6' : 'translate-x-0'}`}></span>
                   </span>
                 </label>
               </div>
@@ -618,7 +640,8 @@ const AdminShop: React.FC<AdminShopProps> = ({ onPreviewShop, onShopButtonVisibi
                     <div className="font-medium text-slate-900 line-clamp-1">{item.name}</div>
                     <div className="text-xs text-slate-500 line-clamp-1 mt-1">{item.description}</div>
                     <div className="mt-2 flex flex-wrap gap-1.5">
-                      {item.isNew && <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-black text-emerald-700">NEW</span>}
+                      {item.isNew && <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-black text-emerald-700">NEW RELEASE</span>}
+                      {item.isUpcoming && <span className="rounded-full bg-slate-200 px-2 py-0.5 text-[10px] font-black text-slate-700">UPCOMING</span>}
                       {item.isDiscounted && <span className="rounded-full bg-orange-100 px-2 py-0.5 text-[10px] font-black text-orange-700">SALE</span>}
                       {item.subject && <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-600">{item.subject}</span>}
                     </div>
