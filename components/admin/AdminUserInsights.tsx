@@ -330,7 +330,7 @@ const AdminUserInsights: React.FC<AdminUserInsightsProps> = ({ users }) => {
           </div>
           <div className="text-xs font-bold uppercase tracking-[0.16em] text-slate-400">สมาชิกทั้งหมด</div>
           <div className="mt-2 text-4xl font-black text-slate-900">{insights.totalUsers}</div>
-          <div className="mt-2 text-sm text-slate-500">จำนวนผู้ใช้งานที่มีอยู่ในระบบจริง</div>
+          <div className="mt-2 text-sm text-slate-500">นับจากโปรไฟล์สมาชิกในฐานข้อมูล</div>
         </div>
 
         <div className="rounded-[28px] border border-emerald-200 bg-white p-5">
