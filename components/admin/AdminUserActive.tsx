@@ -173,9 +173,9 @@ const AdminUserActive: React.FC<AdminUserActiveProps> = ({ users }) => {
               <RadioTower className="h-4 w-4" />
               User Active Monitor
             </div>
-            <h3 className="mt-4 text-3xl font-black text-slate-950">ผู้ใช้งานที่ยัง Active</h3>
+            <h3 className="mt-4 text-3xl font-black text-slate-950">ภาพรวมผู้ใช้งาน Active</h3>
             <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
-              รวมสถานะออนไลน์แบบ heartbeat และบัญชีที่มีการเข้าใช้งานในรอบ 7 วันและ 30 วันล่าสุด
+              แยกจำนวนบัญชีที่เปิดใช้งานทั้งหมด ออกจากสถานะออนไลน์แบบ heartbeat และบัญชีที่มีการเข้าใช้งานในรอบ 7 วันและ 30 วันล่าสุด
             </p>
           </div>
           <button
@@ -193,8 +193,9 @@ const AdminUserActive: React.FC<AdminUserActiveProps> = ({ users }) => {
             <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-slate-100 text-slate-700">
               <UserCheck className="h-5 w-5" />
             </div>
-            <div className="mt-4 text-xs font-black uppercase tracking-[0.16em] text-slate-400">บัญชีใช้งานอยู่</div>
+            <div className="mt-4 text-xs font-black uppercase tracking-[0.16em] text-slate-400">บัญชีที่เปิดใช้งาน</div>
             <div className="mt-2 text-4xl font-black text-slate-950">{metrics.activeSystemUsers}</div>
+            <div className="mt-1 text-xs font-bold text-slate-400">ไม่รวมบัญชีที่ถูกปิดใช้งาน</div>
           </div>
           <div className="rounded-[26px] bg-white p-5 shadow-sm ring-1 ring-emerald-100">
             <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-700">
