@@ -892,7 +892,7 @@ const App: React.FC = () => {
       )}
 
       {/* Floating Donation Button - Hidden when in lesson view */}
-      {!currentTopic && currentPage !== 'shop' && (
+      {!currentTopic && currentPage !== 'shop' && currentPage !== 'daily-english' && (
         <div className="fixed bottom-6 right-6 z-40 flex flex-col items-end gap-2 sobkru-donate-container">
           <style>{`
             @media (max-width: 640px) {

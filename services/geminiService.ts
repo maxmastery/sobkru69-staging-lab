@@ -2,8 +2,8 @@ import { GoogleGenAI, Type } from "@google/genai";
 
 const getGeminiApiKey = () => {
   const viteEnv = (import.meta as any).env || {};
-  const fromVite = viteEnv.VITE_GEMINI_API_KEY || viteEnv.GEMINI_API_KEY || '';
-  const fromProcess = typeof process !== 'undefined' ? process.env?.GEMINI_API_KEY || '' : '';
+  const fromVite = viteEnv.VITE_GEMINI_API_KEY || viteEnv.GEMINI_API_KEY || viteEnv.VITE_API_KEY || viteEnv.API_KEY || '';
+  const fromProcess = typeof process !== 'undefined' ? process.env?.GEMINI_API_KEY || process.env?.API_KEY || '' : '';
   return fromVite || fromProcess;
 };
 
