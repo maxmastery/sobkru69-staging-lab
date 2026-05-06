@@ -13,6 +13,7 @@ import NewsPage from './components/NewsPage';
 import DiscussionBoard from './components/DiscussionBoard';
 import ShopPage from './components/ShopPage';
 import MockExamDemo from './components/MockExamDemo';
+import DailyEnglishPage from './components/DailyEnglishPage';
 import ContactSupport from './components/ContactSupport';
 import BellNotificationsPanel from './components/BellNotificationsPanel';
 import Leaderboard from './components/Leaderboard';
@@ -23,7 +24,7 @@ import { userActivityService } from './services/userActivityService';
 import { contentService } from './services/contentService';
 import { LogOut, AlertTriangle, Bell, X, Settings, User as UserIcon, BarChart3, Megaphone, MessageSquare, Loader2, Lock } from 'lucide-react';
 
-type PageState = 'dashboard' | 'news' | 'discussion' | 'shop' | 'mock-exam' | 'contact-support' | 'leaderboard' | 'user-stats';
+type PageState = 'dashboard' | 'news' | 'discussion' | 'shop' | 'mock-exam' | 'daily-english' | 'contact-support' | 'leaderboard' | 'user-stats';
 const SHOW_DONATION_HISTORY_SHORTCUT = false;
 const FOOTER_LOGO_URL = 'https://cribfrwvdpshvdpxgnuc.supabase.co/storage/v1/object/public/sobkru-images/cc1.png';
 
@@ -624,6 +625,9 @@ const App: React.FC = () => {
     if (currentPage === 'mock-exam') {
       return <MockExamDemo onBack={handleBackToDashboard} />;
     }
+    if (currentPage === 'daily-english') {
+      return <DailyEnglishPage onBack={handleBackToDashboard} />;
+    }
     if (currentPage === 'contact-support') {
       return (
         <ContactSupport
@@ -646,6 +650,7 @@ const App: React.FC = () => {
           onNavigateToDiscussion={() => setCurrentPage('discussion')}
           onNavigateToShop={() => setCurrentPage('shop')}
           onNavigateToMockExam={() => setCurrentPage('mock-exam')}
+          onNavigateToDailyEnglish={() => setCurrentPage('daily-english')}
           onNavigateToLeaderboard={() => setCurrentPage('user-stats')}
           showShopButton={showShopButton}
         />

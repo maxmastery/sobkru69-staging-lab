@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { BookOpen, GraduationCap, Users, Newspaper, MessageSquare, ShoppingCart, FileText, BarChart3 } from 'lucide-react';
+import { BookOpen, GraduationCap, Users, Newspaper, MessageSquare, ShoppingCart, FileText, BarChart3, Languages } from 'lucide-react';
 import { EXAM_CURRICULUM } from '../constants';
 import { ExamPart, PartId } from '../types';
 
@@ -10,11 +10,12 @@ interface DashboardProps {
   onNavigateToDiscussion: () => void;
   onNavigateToShop: () => void;
   onNavigateToMockExam: () => void;
+  onNavigateToDailyEnglish: () => void;
   onNavigateToLeaderboard?: () => void;
   showShopButton?: boolean;
 }
 
-const Dashboard: React.FC<DashboardProps> = ({ onSelectPart, onNavigateToNews, onNavigateToDiscussion, onNavigateToShop, onNavigateToMockExam, onNavigateToLeaderboard, showShopButton = false }) => {
+const Dashboard: React.FC<DashboardProps> = ({ onSelectPart, onNavigateToNews, onNavigateToDiscussion, onNavigateToShop, onNavigateToMockExam, onNavigateToDailyEnglish, onNavigateToLeaderboard, showShopButton = false }) => {
   const getIcon = (id: PartId) => {
     switch (id) {
       case PartId.PART_A: return <BookOpen className="w-12 h-12 text-white mb-4" />;
@@ -79,8 +80,8 @@ const Dashboard: React.FC<DashboardProps> = ({ onSelectPart, onNavigateToNews, o
 
       <div className="flex flex-col gap-6 mt-10 max-w-6xl mx-auto">
         
-        {/* Top Row: Mock Exam (Blue Box) */}
-        <div className="border border-blue-500/0 p-1">
+        {/* Top Row: Mock Exam + Daily English */}
+        <div className="grid grid-cols-1 gap-4 p-1 lg:grid-cols-2">
           <button 
             onClick={onNavigateToMockExam} 
             className="w-full flex items-center justify-center p-6 md:p-7 bg-gradient-to-r from-[#1D4ED8] via-[#4F46E5] to-[#0EA5E9] rounded-3xl border border-white/30 shadow-xl shadow-blue-900/15 hover:shadow-2xl hover:shadow-blue-900/20 transition-all duration-300 group text-center relative overflow-hidden hover:-translate-y-1"
@@ -98,6 +99,26 @@ const Dashboard: React.FC<DashboardProps> = ({ onSelectPart, onNavigateToNews, o
                 </div>
                 <h4 className="font-bold text-xl md:text-2xl text-white mb-1 transition-colors">ทำแบบทดสอบเสมือนจริง</h4>
                 <p className="text-sm text-blue-50/95 font-medium">ทดลองทำข้อสอบแบบเสมือนสอบจริง ทั้ง ภาค ก และ ภาค ข</p>
+              </div>
+            </div>
+          </button>
+          <button
+            onClick={onNavigateToDailyEnglish}
+            className="w-full flex items-center justify-center p-6 md:p-7 bg-gradient-to-r from-[#0F766E] via-[#0891B2] to-[#2563EB] rounded-3xl border border-white/30 shadow-xl shadow-cyan-900/15 hover:shadow-2xl hover:shadow-cyan-900/20 transition-all duration-300 group text-center relative overflow-hidden hover:-translate-y-1"
+          >
+            <div className="absolute -left-16 -bottom-16 h-40 w-40 rounded-full bg-white/15 blur-2xl transition-transform duration-500 group-hover:scale-125"></div>
+            <div className="absolute right-0 top-0 h-full w-1/3 bg-white/10 [clip-path:polygon(28%_0,100%_0,100%_100%,0_100%)]"></div>
+            <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/10 to-white/0 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+            <div className="flex items-center gap-5 relative z-10">
+              <div className="w-14 h-14 rounded-2xl bg-white/15 flex items-center justify-center group-hover:scale-110 group-hover:-rotate-3 transition-transform duration-300 shrink-0 border border-white/25 shadow-inner">
+                <Languages className="w-7 h-7 text-white" />
+              </div>
+              <div className="text-left">
+                <div className="mb-1 inline-flex items-center rounded-full bg-white/15 px-3 py-1 text-[11px] font-black uppercase tracking-[0.18em] text-cyan-50">
+                  Daily English
+                </div>
+                <h4 className="font-bold text-xl md:text-2xl text-white mb-1 transition-colors">ฝึกภาษาอังกฤษประจำวัน</h4>
+                <p className="text-sm text-cyan-50/95 font-medium">บทความ คำแปล เสียงอ่าน และคำศัพท์จาก Gemini</p>
               </div>
             </div>
           </button>
