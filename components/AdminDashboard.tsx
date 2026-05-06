@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Settings, Users, Bell, Save, Trash2, Edit2, Loader2, Plus, X, ArrowLeft, CheckCircle2, Megaphone, Newspaper, MessageSquare, ShoppingCart, Search, BarChart3, Eye, Image as ImageIcon, ShieldAlert, Coffee, UserCheck, RadioTower, Mail, Inbox } from 'lucide-react';
+import { Settings, Users, Bell, Save, Trash2, Edit2, Loader2, Plus, X, ArrowLeft, CheckCircle2, Megaphone, Newspaper, MessageSquare, ShoppingCart, Search, BarChart3, Eye, Image as ImageIcon, ShieldAlert, Coffee, UserCheck, RadioTower, Mail, Inbox, Languages } from 'lucide-react';
 import { authService, MaintenanceModeState, User } from '../services/authService';
 import AdminNews from './admin/AdminNews';
+import AdminDailyEnglish from './admin/AdminDailyEnglish';
 import AdminDiscussion from './admin/AdminDiscussion';
 import AdminShop from './admin/AdminShop';
 import AdminStatistics from './admin/AdminStatistics';
@@ -25,7 +26,7 @@ interface AdminDashboardProps {
 
 const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, onPreviewShop, onShopButtonVisibilityChange }) => {
   const viteEnv = (import.meta as any).env || {};
-  const [activeTab, setActiveTab] = useState<'settings' | 'users' | 'notification' | 'bell' | 'messages' | 'marquee' | 'email-campaigns' | 'email-inbox' | 'news' | 'discussion' | 'shop' | 'statistics' | 'reports' | 'user-insights' | 'user-active' | 'donations'>('settings');
+  const [activeTab, setActiveTab] = useState<'settings' | 'users' | 'notification' | 'bell' | 'messages' | 'marquee' | 'email-campaigns' | 'email-inbox' | 'news' | 'daily-english' | 'discussion' | 'shop' | 'statistics' | 'reports' | 'user-insights' | 'user-active' | 'donations'>('settings');
   const normalizeSupabaseUrl = (rawValue: string) => {
     const value = rawValue.trim();
     const markdownMatch = value.match(/\((https?:\/\/[^)\s]+)\)/i);
@@ -185,7 +186,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, onPreviewShop,
   }, [activeTab]);
 
   useEffect(() => {
-    const shouldTrackLiveUsers = ['news', 'discussion', 'shop', 'user-insights', 'user-active'].includes(activeTab);
+    const shouldTrackLiveUsers = ['news', 'daily-english', 'discussion', 'shop', 'user-insights', 'user-active'].includes(activeTab);
     if (!shouldTrackLiveUsers) {
       return;
     }
@@ -620,6 +621,15 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, onPreviewShop,
           >
             <Newspaper className="w-5 h-5" />
             ข่าวสารประชาสัมพันธ์
+          </button>
+          <button
+            onClick={() => setActiveTab('daily-english')}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-colors ${
+              activeTab === 'daily-english' ? 'bg-cyan-600 text-white' : 'text-slate-600 hover:bg-slate-100'
+            }`}
+          >
+            <Languages className="w-5 h-5" />
+            Daily English
           </button>
           <button
             onClick={() => setActiveTab('discussion')}
@@ -1123,6 +1133,19 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, onPreviewShop,
               {liveStatusPill}
             </h3>
             <AdminNews />
+          </div>
+        )}
+
+        {activeTab === 'daily-english' && (
+          <div className="w-full max-w-6xl">
+            <h3 className="text-2xl font-bold text-slate-800 mb-6 flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-cyan-100 flex items-center justify-center">
+                <Languages className="w-6 h-6 text-cyan-700" />
+              </div>
+              จัดการ Daily English
+              {liveStatusPill}
+            </h3>
+            <AdminDailyEnglish />
           </div>
         )}
 

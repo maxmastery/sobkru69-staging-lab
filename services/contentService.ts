@@ -195,7 +195,25 @@ export interface ShopButtonSettings {
   isVisible: boolean;
 }
 
+export interface DailyEnglishVocabularyItem {
+  id: string;
+  word: string;
+  meaning: string;
+}
+
+export interface ContentDailyEnglishLesson {
+  id: string;
+  title: string;
+  content: string;
+  translation: string;
+  vocabulary: DailyEnglishVocabularyItem[];
+  date: string;
+  status: 'published' | 'draft';
+  updatedAt: string;
+}
+
 const SUPABASE_NOT_CONFIGURED_MESSAGE = 'ยังไม่ได้ตั้งค่า Supabase';
+const DAILY_ENGLISH_SETTINGS_KEY = 'daily_english_lessons';
 
 const ensureSupabase = () => {
   if (!isSupabaseConfigured()) {
@@ -415,6 +433,43 @@ const toDonationRecord = (row: DonationRow): ContentDonationRecord => ({
   transactionRef: row.transaction_ref || undefined,
 });
 
+const normalizeDailyEnglishVocabulary = (items: unknown): DailyEnglishVocabularyItem[] => {
+  if (!Array.isArray(items)) return [];
+
+  return items
+    .map((item) => {
+      const value = item && typeof item === 'object' ? item as Record<string, any> : {};
+      return {
+        id: typeof value.id === 'string' && value.id ? value.id : createId(),
+        word: typeof value.word === 'string' ? value.word : '',
+        meaning: typeof value.meaning === 'string' ? value.meaning : '',
+      };
+    })
+    .filter((item, index, array) => (item.word.trim() || item.meaning.trim()) && array.findIndex(entry => entry.id === item.id) === index);
+};
+
+const normalizeDailyEnglishLesson = (value: unknown): ContentDailyEnglishLesson => {
+  const item = value && typeof value === 'object' ? value as Record<string, any> : {};
+  const now = new Date().toISOString();
+
+  return {
+    id: typeof item.id === 'string' && item.id ? item.id : createId(),
+    title: typeof item.title === 'string' ? item.title : '',
+    content: typeof item.content === 'string' ? item.content : '',
+    translation: typeof item.translation === 'string' ? item.translation : '',
+    vocabulary: normalizeDailyEnglishVocabulary(item.vocabulary),
+    date: typeof item.date === 'string' && item.date ? item.date : now.split('T')[0],
+    status: item.status === 'draft' ? 'draft' : 'published',
+    updatedAt: typeof item.updatedAt === 'string' && item.updatedAt ? item.updatedAt : now,
+  };
+};
+
+const sortDailyEnglishLessons = (items: ContentDailyEnglishLesson[]) => [...items].sort((a, b) => {
+  const dateCompare = b.date.localeCompare(a.date);
+  if (dateCompare !== 0) return dateCompare;
+  return b.updatedAt.localeCompare(a.updatedAt);
+});
+
 export const contentService = {
   async getShopButtonSettings(): Promise<ShopButtonSettings> {
     ensureSupabase();
@@ -441,6 +496,68 @@ export const contentService = {
       updated_at: new Date().toISOString(),
     }, 'key');
     return settings;
+  },
+
+  async getDailyEnglishLessons(): Promise<ContentDailyEnglishLesson[]> {
+    ensureSupabase();
+    const rows = await supabaseRest.select<AppSettingRow[]>('app_settings', `select=*&key=eq.${encodeValue(DAILY_ENGLISH_SETTINGS_KEY)}&limit=1`);
+    const lessons = rows?.[0]?.value?.lessons;
+    return sortDailyEnglishLessons(Array.isArray(lessons) ? lessons.map(normalizeDailyEnglishLesson) : []);
+  },
+
+  async getLatestDailyEnglishLesson(): Promise<ContentDailyEnglishLesson | null> {
+    const lessons = await this.getDailyEnglishLessons();
+    return lessons.find(item => item.status === 'published') || null;
+  },
+
+  async saveDailyEnglishLesson(item: Partial<ContentDailyEnglishLesson>): Promise<ContentDailyEnglishLesson> {
+    ensureSupabase();
+    const current = await this.getDailyEnglishLessons();
+    const now = new Date().toISOString();
+    const saved = normalizeDailyEnglishLesson({
+      ...item,
+      id: item.id || createId(),
+      title: item.title || '',
+      content: item.content || '',
+      translation: item.translation || '',
+      vocabulary: normalizeDailyEnglishVocabulary(item.vocabulary),
+      date: item.date || new Date().toISOString().split('T')[0],
+      status: item.status || 'published',
+      updatedAt: now,
+    });
+
+    const nextLessons = sortDailyEnglishLessons(
+      current.some(entry => entry.id === saved.id)
+        ? current.map(entry => entry.id === saved.id ? saved : entry)
+        : [saved, ...current]
+    );
+
+    await supabaseRest.upsert<AppSettingRow[]>('app_settings', {
+      key: DAILY_ENGLISH_SETTINGS_KEY,
+      value: {
+        lessons: nextLessons,
+        updatedAt: now,
+      },
+      updated_at: now,
+    }, 'key');
+
+    return saved;
+  },
+
+  async deleteDailyEnglishLesson(id: string) {
+    ensureSupabase();
+    const current = await this.getDailyEnglishLessons();
+    const nextLessons = current.filter(item => item.id !== id);
+    const now = new Date().toISOString();
+
+    await supabaseRest.upsert<AppSettingRow[]>('app_settings', {
+      key: DAILY_ENGLISH_SETTINGS_KEY,
+      value: {
+        lessons: nextLessons,
+        updatedAt: now,
+      },
+      updated_at: now,
+    }, 'key');
   },
 
   async getViewCounts(contentType: ContentViewRow['content_type'], contentIds: string[]): Promise<Record<string, Set<string>>> {

@@ -118,7 +118,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onSelectPart, onNavigateToNews, o
                   Daily English
                 </div>
                 <h4 className="font-bold text-xl md:text-2xl text-white mb-1 transition-colors">ฝึกภาษาอังกฤษประจำวัน</h4>
-                <p className="text-sm text-cyan-50/95 font-medium">บทความ คำแปล เสียงอ่าน และคำศัพท์จาก Gemini</p>
+                <p className="text-sm text-cyan-50/95 font-medium">บทความ คำแปล เสียงอ่าน และคำศัพท์จากผู้ดูแล</p>
               </div>
             </div>
           </button>
