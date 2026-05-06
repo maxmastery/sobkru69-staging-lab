@@ -18,6 +18,16 @@ const getProductImages = (product: ProductItem) => [
   ...(product.galleryImages || []),
 ].filter(Boolean);
 
+const NewProductRibbon = () => (
+  <div className="pointer-events-none absolute left-0 top-0 z-20 h-24 w-24 overflow-hidden">
+    <div className="absolute -left-8 top-5 w-32 -rotate-45 bg-gradient-to-r from-orange-600 via-orange-500 to-amber-400 py-1.5 text-center text-[13px] font-black uppercase tracking-[0.16em] text-white shadow-lg shadow-orange-900/25 ring-1 ring-white/45">
+      New
+    </div>
+    <div className="absolute left-[70px] top-0 h-3 w-3 bg-orange-700/80 shadow-sm" />
+    <div className="absolute left-0 top-[70px] h-3 w-3 bg-orange-700/80 shadow-sm" />
+  </div>
+);
+
 const ShopPage: React.FC<ShopPageProps> = ({ onBack }) => {
   const [products, setProducts] = useState<ProductItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -285,6 +295,7 @@ const ShopPage: React.FC<ShopPageProps> = ({ onBack }) => {
                   <div className="relative mx-auto aspect-[3/4] w-full overflow-visible rounded-xl">
                     <div className="absolute inset-x-3 bottom-0 h-8 rounded-full bg-slate-900/12 blur-xl transition-opacity duration-300 group-hover:opacity-80"></div>
                     <div className="relative h-full overflow-hidden rounded-xl bg-white shadow-[0_16px_34px_rgba(15,23,42,.13)] ring-1 ring-slate-200 transition-all duration-300 group-hover:shadow-[0_24px_46px_rgba(180,83,9,.18)] group-hover:ring-orange-200">
+                      {product.isNew && <NewProductRibbon />}
                       {product.imageUrl ? (
                         <img src={product.imageUrl} alt={product.name} className="h-full w-full object-contain transition-transform duration-500 group-hover:scale-[1.03]" />
                       ) : (
@@ -293,7 +304,6 @@ const ShopPage: React.FC<ShopPageProps> = ({ onBack }) => {
                         </div>
                       )}
                       <div className="absolute left-2 top-2 flex flex-col gap-1.5">
-                        {product.isNew && <span className="rounded-full bg-emerald-500 px-2.5 py-1 text-[10px] font-black text-white shadow-sm">NEW</span>}
                         {hasDiscount && <span className="rounded-full bg-orange-500 px-2.5 py-1 text-[10px] font-black text-white shadow-sm">SALE</span>}
                       </div>
                       {product.status === 'out_of_stock' && (
