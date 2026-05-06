@@ -1,10 +1,13 @@
 import { GoogleGenAI, Type } from '@google/genai';
 
+declare const __GEMINI_API_KEY__: string | undefined;
+
 const getGeminiApiKey = () => {
   const viteEnv = (import.meta as any).env || {};
   const fromVite = viteEnv.VITE_GEMINI_API_KEY || viteEnv.GEMINI_API_KEY || viteEnv.VITE_API_KEY || viteEnv.API_KEY || '';
+  const fromInjected = typeof __GEMINI_API_KEY__ !== 'undefined' ? __GEMINI_API_KEY__ : '';
   const fromProcess = typeof process !== 'undefined' ? process.env?.GEMINI_API_KEY || process.env?.API_KEY || '' : '';
-  return fromVite || fromProcess;
+  return fromVite || fromInjected || fromProcess;
 };
 
 const getAiClient = () => {
