@@ -19,12 +19,21 @@ const getProductImages = (product: ProductItem) => [
 ].filter(Boolean);
 
 const NewProductRibbon = () => (
-  <div className="pointer-events-none absolute left-0 top-0 z-20 h-24 w-24 overflow-hidden">
-    <div className="absolute -left-8 top-5 w-32 -rotate-45 bg-gradient-to-r from-orange-600 via-orange-500 to-amber-400 py-1.5 text-center text-[13px] font-black uppercase tracking-[0.16em] text-white shadow-lg shadow-orange-900/25 ring-1 ring-white/45">
+  <div className="pointer-events-none absolute left-0 top-0 z-20 h-32 w-32 overflow-hidden">
+    <div
+      className="absolute bg-gradient-to-r from-orange-700 via-orange-500 to-amber-400 py-2 text-center text-sm font-black uppercase leading-none tracking-[0.2em] text-white shadow-lg shadow-orange-900/30 ring-1 ring-white/50 whitespace-nowrap"
+      style={{
+        left: '-52px',
+        top: '34px',
+        width: '176px',
+        transform: 'rotate(-45deg)',
+        transformOrigin: 'center',
+      }}
+    >
       New
     </div>
-    <div className="absolute left-[70px] top-0 h-3 w-3 bg-orange-700/80 shadow-sm" />
-    <div className="absolute left-0 top-[70px] h-3 w-3 bg-orange-700/80 shadow-sm" />
+    <div className="absolute left-[92px] top-0 h-4 w-4 bg-orange-800/80 shadow-sm" />
+    <div className="absolute left-0 top-[92px] h-4 w-4 bg-orange-800/80 shadow-sm" />
   </div>
 );
 
