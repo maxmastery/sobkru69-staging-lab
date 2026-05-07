@@ -202,10 +202,18 @@ export interface DailyEnglishVocabularyItem {
   meaning: string;
 }
 
+export interface DailyEnglishDialogueLine {
+  id: string;
+  speaker: string;
+  content: string;
+}
+
 export interface ContentDailyEnglishLesson {
   id: string;
   title: string;
+  lessonType: 'article' | 'dialogue';
   content: string;
+  dialogueLines: DailyEnglishDialogueLine[];
   translation: string;
   vocabulary: DailyEnglishVocabularyItem[];
   imageUrl: string;
@@ -436,6 +444,14 @@ const toDonationRecord = (row: DonationRow): ContentDonationRecord => ({
   transactionRef: row.transaction_ref || undefined,
 });
 
+const stripHtmlText = (value: string) => value
+  .replace(/<style[\s\S]*?<\/style>/gi, '')
+  .replace(/<script[\s\S]*?<\/script>/gi, '')
+  .replace(/<[^>]+>/g, ' ')
+  .replace(/&nbsp;|&#160;|\u00a0/gi, ' ')
+  .replace(/\s+/g, ' ')
+  .trim();
+
 const normalizeDailyEnglishVocabulary = (items: unknown): DailyEnglishVocabularyItem[] => {
   if (!Array.isArray(items)) return [];
 
@@ -452,6 +468,21 @@ const normalizeDailyEnglishVocabulary = (items: unknown): DailyEnglishVocabulary
     .filter((item, index, array) => (item.word.trim() || item.meaning.trim()) && array.findIndex(entry => entry.id === item.id) === index);
 };
 
+const normalizeDailyEnglishDialogueLines = (items: unknown): DailyEnglishDialogueLine[] => {
+  if (!Array.isArray(items)) return [];
+
+  return items
+    .map((item, index) => {
+      const value = item && typeof item === 'object' ? item as Record<string, any> : {};
+      return {
+        id: typeof value.id === 'string' && value.id ? value.id : createId(),
+        speaker: typeof value.speaker === 'string' && value.speaker.trim() ? value.speaker : `Speaker ${index + 1}`,
+        content: typeof value.content === 'string' ? value.content : '',
+      };
+    })
+    .filter((item, index, array) => stripHtmlText(item.content).trim() && array.findIndex(entry => entry.id === item.id) === index);
+};
+
 const normalizeDailyEnglishLesson = (value: unknown): ContentDailyEnglishLesson => {
   const item = value && typeof value === 'object' ? value as Record<string, any> : {};
   const now = new Date().toISOString();
@@ -459,7 +490,9 @@ const normalizeDailyEnglishLesson = (value: unknown): ContentDailyEnglishLesson 
   return {
     id: typeof item.id === 'string' && item.id ? item.id : createId(),
     title: typeof item.title === 'string' ? item.title : '',
+    lessonType: item.lessonType === 'dialogue' ? 'dialogue' : 'article',
     content: typeof item.content === 'string' ? item.content : '',
+    dialogueLines: normalizeDailyEnglishDialogueLines(item.dialogueLines),
     translation: typeof item.translation === 'string' ? item.translation : '',
     vocabulary: normalizeDailyEnglishVocabulary(item.vocabulary),
     imageUrl: typeof item.imageUrl === 'string' ? item.imageUrl : '',
@@ -529,7 +562,9 @@ export const contentService = {
       ...item,
       id: item.id || createId(),
       title: item.title || '',
+      lessonType: item.lessonType || 'article',
       content: item.content || '',
+      dialogueLines: normalizeDailyEnglishDialogueLines(item.dialogueLines),
       translation: item.translation || '',
       vocabulary: normalizeDailyEnglishVocabulary(item.vocabulary),
       imageUrl: item.imageUrl || '',

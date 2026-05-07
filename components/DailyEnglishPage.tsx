@@ -1,4 +1,4 @@
-import React, { CSSProperties, ReactNode, useEffect, useMemo, useState } from 'react';
+import React, { CSSProperties, ReactNode, useEffect, useMemo, useRef, useState } from 'react';
 import { ArrowLeft, BookOpenText, CalendarDays, Eye, Languages, Loader2, Play, RefreshCcw, Square, TableProperties, Volume2 } from 'lucide-react';
 import { contentService, ContentDailyEnglishLesson, DailyEnglishVocabularyItem } from '../services/contentService';
 
@@ -169,6 +169,38 @@ const renderArticleWithWordHighlights = (html: string, activeWordIndex: number) 
   );
 };
 
+const renderDialogueWithWordHighlights = (
+  lines: ContentDailyEnglishLesson['dialogueLines'],
+  activeWordIndex: number
+) => {
+  if (typeof window === 'undefined' || !('DOMParser' in window)) {
+    return lines.map(line => (
+      <div key={line.id}>
+        <strong>{line.speaker}: </strong>
+        {stripHtml(line.content)}
+      </div>
+    ));
+  }
+
+  const wordCounter = { current: 0 };
+  return lines.map((line, index) => {
+    const doc = new DOMParser().parseFromString(normalizeArticleHtml(line.content), 'text/html');
+    return (
+      <div key={line.id} className="my-6 rounded-3xl border border-slate-200 bg-white/60 p-5 md:p-6">
+        <div className="mb-3 inline-flex items-center gap-2 rounded-full bg-cyan-50 px-3 py-1 text-sm font-black text-cyan-700">
+          <span className="flex h-6 w-6 items-center justify-center rounded-full bg-cyan-600 text-xs text-white">{index + 1}</span>
+          {line.speaker}
+        </div>
+        <div>
+          {Array.from(doc.body.childNodes).map((node, childIndex) =>
+            renderArticleNode(node, `dialogue-${line.id}-${childIndex}`, wordCounter, activeWordIndex)
+          )}
+        </div>
+      </div>
+    );
+  });
+};
+
 const formatDisplayDate = (value: string) => {
   if (!value) return '-';
   const date = new Date(value);
@@ -196,11 +228,27 @@ const splitVocabulary = (item: DailyEnglishVocabularyItem) => {
   };
 };
 
-const pickEnglishVoice = () => {
+const getEnglishVoices = () => {
   const voices = window.speechSynthesis?.getVoices?.() || [];
-  return voices.find(voice => /^en[-_](US|GB|AU|CA)/i.test(voice.lang) && /female|natural|google|samantha|zira/i.test(voice.name))
-    || voices.find(voice => /^en[-_]/i.test(voice.lang))
+  const preferred = voices.filter(voice => /^en[-_](US|GB|AU|CA)/i.test(voice.lang));
+  const english = voices.filter(voice => /^en[-_]/i.test(voice.lang));
+  return preferred.length > 0 ? preferred : english;
+};
+
+const pickEnglishVoice = (index = 0) => {
+  const voices = getEnglishVoices();
+  const naturalVoice = voices.find(voice => /female|natural|google|samantha|zira|alex|daniel|karen|moira/i.test(voice.name));
+  return voices[index % Math.max(voices.length, 1)]
+    || naturalVoice
     || null;
+};
+
+const getLessonPreviewText = (lesson: ContentDailyEnglishLesson) => {
+  if (lesson.lessonType === 'dialogue' && lesson.dialogueLines.length > 0) {
+    return lesson.dialogueLines.map(line => `${line.speaker}: ${stripHtml(line.content)}`).join(' ');
+  }
+
+  return stripHtml(lesson.content);
 };
 
 const DailyEnglishPage: React.FC<DailyEnglishPageProps> = ({ onBack }) => {
@@ -212,6 +260,7 @@ const DailyEnglishPage: React.FC<DailyEnglishPageProps> = ({ onBack }) => {
   const [error, setError] = useState('');
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [activeWordIndex, setActiveWordIndex] = useState(-1);
+  const speechRunIdRef = useRef(0);
   const todayKey = useMemo(() => getTodayKey(), []);
   const selectedLesson = useMemo(
     () => lessons.find(item => item.id === selectedLessonId) || null,
@@ -219,11 +268,35 @@ const DailyEnglishPage: React.FC<DailyEnglishPageProps> = ({ onBack }) => {
   );
   const articleHtml = useMemo(() => selectedLesson ? normalizeArticleHtml(selectedLesson.content) : '', [selectedLesson]);
   const articleText = useMemo(() => articleHtml ? stripHtml(articleHtml) : '', [articleHtml]);
-  const speechText = useMemo(() => buildNaturalSpeechText(articleText), [articleText]);
-  const speechWordStarts = useMemo(() => getWordStarts(speechText), [speechText]);
+  const speechSegments = useMemo(() => {
+    if (!selectedLesson) return [];
+    const source = selectedLesson.lessonType === 'dialogue'
+      ? selectedLesson.dialogueLines
+          .filter(line => stripHtml(line.content))
+          .map((line, index) => ({
+            voiceIndex: index,
+            text: buildNaturalSpeechText(stripHtml(line.content)),
+          }))
+      : [{
+          voiceIndex: 0,
+          text: buildNaturalSpeechText(articleText),
+        }];
+
+    let wordOffset = 0;
+    return source
+      .filter(segment => segment.text)
+      .map(segment => {
+        const wordStarts = getWordStarts(segment.text);
+        const next = { ...segment, wordStarts, wordOffset };
+        wordOffset += wordStarts.length;
+        return next;
+      });
+  }, [articleText, selectedLesson]);
   const renderedArticle = useMemo(
-    () => renderArticleWithWordHighlights(articleHtml, activeWordIndex),
-    [articleHtml, activeWordIndex]
+    () => selectedLesson?.lessonType === 'dialogue'
+      ? renderDialogueWithWordHighlights(selectedLesson.dialogueLines, activeWordIndex)
+      : renderArticleWithWordHighlights(articleHtml, activeWordIndex),
+    [articleHtml, activeWordIndex, selectedLesson]
   );
   const translationParagraphs = useMemo(() => {
     if (!selectedLesson?.translation) return [];
@@ -247,6 +320,7 @@ const DailyEnglishPage: React.FC<DailyEnglishPageProps> = ({ onBack }) => {
   const loadLessons = async () => {
     setIsLoading(true);
     setError('');
+    speechRunIdRef.current += 1;
     window.speechSynthesis?.cancel();
     setIsSpeaking(false);
     setActiveWordIndex(-1);
@@ -272,6 +346,7 @@ const DailyEnglishPage: React.FC<DailyEnglishPageProps> = ({ onBack }) => {
   }, []);
 
   const openLesson = (id: string) => {
+    speechRunIdRef.current += 1;
     window.speechSynthesis?.cancel();
     setIsSpeaking(false);
     setActiveWordIndex(-1);
@@ -281,6 +356,7 @@ const DailyEnglishPage: React.FC<DailyEnglishPageProps> = ({ onBack }) => {
   };
 
   const showList = () => {
+    speechRunIdRef.current += 1;
     window.speechSynthesis?.cancel();
     setIsSpeaking(false);
     setActiveWordIndex(-1);
@@ -288,44 +364,54 @@ const DailyEnglishPage: React.FC<DailyEnglishPageProps> = ({ onBack }) => {
   };
 
   const speakArticle = () => {
-    if (!speechText || !('speechSynthesis' in window)) {
+    if (speechSegments.length === 0 || !('speechSynthesis' in window)) {
       setError('เบราว์เซอร์นี้ยังไม่รองรับการอ่านออกเสียง');
       return;
     }
 
+    const runId = speechRunIdRef.current + 1;
+    speechRunIdRef.current = runId;
     window.speechSynthesis.cancel();
     setActiveWordIndex(-1);
-    const utterance = new SpeechSynthesisUtterance(speechText);
-    const voice = pickEnglishVoice();
-    if (voice) {
-      utterance.voice = voice;
-      utterance.lang = voice.lang;
-    } else {
-      utterance.lang = 'en-US';
-    }
-    utterance.rate = 0.82;
-    utterance.pitch = 0.98;
-    utterance.volume = 1;
-    utterance.onboundary = (event) => {
-      if (event.charIndex < 0) return;
-      const nextWordIndex = getWordIndexAtChar(speechWordStarts, event.charIndex);
-      if (nextWordIndex >= 0) {
-        setActiveWordIndex(nextWordIndex);
-      }
-    };
-    utterance.onend = () => {
-      setIsSpeaking(false);
-      setActiveWordIndex(-1);
-    };
-    utterance.onerror = () => {
-      setIsSpeaking(false);
-      setActiveWordIndex(-1);
-    };
     setIsSpeaking(true);
-    window.speechSynthesis.speak(utterance);
+
+    const speakSegment = (index: number) => {
+      if (speechRunIdRef.current !== runId) return;
+      const segment = speechSegments[index];
+      if (!segment) {
+        setIsSpeaking(false);
+        setActiveWordIndex(-1);
+        return;
+      }
+
+      const utterance = new SpeechSynthesisUtterance(segment.text);
+      const voice = pickEnglishVoice(segment.voiceIndex);
+      if (voice) {
+        utterance.voice = voice;
+        utterance.lang = voice.lang;
+      } else {
+        utterance.lang = 'en-US';
+      }
+      utterance.rate = 0.82;
+      utterance.pitch = segment.voiceIndex % 2 === 0 ? 0.98 : 1.04;
+      utterance.volume = 1;
+      utterance.onboundary = (event) => {
+        if (event.charIndex < 0) return;
+        const nextWordIndex = getWordIndexAtChar(segment.wordStarts, event.charIndex);
+        if (nextWordIndex >= 0) {
+          setActiveWordIndex(segment.wordOffset + nextWordIndex);
+        }
+      };
+      utterance.onend = () => speakSegment(index + 1);
+      utterance.onerror = () => speakSegment(index + 1);
+      window.speechSynthesis.speak(utterance);
+    };
+
+    speakSegment(0);
   };
 
   const stopSpeech = () => {
+    speechRunIdRef.current += 1;
     window.speechSynthesis?.cancel();
     setIsSpeaking(false);
     setActiveWordIndex(-1);
@@ -406,16 +492,6 @@ const DailyEnglishPage: React.FC<DailyEnglishPageProps> = ({ onBack }) => {
           </div>
         )}
 
-        {mode === 'lesson' && selectedLesson && (
-          <button
-            onClick={isSpeaking ? stopSpeech : speakArticle}
-            disabled={!selectedLesson}
-            className="inline-flex items-center gap-2 rounded-2xl bg-slate-950 px-5 py-3 text-sm font-black text-white shadow-lg shadow-slate-900/15 transition-all hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            {isSpeaking ? <Square className="h-4 w-4" /> : <Play className="h-4 w-4" />}
-            {isSpeaking ? 'หยุดอ่าน' : 'อ่านให้ฟัง'}
-          </button>
-        )}
       </header>
     </>
   );
@@ -434,7 +510,7 @@ const DailyEnglishPage: React.FC<DailyEnglishPageProps> = ({ onBack }) => {
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {lessons.map((item, index) => {
           const isToday = item.date === todayKey;
-          const preview = stripHtml(item.content);
+          const preview = getLessonPreviewText(item);
           return (
             <button
               key={item.id}
@@ -452,7 +528,7 @@ const DailyEnglishPage: React.FC<DailyEnglishPageProps> = ({ onBack }) => {
                   </span>
                 )}
               </div>
-              <h3 className="line-clamp-2 text-base font-black leading-snug text-slate-950 group-hover:text-cyan-700">
+            <h3 className="line-clamp-2 text-base font-black leading-snug text-slate-950 group-hover:text-cyan-700">
                 {item.title || 'ไม่มีหัวข้อ'}
               </h3>
               <p className="mt-2 line-clamp-2 text-sm leading-6 text-slate-500">
@@ -493,6 +569,16 @@ const DailyEnglishPage: React.FC<DailyEnglishPageProps> = ({ onBack }) => {
               </span>
             </div>
             <h2 className="text-2xl md:text-4xl font-black leading-tight text-slate-950">{selectedLesson.title}</h2>
+          </div>
+          <div className="flex justify-center border-b border-slate-200 py-4">
+            <button
+              onClick={isSpeaking ? stopSpeech : speakArticle}
+              disabled={!selectedLesson}
+              className="inline-flex items-center gap-2 rounded-2xl bg-slate-950 px-6 py-3 text-sm font-black text-white shadow-lg shadow-slate-900/15 transition-all hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {isSpeaking ? <Square className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+              {isSpeaking ? 'หยุดอ่าน' : 'อ่านให้ฟัง'}
+            </button>
           </div>
           <div className="py-6 md:py-8">
             <div className="prose prose-slate min-w-0 max-w-none overflow-x-hidden leading-8 text-slate-700 [hyphens:none] [overflow-wrap:normal] [white-space:normal] [word-break:normal] [&_*]:min-w-0 [&_*]:max-w-full [&_*]:whitespace-normal [&_*]:[hyphens:none] [&_*]:[overflow-wrap:normal] [&_*]:[word-break:normal] ql-editor-display">

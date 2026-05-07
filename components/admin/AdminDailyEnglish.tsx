@@ -1,8 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { BookOpenText, CheckCircle2, Edit2, Eye, Image as ImageIcon, Languages, Loader2, Plus, Save, Search, Trash2, Upload, X } from 'lucide-react';
+import { BookOpenText, CheckCircle2, Edit2, Eye, Image as ImageIcon, Languages, Loader2, MessageSquareText, Plus, Save, Search, Trash2, Upload, X } from 'lucide-react';
 import ReactQuill from 'react-quill-new';
 import 'react-quill-new/dist/quill.snow.css';
-import { contentService, ContentDailyEnglishLesson, DailyEnglishVocabularyItem } from '../../services/contentService';
+import { contentService, ContentDailyEnglishLesson, DailyEnglishDialogueLine, DailyEnglishVocabularyItem } from '../../services/contentService';
 
 const createId = () => {
   if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
@@ -18,9 +18,17 @@ const createVocabularyRow = (): DailyEnglishVocabularyItem => ({
   meaning: '',
 });
 
+const createDialogueLine = (index = 0): DailyEnglishDialogueLine => ({
+  id: createId(),
+  speaker: `Speaker ${index + 1}`,
+  content: '',
+});
+
 const createNewLesson = (): Partial<ContentDailyEnglishLesson> => ({
   title: '',
+  lessonType: 'article',
   content: '',
+  dialogueLines: [createDialogueLine(0), createDialogueLine(1)],
   translation: '',
   vocabulary: [createVocabularyRow()],
   imageUrl: '',
@@ -36,6 +44,16 @@ const stripHtml = (value: string) => value
   .replace(/\s+/g, ' ')
   .trim();
 
+const getLessonPreview = (lesson: ContentDailyEnglishLesson) => {
+  if (lesson.lessonType === 'dialogue' && lesson.dialogueLines.length > 0) {
+    return lesson.dialogueLines
+      .map(line => `${line.speaker}: ${stripHtml(line.content)}`)
+      .join(' ');
+  }
+
+  return stripHtml(lesson.content);
+};
+
 const AdminDailyEnglish: React.FC = () => {
   const [lessons, setLessons] = useState<ContentDailyEnglishLesson[]>([]);
   const [currentLesson, setCurrentLesson] = useState<Partial<ContentDailyEnglishLesson>>(createNewLesson());
@@ -46,6 +64,7 @@ const AdminDailyEnglish: React.FC = () => {
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [imageError, setImageError] = useState('');
   const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const lessonType = currentLesson.lessonType || 'article';
 
   const modules = useMemo(() => ({
     toolbar: [
@@ -93,8 +112,24 @@ const AdminDailyEnglish: React.FC = () => {
     setCurrentLesson({
       ...lesson,
       vocabulary: lesson.vocabulary.length > 0 ? lesson.vocabulary : [createVocabularyRow()],
+      dialogueLines: lesson.dialogueLines.length > 0 ? lesson.dialogueLines : [createDialogueLine(0), createDialogueLine(1)],
     });
     setIsEditing(true);
+  };
+
+  const setDialogueSpeakerCount = (count: number) => {
+    setCurrentLesson(current => {
+      const existing = current.dialogueLines || [];
+      const next = Array.from({ length: count }, (_, index) => existing[index] || createDialogueLine(index));
+      return { ...current, dialogueLines: next };
+    });
+  };
+
+  const updateDialogueLine = (id: string, field: keyof DailyEnglishDialogueLine, value: string) => {
+    setCurrentLesson(current => ({
+      ...current,
+      dialogueLines: (current.dialogueLines || []).map(item => item.id === id ? { ...item, [field]: value } : item),
+    }));
   };
 
   const updateVocabulary = (id: string, field: keyof DailyEnglishVocabularyItem, value: string) => {
@@ -158,9 +193,20 @@ const AdminDailyEnglish: React.FC = () => {
           meaning: item.meaning.trim(),
         }))
         .filter(item => item.word || item.meaning);
+      const cleanedDialogueLines = lessonType === 'dialogue'
+        ? (currentLesson.dialogueLines || [])
+          .map(item => ({
+            ...item,
+            speaker: item.speaker.trim() || 'Speaker',
+            content: item.content,
+          }))
+          .filter(item => stripHtml(item.content))
+        : [];
 
       const saved = await contentService.saveDailyEnglishLesson({
         ...currentLesson,
+        lessonType,
+        dialogueLines: cleanedDialogueLines,
         vocabulary: cleanedVocabulary,
       });
 
@@ -197,7 +243,7 @@ const AdminDailyEnglish: React.FC = () => {
 
   const filteredLessons = lessons.filter(item =>
     item.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    stripHtml(item.content).toLowerCase().includes(searchTerm.toLowerCase())
+    getLessonPreview(item).toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const publishedCount = lessons.filter(item => item.status === 'published').length;
@@ -268,6 +314,43 @@ const AdminDailyEnglish: React.FC = () => {
               </div>
             </div>
 
+            <div>
+              <label className="mb-3 block text-sm font-bold text-slate-700">ประเภทบทเรียน</label>
+              <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                {[
+                  { value: 'article', label: 'บทความ', description: 'อ่านบทความต่อเนื่องด้วยเสียงเดียว', icon: BookOpenText },
+                  { value: 'dialogue', label: 'ประโยคสนทนา', description: 'แยกผู้พูดและอ่านคนละเสียง', icon: MessageSquareText },
+                ].map((option) => {
+                  const Icon = option.icon;
+                  const isActive = lessonType === option.value;
+                  return (
+                    <button
+                      key={option.value}
+                      type="button"
+                      onClick={() => setCurrentLesson(current => ({
+                        ...current,
+                        lessonType: option.value as 'article' | 'dialogue',
+                        dialogueLines: current.dialogueLines?.length ? current.dialogueLines : [createDialogueLine(0), createDialogueLine(1)],
+                      }))}
+                      className={`flex items-start gap-3 rounded-2xl border p-4 text-left transition ${
+                        isActive
+                          ? 'border-cyan-300 bg-cyan-50 text-cyan-900 ring-2 ring-cyan-100'
+                          : 'border-slate-200 bg-white text-slate-600 hover:border-cyan-200 hover:bg-cyan-50/40'
+                      }`}
+                    >
+                      <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl ${isActive ? 'bg-cyan-600 text-white' : 'bg-slate-100 text-slate-500'}`}>
+                        <Icon className="h-5 w-5" />
+                      </span>
+                      <span>
+                        <span className="block text-base font-black">{option.label}</span>
+                        <span className="mt-1 block text-sm leading-6 opacity-80">{option.description}</span>
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
             <div className="grid grid-cols-1 gap-4 md:grid-cols-[minmax(0,1fr)_180px]">
               <div>
                 <label className="mb-2 block text-sm font-bold text-slate-700">หัวข้อบทเรียน</label>
@@ -293,33 +376,93 @@ const AdminDailyEnglish: React.FC = () => {
               </div>
             </div>
 
-            <div>
-              <label className="mb-2 block text-sm font-bold text-slate-700">เนื้อหาบทความภาษาอังกฤษ</label>
-              <div className="daily-english-editor overflow-hidden rounded-2xl border border-slate-200 bg-white focus-within:ring-2 focus-within:ring-cyan-100">
-                <style>{`
-                  .daily-english-editor .ql-toolbar.ql-snow {
-                    border: none !important;
-                    border-bottom: 1px solid #e2e8f0 !important;
-                    background: #f8fafc;
-                  }
-                  .daily-english-editor .ql-container.ql-snow {
-                    border: none !important;
-                  }
-                  .daily-english-editor .ql-editor {
-                    min-height: 360px;
-                    font-size: 16px;
-                  }
-                `}</style>
-                <ReactQuill
-                  theme="snow"
-                  value={currentLesson.content || ''}
-                  onChange={(value) => setCurrentLesson({ ...currentLesson, content: value })}
-                  modules={modules}
-                  formats={formats}
-                  placeholder="เขียนบทความภาษาอังกฤษ ใส่ตัวหนา เอียง สี ไฮไลท์ และจัดย่อหน้าได้..."
-                />
+            <style>{`
+              .daily-english-editor .ql-toolbar.ql-snow {
+                border: none !important;
+                border-bottom: 1px solid #e2e8f0 !important;
+                background: #f8fafc;
+              }
+              .daily-english-editor .ql-container.ql-snow {
+                border: none !important;
+              }
+              .daily-english-editor .ql-editor {
+                min-height: 300px;
+                font-size: 16px;
+              }
+              .daily-english-dialogue-editor .ql-editor {
+                min-height: 150px;
+              }
+            `}</style>
+
+            {lessonType === 'article' ? (
+              <div>
+                <label className="mb-2 block text-sm font-bold text-slate-700">เนื้อหาบทความภาษาอังกฤษ</label>
+                <div className="daily-english-editor overflow-hidden rounded-2xl border border-slate-200 bg-white focus-within:ring-2 focus-within:ring-cyan-100">
+                  <ReactQuill
+                    theme="snow"
+                    value={currentLesson.content || ''}
+                    onChange={(value) => setCurrentLesson({ ...currentLesson, content: value })}
+                    modules={modules}
+                    formats={formats}
+                    placeholder="เขียนบทความภาษาอังกฤษ ใส่ตัวหนา เอียง สี ไฮไลท์ และจัดย่อหน้าได้..."
+                  />
+                </div>
               </div>
-            </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="flex flex-wrap items-end justify-between gap-3">
+                  <div>
+                    <label className="mb-1 block text-sm font-bold text-slate-700">บทสนทนาภาษาอังกฤษ</label>
+                    <p className="text-sm leading-6 text-slate-500">แต่ละผู้พูดใช้ตัวหนา เอียง สี ไฮไลท์ และจัดย่อหน้าได้เหมือนบทความ</p>
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-xs font-black uppercase tracking-[0.12em] text-slate-400">จำนวนคนพูด</label>
+                    <select
+                      value={(currentLesson.dialogueLines || []).length || 2}
+                      onChange={(event) => setDialogueSpeakerCount(Number(event.target.value))}
+                      className="rounded-2xl border border-cyan-200 bg-cyan-50 px-4 py-2.5 text-sm font-black text-cyan-800 outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-100"
+                    >
+                      {[2, 3, 4, 5, 6].map(count => (
+                        <option key={count} value={count}>{count} คน</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+                <div className="space-y-4">
+                  {(currentLesson.dialogueLines || [createDialogueLine(0), createDialogueLine(1)]).map((line, index) => (
+                    <div key={line.id} className="rounded-3xl border border-slate-200 bg-white p-4">
+                      <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+                        <div className="flex items-center gap-3">
+                          <span className="flex h-9 w-9 items-center justify-center rounded-2xl bg-cyan-50 text-sm font-black text-cyan-700">
+                            {index + 1}
+                          </span>
+                          <input
+                            type="text"
+                            value={line.speaker}
+                            onChange={(event) => updateDialogueLine(line.id, 'speaker', event.target.value)}
+                            className="w-44 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-black text-slate-800 outline-none focus:border-cyan-500"
+                            placeholder={`Speaker ${index + 1}`}
+                          />
+                        </div>
+                        <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-black text-slate-500">
+                          voice {index + 1}
+                        </span>
+                      </div>
+                      <div className="daily-english-editor daily-english-dialogue-editor overflow-hidden rounded-2xl border border-slate-200 bg-white focus-within:ring-2 focus-within:ring-cyan-100">
+                        <ReactQuill
+                          theme="snow"
+                          value={line.content}
+                          onChange={(value) => updateDialogueLine(line.id, 'content', value)}
+                          modules={modules}
+                          formats={formats}
+                          placeholder={`ใส่คำพูดของ ${line.speaker || `Speaker ${index + 1}`}...`}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             <div>
               <label className="mb-2 block text-sm font-bold text-slate-700">คำแปลภาษาไทยทั้งบทความ</label>
@@ -487,11 +630,16 @@ const AdminDailyEnglish: React.FC = () => {
                   <td className="px-6 py-5 align-top">
                     <div className="flex items-start gap-3">
                       <div className="mt-1 flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-cyan-50 text-cyan-700">
-                        <BookOpenText className="h-5 w-5" />
+                        {lesson.lessonType === 'dialogue' ? <MessageSquareText className="h-5 w-5" /> : <BookOpenText className="h-5 w-5" />}
                       </div>
                       <div className="min-w-0">
-                        <div className="line-clamp-1 font-black text-slate-950">{lesson.title || 'ไม่มีหัวข้อ'}</div>
-                        <div className="mt-1 line-clamp-2 text-sm leading-6 text-slate-500">{stripHtml(lesson.content) || 'ยังไม่มีเนื้อหา'}</div>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <div className="line-clamp-1 font-black text-slate-950">{lesson.title || 'ไม่มีหัวข้อ'}</div>
+                          <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-black text-slate-500">
+                            {lesson.lessonType === 'dialogue' ? 'สนทนา' : 'บทความ'}
+                          </span>
+                        </div>
+                        <div className="mt-1 line-clamp-2 text-sm leading-6 text-slate-500">{getLessonPreview(lesson) || 'ยังไม่มีเนื้อหา'}</div>
                       </div>
                     </div>
                   </td>
