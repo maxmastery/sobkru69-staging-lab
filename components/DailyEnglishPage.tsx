@@ -26,6 +26,13 @@ const formatDisplayDate = (value: string) => {
   });
 };
 
+const getTodayKey = () => new Intl.DateTimeFormat('en-CA', {
+  timeZone: 'Asia/Bangkok',
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+}).format(new Date());
+
 const pickEnglishVoice = () => {
   const voices = window.speechSynthesis?.getVoices?.() || [];
   return voices.find(voice => /^en[-_](US|GB|AU|CA)/i.test(voice.lang) && /female|natural|google|samantha|zira/i.test(voice.name))
@@ -34,10 +41,16 @@ const pickEnglishVoice = () => {
 };
 
 const DailyEnglishPage: React.FC<DailyEnglishPageProps> = ({ onBack }) => {
-  const [lesson, setLesson] = useState<ContentDailyEnglishLesson | null>(null);
+  const [lessons, setLessons] = useState<ContentDailyEnglishLesson[]>([]);
+  const [selectedLessonId, setSelectedLessonId] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
   const [isSpeaking, setIsSpeaking] = useState(false);
+  const todayKey = useMemo(() => getTodayKey(), []);
+  const lesson = useMemo(
+    () => lessons.find(item => item.id === selectedLessonId) || lessons[0] || null,
+    [lessons, selectedLessonId]
+  );
 
   const articleText = useMemo(() => lesson ? stripHtml(lesson.content) : '', [lesson]);
   const translationParagraphs = useMemo(() => {
@@ -48,15 +61,21 @@ const DailyEnglishPage: React.FC<DailyEnglishPageProps> = ({ onBack }) => {
       .filter(Boolean);
   }, [lesson]);
 
-  const loadLesson = async () => {
+  const loadLessons = async () => {
     setIsLoading(true);
     setError('');
     window.speechSynthesis?.cancel();
     setIsSpeaking(false);
 
     try {
-      const latestLesson = await contentService.getLatestDailyEnglishLesson();
-      setLesson(latestLesson);
+      const publishedLessons = (await contentService.getDailyEnglishLessons())
+        .filter(item => item.status === 'published');
+      setLessons(publishedLessons);
+      setSelectedLessonId(current => (
+        current && publishedLessons.some(item => item.id === current)
+          ? current
+          : publishedLessons[0]?.id || ''
+      ));
     } catch (err: any) {
       console.error('Failed to load daily English lesson', err);
       setError(err?.message || 'โหลดบทเรียนภาษาอังกฤษไม่สำเร็จ');
@@ -66,7 +85,7 @@ const DailyEnglishPage: React.FC<DailyEnglishPageProps> = ({ onBack }) => {
   };
 
   useEffect(() => {
-    void loadLesson();
+    void loadLessons();
 
     return () => {
       window.speechSynthesis?.cancel();
@@ -101,6 +120,12 @@ const DailyEnglishPage: React.FC<DailyEnglishPageProps> = ({ onBack }) => {
     setIsSpeaking(false);
   };
 
+  const selectLesson = (id: string) => {
+    window.speechSynthesis?.cancel();
+    setIsSpeaking(false);
+    setSelectedLessonId(id);
+  };
+
   return (
     <div className="w-full max-w-[1180px] mx-auto px-6 md:px-[80px] pt-8 md:pt-[56px] pb-14 animate-in fade-in duration-300">
       <button onClick={onBack} className="mb-7 inline-flex items-center text-slate-500 hover:text-slate-900 transition-colors font-bold">
@@ -130,7 +155,7 @@ const DailyEnglishPage: React.FC<DailyEnglishPageProps> = ({ onBack }) => {
             {isSpeaking ? 'หยุดอ่าน' : 'อ่านให้ฟัง'}
           </button>
           <button
-            onClick={() => void loadLesson()}
+            onClick={() => void loadLessons()}
             disabled={isLoading}
             className="inline-flex items-center gap-2 rounded-2xl border border-cyan-200 bg-white px-5 py-3 text-sm font-black text-cyan-700 shadow-sm transition-all hover:-translate-y-0.5 hover:border-cyan-300 disabled:cursor-not-allowed disabled:opacity-50"
           >
@@ -161,22 +186,71 @@ const DailyEnglishPage: React.FC<DailyEnglishPageProps> = ({ onBack }) => {
         </div>
       ) : (
         <div className="space-y-8">
-          <section className="overflow-hidden rounded-[34px] border border-slate-200 bg-white shadow-sm">
-            <div className="border-b border-slate-100 bg-gradient-to-r from-cyan-50 via-white to-blue-50 p-6 md:p-8">
+          <section className="space-y-4">
+            <div className="flex flex-wrap items-end justify-between gap-3">
+              <div>
+                <h2 className="text-xl font-black text-slate-950">เลือกบทเรียน</h2>
+                <p className="mt-1 text-sm font-medium text-slate-500">บทเรียนล่าสุดจะอยู่มุมซ้ายบนเสมอ</p>
+              </div>
+              <span className="rounded-full bg-cyan-50 px-3 py-1 text-xs font-black text-cyan-700">
+                {lessons.length} lessons
+              </span>
+            </div>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              {lessons.map((item, index) => {
+                const isSelected = item.id === lesson.id;
+                const isToday = item.date === todayKey;
+                const preview = stripHtml(item.content);
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => selectLesson(item.id)}
+                    className={`group min-h-[136px] rounded-3xl border p-4 text-left transition-all ${
+                      isSelected
+                        ? 'border-cyan-500 bg-cyan-50/70 ring-4 ring-cyan-100'
+                        : 'border-slate-200 bg-white/55 hover:border-cyan-200 hover:bg-white'
+                    }`}
+                  >
+                    <div className="mb-3 flex items-center justify-between gap-2">
+                      <span className={`rounded-full px-2.5 py-1 text-[11px] font-black ${isToday ? 'bg-orange-500 text-white' : 'bg-slate-100 text-slate-500'}`}>
+                        {isToday ? 'Today' : formatDisplayDate(item.date)}
+                      </span>
+                      {index === 0 && (
+                        <span className="rounded-full bg-slate-950 px-2.5 py-1 text-[11px] font-black text-white">
+                          ล่าสุด
+                        </span>
+                      )}
+                    </div>
+                    <h3 className="line-clamp-2 text-base font-black leading-snug text-slate-950 group-hover:text-cyan-700">
+                      {item.title || 'ไม่มีหัวข้อ'}
+                    </h3>
+                    <p className="mt-2 line-clamp-2 text-sm leading-6 text-slate-500">
+                      {preview || 'ยังไม่มีตัวอย่างเนื้อหา'}
+                    </p>
+                  </button>
+                );
+              })}
+            </div>
+          </section>
+
+          <section className="overflow-visible border-t border-slate-200 pt-7">
+            <div className="border-b border-slate-200 pb-6">
               <div className="mb-4 flex flex-wrap items-center gap-2">
                 <span className="rounded-full bg-cyan-100 px-3 py-1 text-xs font-black text-cyan-700">บทเรียนประจำวัน</span>
-                <span className="rounded-full bg-white px-3 py-1 text-xs font-bold text-slate-500 ring-1 ring-slate-200">{formatDisplayDate(lesson.date)}</span>
+                {lesson.date === todayKey && <span className="rounded-full bg-orange-500 px-3 py-1 text-xs font-black text-white">Today</span>}
+                <span className="rounded-full bg-white/70 px-3 py-1 text-xs font-bold text-slate-500 ring-1 ring-slate-200">{formatDisplayDate(lesson.date)}</span>
               </div>
               <h2 className="text-2xl md:text-4xl font-black leading-tight text-slate-950">{lesson.title}</h2>
             </div>
-            <div className="p-6 md:p-8">
-              <div className="prose prose-slate max-w-none ql-editor-display">
+            <div className="py-6 md:py-8">
+              <div className="prose prose-slate max-w-none overflow-visible break-words leading-8 text-slate-700 [overflow-wrap:anywhere] [&_*]:max-w-full [&_*]:whitespace-normal ql-editor-display">
                 <div dangerouslySetInnerHTML={{ __html: lesson.content }} />
               </div>
             </div>
           </section>
 
-          <section className="rounded-[32px] border border-slate-200 bg-white p-6 md:p-8">
+          <section className="border-t border-slate-200 pt-7">
             <div className="mb-5 flex items-center gap-3">
               <BookOpenText className="h-6 w-6 text-cyan-600" />
               <h3 className="text-2xl font-black text-slate-950">คำแปลภาษาไทย</h3>
@@ -190,7 +264,7 @@ const DailyEnglishPage: React.FC<DailyEnglishPageProps> = ({ onBack }) => {
             </div>
           </section>
 
-          <section className="rounded-[32px] border border-slate-200 bg-white p-6 md:p-8">
+          <section className="border-t border-slate-200 pt-7">
             <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
               <div className="flex items-center gap-3">
                 <Volume2 className="h-6 w-6 text-orange-500" />
