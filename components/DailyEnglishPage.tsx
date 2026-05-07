@@ -19,6 +19,10 @@ const stripHtml = (value: string) => {
   return (value || '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
 };
 
+const normalizeArticleHtml = (value: string) => (value || '')
+  .replace(/&nbsp;|&#160;|\u00a0/gi, ' ')
+  .replace(/white-space\s*:\s*nowrap;?/gi, '');
+
 const formatDisplayDate = (value: string) => {
   if (!value) return '-';
   const date = new Date(value);
@@ -66,7 +70,8 @@ const DailyEnglishPage: React.FC<DailyEnglishPageProps> = ({ onBack }) => {
     () => lessons.find(item => item.id === selectedLessonId) || null,
     [lessons, selectedLessonId]
   );
-  const articleText = useMemo(() => selectedLesson ? stripHtml(selectedLesson.content) : '', [selectedLesson]);
+  const articleHtml = useMemo(() => selectedLesson ? normalizeArticleHtml(selectedLesson.content) : '', [selectedLesson]);
+  const articleText = useMemo(() => articleHtml ? stripHtml(articleHtml) : '', [articleHtml]);
   const translationParagraphs = useMemo(() => {
     if (!selectedLesson?.translation) return [];
     return selectedLesson.translation
@@ -313,8 +318,8 @@ const DailyEnglishPage: React.FC<DailyEnglishPageProps> = ({ onBack }) => {
             <h2 className="text-2xl md:text-4xl font-black leading-tight text-slate-950">{selectedLesson.title}</h2>
           </div>
           <div className="py-6 md:py-8">
-            <div className="prose prose-slate max-w-none overflow-visible leading-8 text-slate-700 [hyphens:none] [overflow-wrap:normal] [word-break:normal] [&_*]:max-w-full [&_*]:whitespace-normal [&_*]:[hyphens:none] [&_*]:[overflow-wrap:normal] [&_*]:[word-break:normal] ql-editor-display">
-              <div dangerouslySetInnerHTML={{ __html: selectedLesson.content }} />
+            <div className="prose prose-slate min-w-0 max-w-none overflow-x-hidden leading-8 text-slate-700 [hyphens:none] [overflow-wrap:break-word] [white-space:normal] [word-break:normal] [&_*]:min-w-0 [&_*]:max-w-full [&_*]:whitespace-normal [&_*]:[hyphens:none] [&_*]:[overflow-wrap:break-word] [&_*]:[word-break:normal] ql-editor-display">
+              <div dangerouslySetInnerHTML={{ __html: articleHtml }} />
             </div>
           </div>
         </section>
