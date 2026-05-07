@@ -213,6 +213,7 @@ export interface ContentDailyEnglishLesson {
   title: string;
   lessonType: 'article' | 'dialogue';
   content: string;
+  dialogueSpeakers: string[];
   dialogueLines: DailyEnglishDialogueLine[];
   translation: string;
   vocabulary: DailyEnglishVocabularyItem[];
@@ -483,16 +484,27 @@ const normalizeDailyEnglishDialogueLines = (items: unknown): DailyEnglishDialogu
     .filter((item, index, array) => stripHtmlText(item.content).trim() && array.findIndex(entry => entry.id === item.id) === index);
 };
 
+const normalizeDailyEnglishDialogueSpeakers = (items: unknown, lines: DailyEnglishDialogueLine[]): string[] => {
+  const speakers = Array.isArray(items)
+    ? items.filter((item): item is string => typeof item === 'string').map(item => item.trim()).filter(Boolean)
+    : [];
+  const derivedSpeakers = lines.map(line => line.speaker.trim()).filter(Boolean);
+  const unique = [...speakers, ...derivedSpeakers].filter((item, index, array) => array.indexOf(item) === index);
+  return unique.length > 0 ? unique : ['Speaker 1', 'Speaker 2'];
+};
+
 const normalizeDailyEnglishLesson = (value: unknown): ContentDailyEnglishLesson => {
   const item = value && typeof value === 'object' ? value as Record<string, any> : {};
   const now = new Date().toISOString();
+  const dialogueLines = normalizeDailyEnglishDialogueLines(item.dialogueLines);
 
   return {
     id: typeof item.id === 'string' && item.id ? item.id : createId(),
     title: typeof item.title === 'string' ? item.title : '',
     lessonType: item.lessonType === 'dialogue' ? 'dialogue' : 'article',
     content: typeof item.content === 'string' ? item.content : '',
-    dialogueLines: normalizeDailyEnglishDialogueLines(item.dialogueLines),
+    dialogueSpeakers: normalizeDailyEnglishDialogueSpeakers(item.dialogueSpeakers, dialogueLines),
+    dialogueLines,
     translation: typeof item.translation === 'string' ? item.translation : '',
     vocabulary: normalizeDailyEnglishVocabulary(item.vocabulary),
     imageUrl: typeof item.imageUrl === 'string' ? item.imageUrl : '',
@@ -564,6 +576,7 @@ export const contentService = {
       title: item.title || '',
       lessonType: item.lessonType || 'article',
       content: item.content || '',
+      dialogueSpeakers: item.dialogueSpeakers,
       dialogueLines: normalizeDailyEnglishDialogueLines(item.dialogueLines),
       translation: item.translation || '',
       vocabulary: normalizeDailyEnglishVocabulary(item.vocabulary),

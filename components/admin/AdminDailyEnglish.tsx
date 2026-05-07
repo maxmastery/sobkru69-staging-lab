@@ -20,15 +20,18 @@ const createVocabularyRow = (): DailyEnglishVocabularyItem => ({
 
 const createDialogueLine = (index = 0): DailyEnglishDialogueLine => ({
   id: createId(),
-  speaker: `Speaker ${index + 1}`,
+  speaker: index % 2 === 0 ? 'Speaker 1' : 'Speaker 2',
   content: '',
 });
+
+const createDialogueSpeakers = (count = 2) => Array.from({ length: count }, (_, index) => `Speaker ${index + 1}`);
 
 const createNewLesson = (): Partial<ContentDailyEnglishLesson> => ({
   title: '',
   lessonType: 'article',
   content: '',
-  dialogueLines: [createDialogueLine(0), createDialogueLine(1)],
+  dialogueSpeakers: createDialogueSpeakers(2),
+  dialogueLines: [createDialogueLine(0)],
   translation: '',
   vocabulary: [createVocabularyRow()],
   imageUrl: '',
@@ -112,16 +115,33 @@ const AdminDailyEnglish: React.FC = () => {
     setCurrentLesson({
       ...lesson,
       vocabulary: lesson.vocabulary.length > 0 ? lesson.vocabulary : [createVocabularyRow()],
-      dialogueLines: lesson.dialogueLines.length > 0 ? lesson.dialogueLines : [createDialogueLine(0), createDialogueLine(1)],
+      dialogueSpeakers: lesson.dialogueSpeakers.length > 0 ? lesson.dialogueSpeakers : createDialogueSpeakers(2),
+      dialogueLines: lesson.dialogueLines.length > 0 ? lesson.dialogueLines : [createDialogueLine(0)],
     });
     setIsEditing(true);
   };
 
   const setDialogueSpeakerCount = (count: number) => {
     setCurrentLesson(current => {
-      const existing = current.dialogueLines || [];
-      const next = Array.from({ length: count }, (_, index) => existing[index] || createDialogueLine(index));
-      return { ...current, dialogueLines: next };
+      const existing = current.dialogueSpeakers || createDialogueSpeakers(2);
+      const nextSpeakers = Array.from({ length: count }, (_, index) => existing[index] || `Speaker ${index + 1}`);
+      const fallbackSpeaker = nextSpeakers[0] || 'Speaker 1';
+      const nextLines = (current.dialogueLines || []).map(line => ({
+        ...line,
+        speaker: nextSpeakers.includes(line.speaker) ? line.speaker : fallbackSpeaker,
+      }));
+      return { ...current, dialogueSpeakers: nextSpeakers, dialogueLines: nextLines };
+    });
+  };
+
+  const updateDialogueSpeaker = (index: number, value: string) => {
+    setCurrentLesson(current => {
+      const speakers = current.dialogueSpeakers || createDialogueSpeakers(2);
+      const previousName = speakers[index] || `Speaker ${index + 1}`;
+      const nextName = value || `Speaker ${index + 1}`;
+      const nextSpeakers = speakers.map((speaker, speakerIndex) => speakerIndex === index ? nextName : speaker);
+      const nextLines = (current.dialogueLines || []).map(line => line.speaker === previousName ? { ...line, speaker: nextName } : line);
+      return { ...current, dialogueSpeakers: nextSpeakers, dialogueLines: nextLines };
     });
   };
 
@@ -130,6 +150,30 @@ const AdminDailyEnglish: React.FC = () => {
       ...current,
       dialogueLines: (current.dialogueLines || []).map(item => item.id === id ? { ...item, [field]: value } : item),
     }));
+  };
+
+  const addDialogueTurn = () => {
+    setCurrentLesson(current => {
+      const speakers = current.dialogueSpeakers || createDialogueSpeakers(2);
+      const lines = current.dialogueLines || [];
+      const previousSpeaker = lines[lines.length - 1]?.speaker;
+      const nextSpeaker = speakers.find(speaker => speaker !== previousSpeaker) || speakers[0] || 'Speaker 1';
+      return {
+        ...current,
+        dialogueSpeakers: speakers,
+        dialogueLines: [...lines, { ...createDialogueLine(lines.length), speaker: nextSpeaker }],
+      };
+    });
+  };
+
+  const removeDialogueTurn = (id: string) => {
+    setCurrentLesson(current => {
+      const nextLines = (current.dialogueLines || []).filter(line => line.id !== id);
+      return {
+        ...current,
+        dialogueLines: nextLines.length > 0 ? nextLines : [{ ...createDialogueLine(0), speaker: current.dialogueSpeakers?.[0] || 'Speaker 1' }],
+      };
+    });
   };
 
   const updateVocabulary = (id: string, field: keyof DailyEnglishVocabularyItem, value: string) => {
@@ -202,10 +246,14 @@ const AdminDailyEnglish: React.FC = () => {
           }))
           .filter(item => stripHtml(item.content))
         : [];
+      const cleanedDialogueSpeakers = lessonType === 'dialogue'
+        ? (currentLesson.dialogueSpeakers || createDialogueSpeakers(2)).map((speaker, index) => speaker.trim() || `Speaker ${index + 1}`)
+        : [];
 
       const saved = await contentService.saveDailyEnglishLesson({
         ...currentLesson,
         lessonType,
+        dialogueSpeakers: cleanedDialogueSpeakers,
         dialogueLines: cleanedDialogueLines,
         vocabulary: cleanedVocabulary,
       });
@@ -330,7 +378,8 @@ const AdminDailyEnglish: React.FC = () => {
                       onClick={() => setCurrentLesson(current => ({
                         ...current,
                         lessonType: option.value as 'article' | 'dialogue',
-                        dialogueLines: current.dialogueLines?.length ? current.dialogueLines : [createDialogueLine(0), createDialogueLine(1)],
+                        dialogueSpeakers: current.dialogueSpeakers?.length ? current.dialogueSpeakers : createDialogueSpeakers(2),
+                        dialogueLines: current.dialogueLines?.length ? current.dialogueLines : [createDialogueLine(0)],
                       }))}
                       className={`flex items-start gap-3 rounded-2xl border p-4 text-left transition ${
                         isActive
@@ -416,9 +465,9 @@ const AdminDailyEnglish: React.FC = () => {
                     <p className="text-sm leading-6 text-slate-500">แต่ละผู้พูดใช้ตัวหนา เอียง สี ไฮไลท์ และจัดย่อหน้าได้เหมือนบทความ</p>
                   </div>
                   <div>
-                    <label className="mb-1 block text-xs font-black uppercase tracking-[0.12em] text-slate-400">จำนวนคนพูด</label>
+                    <label className="mb-1 block text-xs font-black uppercase tracking-[0.12em] text-slate-400">จำนวนตัวละคร</label>
                     <select
-                      value={(currentLesson.dialogueLines || []).length || 2}
+                      value={(currentLesson.dialogueSpeakers || []).length || 2}
                       onChange={(event) => setDialogueSpeakerCount(Number(event.target.value))}
                       className="rounded-2xl border border-cyan-200 bg-cyan-50 px-4 py-2.5 text-sm font-black text-cyan-800 outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-100"
                     >
@@ -428,25 +477,69 @@ const AdminDailyEnglish: React.FC = () => {
                     </select>
                   </div>
                 </div>
+
+                <div className="rounded-3xl border border-cyan-100 bg-cyan-50/40 p-4">
+                  <div className="mb-3 flex items-center gap-2">
+                    <MessageSquareText className="h-5 w-5 text-cyan-700" />
+                    <h4 className="text-base font-black text-slate-900">ตัวละครในการสนทนา</h4>
+                  </div>
+                  <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                    {(currentLesson.dialogueSpeakers || createDialogueSpeakers(2)).map((speaker, index) => (
+                      <label key={index} className="block rounded-2xl border border-cyan-100 bg-white p-3">
+                        <span className="mb-2 block text-xs font-black uppercase tracking-[0.12em] text-cyan-700">ผู้พูด {index + 1}</span>
+                        <input
+                          type="text"
+                          value={speaker}
+                          onChange={(event) => updateDialogueSpeaker(index, event.target.value)}
+                          className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-black text-slate-800 outline-none focus:border-cyan-500"
+                          placeholder={`Speaker ${index + 1}`}
+                        />
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
                 <div className="space-y-4">
-                  {(currentLesson.dialogueLines || [createDialogueLine(0), createDialogueLine(1)]).map((line, index) => (
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                      <h4 className="text-base font-black text-slate-900">ลำดับบทสนทนา</h4>
+                      <p className="mt-1 text-sm text-slate-500">เพิ่มทีละประโยคตามลำดับจริง แล้วเลือกว่าตัวละครคนไหนเป็นผู้พูด</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={addDialogueTurn}
+                      className="inline-flex items-center gap-2 rounded-2xl bg-cyan-600 px-4 py-2.5 text-sm font-black text-white shadow-lg shadow-cyan-600/20 transition hover:-translate-y-0.5"
+                    >
+                      <Plus className="h-4 w-4" />
+                      เพิ่มประโยค
+                    </button>
+                  </div>
+
+                  {(currentLesson.dialogueLines || [createDialogueLine(0)]).map((line, index) => (
                     <div key={line.id} className="rounded-3xl border border-slate-200 bg-white p-4">
                       <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-                        <div className="flex items-center gap-3">
+                        <div className="flex flex-wrap items-center gap-3">
                           <span className="flex h-9 w-9 items-center justify-center rounded-2xl bg-cyan-50 text-sm font-black text-cyan-700">
                             {index + 1}
                           </span>
-                          <input
-                            type="text"
+                          <select
                             value={line.speaker}
                             onChange={(event) => updateDialogueLine(line.id, 'speaker', event.target.value)}
-                            className="w-44 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-black text-slate-800 outline-none focus:border-cyan-500"
-                            placeholder={`Speaker ${index + 1}`}
-                          />
+                            className="w-52 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-black text-slate-800 outline-none focus:border-cyan-500"
+                          >
+                            {(currentLesson.dialogueSpeakers || createDialogueSpeakers(2)).map((speaker, speakerIndex) => (
+                              <option key={`${speaker}-${speakerIndex}`} value={speaker}>{speaker}</option>
+                            ))}
+                          </select>
                         </div>
-                        <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-black text-slate-500">
-                          voice {index + 1}
-                        </span>
+                        <button
+                          type="button"
+                          onClick={() => removeDialogueTurn(line.id)}
+                          className="inline-flex h-9 w-9 items-center justify-center rounded-xl text-slate-400 transition hover:bg-red-50 hover:text-red-600"
+                          title="ลบประโยคนี้"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
                       </div>
                       <div className="daily-english-editor daily-english-dialogue-editor overflow-hidden rounded-2xl border border-slate-200 bg-white focus-within:ring-2 focus-within:ring-cyan-100">
                         <ReactQuill
@@ -455,7 +548,7 @@ const AdminDailyEnglish: React.FC = () => {
                           onChange={(value) => updateDialogueLine(line.id, 'content', value)}
                           modules={modules}
                           formats={formats}
-                          placeholder={`ใส่คำพูดของ ${line.speaker || `Speaker ${index + 1}`}...`}
+                          placeholder={`ใส่เฉพาะประโยคที่ ${line.speaker || 'ผู้พูด'} ต้องพูด ไม่ต้องใส่ชื่อซ้ำ...`}
                         />
                       </div>
                     </div>

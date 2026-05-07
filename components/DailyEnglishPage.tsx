@@ -48,6 +48,13 @@ const buildNaturalSpeechText = (value: string) => value
   .replace(/\s*([.!?])\s*/g, '$1   ')
   .trim();
 
+const stripSpeakerPrefix = (value: string, speaker: string) => {
+  const escapedSpeaker = speaker.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return value
+    .replace(new RegExp(`^\\s*(?:${escapedSpeaker}|speaker\\s*\\d+)\\s*[:：-]\\s*`, 'i'), '')
+    .trim();
+};
+
 const getWordStarts = (value: string) => {
   const starts: number[] = [];
   for (const match of value.matchAll(ARTICLE_WORD_PATTERN)) {
@@ -230,15 +237,24 @@ const splitVocabulary = (item: DailyEnglishVocabularyItem) => {
 
 const getEnglishVoices = () => {
   const voices = window.speechSynthesis?.getVoices?.() || [];
-  const preferred = voices.filter(voice => /^en[-_](US|GB|AU|CA)/i.test(voice.lang));
-  const english = voices.filter(voice => /^en[-_]/i.test(voice.lang));
-  return preferred.length > 0 ? preferred : english;
+  const scoreVoice = (voice: SpeechSynthesisVoice) => {
+    const name = voice.name.toLowerCase();
+    const langScore = /^en[-_](US|GB|AU|CA)/i.test(voice.lang) ? 20 : /^en[-_]/i.test(voice.lang) ? 10 : -100;
+    const premiumScore = /google|microsoft|natural|neural|samantha|alex|daniel|karen|moira|aria|jenny|guy/i.test(voice.name) ? 12 : 0;
+    const localScore = voice.localService ? 3 : 0;
+    const penalty = /compact|novelty|whisper|bad news|bells|boing|bubbles|cellos|deranged|hysterical|pipe organ|trinoids|zarvox/i.test(name) ? 50 : 0;
+    return langScore + premiumScore + localScore - penalty;
+  };
+
+  return voices
+    .filter(voice => /^en[-_]/i.test(voice.lang))
+    .sort((a, b) => scoreVoice(b) - scoreVoice(a));
 };
 
 const pickEnglishVoice = (index = 0) => {
   const voices = getEnglishVoices();
-  const naturalVoice = voices.find(voice => /female|natural|google|samantha|zira|alex|daniel|karen|moira/i.test(voice.name));
-  return voices[index % Math.max(voices.length, 1)]
+  const naturalVoice = voices.find(voice => /google|microsoft|natural|neural|samantha|alex|daniel|karen|moira|aria|jenny|guy/i.test(voice.name));
+  return voices[index % Math.max(Math.min(voices.length, 4), 1)]
     || naturalVoice
     || null;
 };
@@ -273,9 +289,9 @@ const DailyEnglishPage: React.FC<DailyEnglishPageProps> = ({ onBack }) => {
     const source = selectedLesson.lessonType === 'dialogue'
       ? selectedLesson.dialogueLines
           .filter(line => stripHtml(line.content))
-          .map((line, index) => ({
-            voiceIndex: index,
-            text: buildNaturalSpeechText(stripHtml(line.content)),
+          .map((line) => ({
+            voiceIndex: Math.max(0, selectedLesson.dialogueSpeakers.findIndex(speaker => speaker === line.speaker)),
+            text: buildNaturalSpeechText(stripSpeakerPrefix(stripHtml(line.content), line.speaker)),
           }))
       : [{
           voiceIndex: 0,
@@ -393,7 +409,7 @@ const DailyEnglishPage: React.FC<DailyEnglishPageProps> = ({ onBack }) => {
         utterance.lang = 'en-US';
       }
       utterance.rate = 0.82;
-      utterance.pitch = segment.voiceIndex % 2 === 0 ? 0.98 : 1.04;
+      utterance.pitch = segment.voiceIndex % 2 === 0 ? 0.98 : 1.02;
       utterance.volume = 1;
       utterance.onboundary = (event) => {
         if (event.charIndex < 0) return;
