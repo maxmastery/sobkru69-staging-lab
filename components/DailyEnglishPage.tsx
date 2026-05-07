@@ -161,12 +161,12 @@ const DailyEnglishPage: React.FC<DailyEnglishPageProps> = ({ onBack }) => {
 
   const renderVocabularyTable = (items: Array<{ vocabulary: ReturnType<typeof splitVocabulary> }>) => (
     <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white">
-      <table className="w-full border-collapse text-left text-sm">
+      <table className="w-full table-fixed border-collapse text-left text-sm">
         <thead className="bg-slate-950 text-xs font-black uppercase tracking-[0.16em] text-white">
           <tr>
-            <th className="w-[34%] px-5 py-4">Vocabulary</th>
-            <th className="w-[22%] px-5 py-4">Type</th>
-            <th className="px-5 py-4">Meaning</th>
+            <th className="w-[32%] px-5 py-4">Vocabulary</th>
+            <th className="w-[18%] px-5 py-4">Type</th>
+            <th className="w-[50%] px-5 py-4 pl-8 md:pl-12">Meaning</th>
           </tr>
         </thead>
         <tbody>
@@ -178,7 +178,7 @@ const DailyEnglishPage: React.FC<DailyEnglishPageProps> = ({ onBack }) => {
                   {vocabulary.type}
                 </span>
               </td>
-              <td className="whitespace-pre-line px-5 py-4 leading-7 text-slate-700">{vocabulary.meaning}</td>
+              <td className="whitespace-pre-line px-5 py-4 pl-8 leading-7 text-slate-700 md:pl-12">{vocabulary.meaning}</td>
             </tr>
           ))}
         </tbody>
@@ -361,8 +361,6 @@ const DailyEnglishPage: React.FC<DailyEnglishPageProps> = ({ onBack }) => {
   };
 
   const renderAllVocabulary = () => {
-    let lastLessonId = '';
-
     return (
       <section className="space-y-6">
         <div className="flex flex-wrap items-end justify-between gap-4">
@@ -375,28 +373,24 @@ const DailyEnglishPage: React.FC<DailyEnglishPageProps> = ({ onBack }) => {
           </span>
         </div>
 
-        <div className="space-y-4">
-          {visibleVocabulary.map(({ lesson, vocabulary }, index) => {
-            const showDivider = lesson.id !== lastLessonId;
-            lastLessonId = lesson.id;
-            return (
-              <React.Fragment key={`${lesson.id}-${vocabulary.word}-${index}`}>
-                {showDivider && (
-                  <div className="mt-6 rounded-2xl border border-cyan-100 bg-cyan-50/70 px-5 py-4 first:mt-0">
-                    <h3 className="font-black text-slate-950">{lesson.title}</h3>
-                    <p className="mt-1 text-sm font-bold text-cyan-700">{formatDisplayDate(lesson.date)}</p>
-                  </div>
-                )}
-                <div className={`${index % 2 === 0 ? 'bg-white' : 'bg-slate-50/90'} grid grid-cols-1 gap-2 rounded-2xl border border-slate-200 px-5 py-4 md:grid-cols-[1fr_160px_1.5fr] md:items-start`}>
-                  <div className="font-black text-slate-950">{vocabulary.word}</div>
-                  <div>
-                    <span className="rounded-full bg-cyan-50 px-3 py-1 text-xs font-black text-cyan-700">{vocabulary.type}</span>
-                  </div>
-                  <div className="whitespace-pre-line leading-7 text-slate-700">{vocabulary.meaning}</div>
-                </div>
-              </React.Fragment>
-            );
-          })}
+        <div className="space-y-6">
+          {visibleVocabulary.reduce<Array<{ lesson: ContentDailyEnglishLesson; items: Array<{ vocabulary: ReturnType<typeof splitVocabulary> }> }>>((groups, item) => {
+            const current = groups[groups.length - 1];
+            if (current?.lesson.id === item.lesson.id) {
+              current.items.push({ vocabulary: item.vocabulary });
+            } else {
+              groups.push({ lesson: item.lesson, items: [{ vocabulary: item.vocabulary }] });
+            }
+            return groups;
+          }, []).map(group => (
+            <div key={group.lesson.id} className="space-y-3">
+              <div className="rounded-2xl border border-cyan-100 bg-cyan-50/70 px-5 py-4">
+                <h3 className="font-black text-slate-950">{group.lesson.title}</h3>
+                <p className="mt-1 text-sm font-bold text-cyan-700">{formatDisplayDate(group.lesson.date)}</p>
+              </div>
+              {renderVocabularyTable(group.items)}
+            </div>
+          ))}
         </div>
 
         {allVocabulary.length > VOCABULARY_PAGE_SIZE && (
