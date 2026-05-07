@@ -313,7 +313,7 @@ const DailyEnglishPage: React.FC<DailyEnglishPageProps> = ({ onBack }) => {
             <h2 className="text-2xl md:text-4xl font-black leading-tight text-slate-950">{selectedLesson.title}</h2>
           </div>
           <div className="py-6 md:py-8">
-            <div className="prose prose-slate max-w-none overflow-visible break-words leading-8 text-slate-700 [overflow-wrap:anywhere] [&_*]:max-w-full [&_*]:whitespace-normal ql-editor-display">
+            <div className="prose prose-slate max-w-none overflow-visible leading-8 text-slate-700 [hyphens:none] [overflow-wrap:normal] [word-break:normal] [&_*]:max-w-full [&_*]:whitespace-normal [&_*]:[hyphens:none] [&_*]:[overflow-wrap:normal] [&_*]:[word-break:normal] ql-editor-display">
               <div dangerouslySetInnerHTML={{ __html: selectedLesson.content }} />
             </div>
           </div>
