@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { CSSProperties, ReactNode, useEffect, useMemo, useState } from 'react';
 import { ArrowLeft, BookOpenText, CalendarDays, Eye, Languages, Loader2, Play, RefreshCcw, Square, TableProperties, Volume2 } from 'lucide-react';
 import { contentService, ContentDailyEnglishLesson, DailyEnglishVocabularyItem } from '../services/contentService';
 
@@ -9,6 +9,7 @@ interface DailyEnglishPageProps {
 type PageMode = 'list' | 'lesson' | 'vocabulary';
 
 const VOCABULARY_PAGE_SIZE = 100;
+const ARTICLE_WORD_PATTERN = /[\p{L}\p{N}]+(?:[’'-][\p{L}\p{N}]+)*/gu;
 
 const stripHtml = (value: string) => {
   if (typeof window !== 'undefined' && 'DOMParser' in window) {
@@ -22,6 +23,151 @@ const stripHtml = (value: string) => {
 const normalizeArticleHtml = (value: string) => (value || '')
   .replace(/&nbsp;|&#160;|\u00a0/gi, ' ')
   .replace(/white-space\s*:\s*nowrap;?/gi, '');
+
+const styleStringToObject = (value: string): CSSProperties => {
+  return value
+    .split(';')
+    .map(part => part.trim())
+    .filter(Boolean)
+    .reduce<CSSProperties>((styles, rule) => {
+      const [rawKey, ...rawValue] = rule.split(':');
+      const key = rawKey?.trim();
+      const styleValue = rawValue.join(':').trim();
+      if (!key || !styleValue || /^(white-space|word-break|overflow-wrap)$/i.test(key)) {
+        return styles;
+      }
+
+      const camelKey = key.replace(/-([a-z])/g, (_, letter) => letter.toUpperCase());
+      return { ...styles, [camelKey]: styleValue };
+    }, {});
+};
+
+const buildNaturalSpeechText = (value: string) => value
+  .replace(/\s+/g, ' ')
+  .replace(/\s*([,;:])\s*/g, '$1  ')
+  .replace(/\s*([.!?])\s*/g, '$1   ')
+  .trim();
+
+const getWordStarts = (value: string) => {
+  const starts: number[] = [];
+  for (const match of value.matchAll(ARTICLE_WORD_PATTERN)) {
+    starts.push(match.index || 0);
+  }
+  return starts;
+};
+
+const getWordIndexAtChar = (wordStarts: number[], charIndex: number) => {
+  if (wordStarts.length === 0) return -1;
+  let low = 0;
+  let high = wordStarts.length - 1;
+  let result = 0;
+
+  while (low <= high) {
+    const mid = Math.floor((low + high) / 2);
+    if (wordStarts[mid] <= charIndex) {
+      result = mid;
+      low = mid + 1;
+    } else {
+      high = mid - 1;
+    }
+  }
+
+  return result;
+};
+
+const renderHighlightedText = (
+  text: string,
+  wordCounter: { current: number },
+  activeWordIndex: number,
+  keyPrefix: string
+) => {
+  const nodes: ReactNode[] = [];
+  let lastIndex = 0;
+
+  for (const match of text.matchAll(ARTICLE_WORD_PATTERN)) {
+    const word = match[0];
+    const start = match.index || 0;
+    if (start > lastIndex) {
+      nodes.push(text.slice(lastIndex, start));
+    }
+
+    const wordIndex = wordCounter.current;
+    wordCounter.current += 1;
+    nodes.push(
+      <span
+        key={`${keyPrefix}-${wordIndex}`}
+        className={`rounded-[6px] px-0.5 transition-colors duration-150 ${
+          activeWordIndex === wordIndex
+            ? 'bg-sky-200 text-sky-950 shadow-[0_0_0_3px_rgba(125,211,252,0.45)]'
+            : ''
+        }`}
+      >
+        {word}
+      </span>
+    );
+    lastIndex = start + word.length;
+  }
+
+  if (lastIndex < text.length) {
+    nodes.push(text.slice(lastIndex));
+  }
+
+  return nodes;
+};
+
+const renderArticleNode = (
+  node: ChildNode,
+  key: string,
+  wordCounter: { current: number },
+  activeWordIndex: number
+): ReactNode => {
+  if (node.nodeType === Node.TEXT_NODE) {
+    return renderHighlightedText(node.textContent || '', wordCounter, activeWordIndex, key);
+  }
+
+  if (node.nodeType !== Node.ELEMENT_NODE) return null;
+
+  const element = node as HTMLElement;
+  const tag = element.tagName.toLowerCase();
+  if (tag === 'br') return <br key={key} />;
+
+  const allowedTags = new Set([
+    'a', 'b', 'blockquote', 'div', 'em', 'h1', 'h2', 'h3', 'h4', 'i',
+    'li', 'mark', 'ol', 'p', 'span', 'strong', 'u', 'ul',
+  ]);
+  const children = Array.from(element.childNodes).map((child, index) =>
+    renderArticleNode(child, `${key}-${index}`, wordCounter, activeWordIndex)
+  );
+
+  if (!allowedTags.has(tag)) {
+    return <React.Fragment key={key}>{children}</React.Fragment>;
+  }
+
+  const props: Record<string, unknown> = { key };
+  const className = element.getAttribute('class');
+  const style = styleStringToObject(element.getAttribute('style') || '');
+  if (className) props.className = className;
+  if (Object.keys(style).length > 0) props.style = style;
+  if (tag === 'a') {
+    props.href = element.getAttribute('href') || '#';
+    props.target = '_blank';
+    props.rel = 'noreferrer';
+  }
+
+  return React.createElement(tag, props, children);
+};
+
+const renderArticleWithWordHighlights = (html: string, activeWordIndex: number) => {
+  if (typeof window === 'undefined' || !('DOMParser' in window)) {
+    return stripHtml(html);
+  }
+
+  const doc = new DOMParser().parseFromString(html, 'text/html');
+  const wordCounter = { current: 0 };
+  return Array.from(doc.body.childNodes).map((node, index) =>
+    renderArticleNode(node, `article-${index}`, wordCounter, activeWordIndex)
+  );
+};
 
 const formatDisplayDate = (value: string) => {
   if (!value) return '-';
@@ -65,6 +211,7 @@ const DailyEnglishPage: React.FC<DailyEnglishPageProps> = ({ onBack }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
   const [isSpeaking, setIsSpeaking] = useState(false);
+  const [activeWordIndex, setActiveWordIndex] = useState(-1);
   const todayKey = useMemo(() => getTodayKey(), []);
   const selectedLesson = useMemo(
     () => lessons.find(item => item.id === selectedLessonId) || null,
@@ -72,6 +219,12 @@ const DailyEnglishPage: React.FC<DailyEnglishPageProps> = ({ onBack }) => {
   );
   const articleHtml = useMemo(() => selectedLesson ? normalizeArticleHtml(selectedLesson.content) : '', [selectedLesson]);
   const articleText = useMemo(() => articleHtml ? stripHtml(articleHtml) : '', [articleHtml]);
+  const speechText = useMemo(() => buildNaturalSpeechText(articleText), [articleText]);
+  const speechWordStarts = useMemo(() => getWordStarts(speechText), [speechText]);
+  const renderedArticle = useMemo(
+    () => renderArticleWithWordHighlights(articleHtml, activeWordIndex),
+    [articleHtml, activeWordIndex]
+  );
   const translationParagraphs = useMemo(() => {
     if (!selectedLesson?.translation) return [];
     return selectedLesson.translation
@@ -96,6 +249,7 @@ const DailyEnglishPage: React.FC<DailyEnglishPageProps> = ({ onBack }) => {
     setError('');
     window.speechSynthesis?.cancel();
     setIsSpeaking(false);
+    setActiveWordIndex(-1);
 
     try {
       const publishedLessons = (await contentService.getDailyEnglishLessons())
@@ -120,6 +274,7 @@ const DailyEnglishPage: React.FC<DailyEnglishPageProps> = ({ onBack }) => {
   const openLesson = (id: string) => {
     window.speechSynthesis?.cancel();
     setIsSpeaking(false);
+    setActiveWordIndex(-1);
     setSelectedLessonId(id);
     setMode('lesson');
     void contentService.recordContentView('daily_english', id);
@@ -128,17 +283,19 @@ const DailyEnglishPage: React.FC<DailyEnglishPageProps> = ({ onBack }) => {
   const showList = () => {
     window.speechSynthesis?.cancel();
     setIsSpeaking(false);
+    setActiveWordIndex(-1);
     setMode('list');
   };
 
   const speakArticle = () => {
-    if (!articleText || !('speechSynthesis' in window)) {
+    if (!speechText || !('speechSynthesis' in window)) {
       setError('เบราว์เซอร์นี้ยังไม่รองรับการอ่านออกเสียง');
       return;
     }
 
     window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(articleText);
+    setActiveWordIndex(-1);
+    const utterance = new SpeechSynthesisUtterance(speechText);
     const voice = pickEnglishVoice();
     if (voice) {
       utterance.voice = voice;
@@ -146,10 +303,24 @@ const DailyEnglishPage: React.FC<DailyEnglishPageProps> = ({ onBack }) => {
     } else {
       utterance.lang = 'en-US';
     }
-    utterance.rate = 0.88;
-    utterance.pitch = 1;
-    utterance.onend = () => setIsSpeaking(false);
-    utterance.onerror = () => setIsSpeaking(false);
+    utterance.rate = 0.82;
+    utterance.pitch = 0.98;
+    utterance.volume = 1;
+    utterance.onboundary = (event) => {
+      if (event.charIndex < 0) return;
+      const nextWordIndex = getWordIndexAtChar(speechWordStarts, event.charIndex);
+      if (nextWordIndex >= 0) {
+        setActiveWordIndex(nextWordIndex);
+      }
+    };
+    utterance.onend = () => {
+      setIsSpeaking(false);
+      setActiveWordIndex(-1);
+    };
+    utterance.onerror = () => {
+      setIsSpeaking(false);
+      setActiveWordIndex(-1);
+    };
     setIsSpeaking(true);
     window.speechSynthesis.speak(utterance);
   };
@@ -157,6 +328,7 @@ const DailyEnglishPage: React.FC<DailyEnglishPageProps> = ({ onBack }) => {
   const stopSpeech = () => {
     window.speechSynthesis?.cancel();
     setIsSpeaking(false);
+    setActiveWordIndex(-1);
   };
 
   const renderVocabularyTable = (items: Array<{ vocabulary: ReturnType<typeof splitVocabulary> }>) => (
@@ -323,8 +495,8 @@ const DailyEnglishPage: React.FC<DailyEnglishPageProps> = ({ onBack }) => {
             <h2 className="text-2xl md:text-4xl font-black leading-tight text-slate-950">{selectedLesson.title}</h2>
           </div>
           <div className="py-6 md:py-8">
-            <div className="prose prose-slate min-w-0 max-w-none overflow-x-hidden leading-8 text-slate-700 [hyphens:none] [overflow-wrap:break-word] [white-space:normal] [word-break:normal] [&_*]:min-w-0 [&_*]:max-w-full [&_*]:whitespace-normal [&_*]:[hyphens:none] [&_*]:[overflow-wrap:break-word] [&_*]:[word-break:normal] ql-editor-display">
-              <div dangerouslySetInnerHTML={{ __html: articleHtml }} />
+            <div className="prose prose-slate min-w-0 max-w-none overflow-x-hidden leading-8 text-slate-700 [hyphens:none] [overflow-wrap:normal] [white-space:normal] [word-break:normal] [&_*]:min-w-0 [&_*]:max-w-full [&_*]:whitespace-normal [&_*]:[hyphens:none] [&_*]:[overflow-wrap:normal] [&_*]:[word-break:normal] ql-editor-display">
+              <div>{renderedArticle}</div>
             </div>
           </div>
         </section>
