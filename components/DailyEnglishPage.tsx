@@ -162,11 +162,16 @@ const DailyEnglishPage: React.FC<DailyEnglishPageProps> = ({ onBack }) => {
   const renderVocabularyTable = (items: Array<{ vocabulary: ReturnType<typeof splitVocabulary> }>) => (
     <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white">
       <table className="w-full table-fixed border-collapse text-left text-sm">
+        <colgroup>
+          <col className="w-1/3" />
+          <col className="w-1/3" />
+          <col className="w-1/3" />
+        </colgroup>
         <thead className="bg-slate-950 text-xs font-black uppercase tracking-[0.16em] text-white">
           <tr>
-            <th className="w-[32%] px-5 py-4">Vocabulary</th>
-            <th className="w-[18%] px-5 py-4">Type</th>
-            <th className="w-[50%] px-5 py-4 pl-8 md:pl-12">Meaning</th>
+            <th className="px-5 py-4">Vocabulary</th>
+            <th className="px-5 py-4">Type</th>
+            <th className="px-5 py-4 pl-14 md:pl-20">Meaning</th>
           </tr>
         </thead>
         <tbody>
@@ -178,7 +183,7 @@ const DailyEnglishPage: React.FC<DailyEnglishPageProps> = ({ onBack }) => {
                   {vocabulary.type}
                 </span>
               </td>
-              <td className="whitespace-pre-line px-5 py-4 pl-8 leading-7 text-slate-700 md:pl-12">{vocabulary.meaning}</td>
+              <td className="whitespace-pre-line px-5 py-4 pl-14 leading-7 text-slate-700 md:pl-20">{vocabulary.meaning}</td>
             </tr>
           ))}
         </tbody>
