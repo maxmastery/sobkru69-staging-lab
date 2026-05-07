@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { BookOpenText, CheckCircle2, Edit2, Languages, Loader2, Plus, Save, Search, Trash2, X } from 'lucide-react';
+import { BookOpenText, CheckCircle2, Edit2, Eye, Image as ImageIcon, Languages, Loader2, Plus, Save, Search, Trash2, Upload, X } from 'lucide-react';
 import ReactQuill from 'react-quill-new';
 import 'react-quill-new/dist/quill.snow.css';
 import { contentService, ContentDailyEnglishLesson, DailyEnglishVocabularyItem } from '../../services/contentService';
@@ -14,6 +14,7 @@ const createId = () => {
 const createVocabularyRow = (): DailyEnglishVocabularyItem => ({
   id: createId(),
   word: '',
+  type: '',
   meaning: '',
 });
 
@@ -22,6 +23,7 @@ const createNewLesson = (): Partial<ContentDailyEnglishLesson> => ({
   content: '',
   translation: '',
   vocabulary: [createVocabularyRow()],
+  imageUrl: '',
   date: new Date().toISOString().split('T')[0],
   status: 'published',
 });
@@ -42,6 +44,8 @@ const AdminDailyEnglish: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [saveMessage, setSaveMessage] = useState('');
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  const [imageError, setImageError] = useState('');
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
 
   const modules = useMemo(() => ({
     toolbar: [
@@ -98,6 +102,32 @@ const AdminDailyEnglish: React.FC = () => {
       ...current,
       vocabulary: (current.vocabulary || []).map(item => item.id === id ? { ...item, [field]: value } : item),
     }));
+  };
+
+  const handleImageUpload = async (file?: File | null) => {
+    if (!file) return;
+    setImageError('');
+
+    if (!file.type.startsWith('image/')) {
+      setImageError('กรุณาเลือกไฟล์รูปภาพเท่านั้น');
+      return;
+    }
+
+    if (file.size > 2 * 1024 * 1024) {
+      setImageError('ขนาดรูปภาพต้องไม่เกิน 2MB');
+      return;
+    }
+
+    setIsUploadingImage(true);
+    try {
+      const uploaded = await contentService.uploadDailyEnglishImage(file);
+      setCurrentLesson(current => ({ ...current, imageUrl: uploaded.url }));
+    } catch (error) {
+      console.error('Failed to upload daily English image', error);
+      setImageError('อัปโหลดรูปภาพไม่สำเร็จ');
+    } finally {
+      setIsUploadingImage(false);
+    }
   };
 
   const addVocabulary = () => {
@@ -198,6 +228,46 @@ const AdminDailyEnglish: React.FC = () => {
 
         <form onSubmit={handleSubmit} className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_390px]">
           <div className="space-y-6 rounded-[30px] border border-slate-200 bg-white p-5 md:p-7">
+            <div>
+              <label className="mb-2 block text-sm font-bold text-slate-700">รูปภาพประจำบทเรียน</label>
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-[220px_minmax(0,1fr)]">
+                <div className="aspect-[16/10] overflow-hidden rounded-2xl border border-slate-200 bg-slate-50">
+                  {currentLesson.imageUrl ? (
+                    <img src={currentLesson.imageUrl} alt="Daily English cover" className="h-full w-full object-cover" />
+                  ) : (
+                    <div className="flex h-full flex-col items-center justify-center gap-2 text-slate-400">
+                      <ImageIcon className="h-9 w-9" />
+                      <span className="text-xs font-bold">ยังไม่มีรูป</span>
+                    </div>
+                  )}
+                </div>
+                <div className="flex flex-col justify-center gap-3">
+                  <label className="inline-flex w-fit cursor-pointer items-center gap-2 rounded-2xl border border-cyan-200 bg-cyan-50 px-4 py-3 text-sm font-black text-cyan-700 transition hover:bg-cyan-100">
+                    {isUploadingImage ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+                    อัปโหลดรูปภาพ
+                    <input
+                      type="file"
+                      accept="image/*"
+                      disabled={isUploadingImage}
+                      onChange={(event) => void handleImageUpload(event.target.files?.[0])}
+                      className="hidden"
+                    />
+                  </label>
+                  <p className="text-xs font-medium leading-5 text-slate-500">รองรับไฟล์รูปภาพ ขนาดไม่เกิน 2MB รูปจะแสดงบนสุดของบทเรียน</p>
+                  {currentLesson.imageUrl && (
+                    <button
+                      type="button"
+                      onClick={() => setCurrentLesson({ ...currentLesson, imageUrl: '' })}
+                      className="w-fit text-xs font-bold text-red-500 hover:text-red-600"
+                    >
+                      ลบรูปภาพออก
+                    </button>
+                  )}
+                  {imageError && <p className="text-xs font-bold text-red-600">{imageError}</p>}
+                </div>
+              </div>
+            </div>
+
             <div className="grid grid-cols-1 gap-4 md:grid-cols-[minmax(0,1fr)_180px]">
               <div>
                 <label className="mb-2 block text-sm font-bold text-slate-700">หัวข้อบทเรียน</label>
@@ -301,6 +371,13 @@ const AdminDailyEnglish: React.FC = () => {
                     className="mb-2 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-black text-slate-900 outline-none focus:border-cyan-500"
                     placeholder="คำศัพท์ เช่น improve"
                   />
+                  <input
+                    type="text"
+                    value={item.type}
+                    onChange={(event) => updateVocabulary(item.id, 'type', event.target.value)}
+                    className="mb-2 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-bold text-slate-700 outline-none focus:border-cyan-500"
+                    placeholder="ชนิดคำ เช่น Verb, Noun"
+                  />
                   <textarea
                     value={item.meaning}
                     onChange={(event) => updateVocabulary(item.id, 'meaning', event.target.value)}
@@ -343,7 +420,7 @@ const AdminDailyEnglish: React.FC = () => {
         </div>
       )}
 
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
         <div className="rounded-[26px] border border-slate-200 bg-white p-5">
           <div className="text-xs font-black uppercase tracking-[0.16em] text-slate-400">บทเรียนทั้งหมด</div>
           <div className="mt-2 text-4xl font-black text-slate-950">{lessons.length}</div>
@@ -355,6 +432,10 @@ const AdminDailyEnglish: React.FC = () => {
         <div className="rounded-[26px] border border-orange-100 bg-white p-5">
           <div className="text-xs font-black uppercase tracking-[0.16em] text-orange-600">คำศัพท์รวม</div>
           <div className="mt-2 text-4xl font-black text-orange-600">{vocabularyCount}</div>
+        </div>
+        <div className="rounded-[26px] border border-indigo-100 bg-white p-5">
+          <div className="text-xs font-black uppercase tracking-[0.16em] text-indigo-600">ยอดอ่านรวม</div>
+          <div className="mt-2 text-4xl font-black text-indigo-600">{lessons.reduce((sum, item) => sum + item.viewCount, 0)}</div>
         </div>
       </div>
 
@@ -387,6 +468,7 @@ const AdminDailyEnglish: React.FC = () => {
                 <th className="w-auto px-6 py-4 text-sm font-black text-slate-600">บทเรียน</th>
                 <th className="w-36 px-6 py-4 text-sm font-black text-slate-600">วันที่</th>
                 <th className="w-32 px-6 py-4 text-sm font-black text-slate-600">คำศัพท์</th>
+                <th className="w-32 px-6 py-4 text-sm font-black text-slate-600">ยอดอ่าน</th>
                 <th className="w-32 px-6 py-4 text-sm font-black text-slate-600">สถานะ</th>
                 <th className="w-28 px-6 py-4 text-right text-sm font-black text-slate-600">จัดการ</th>
               </tr>
@@ -394,7 +476,7 @@ const AdminDailyEnglish: React.FC = () => {
             <tbody>
               {isLoading && filteredLessons.length === 0 && (
                 <tr>
-                  <td colSpan={5} className="px-6 py-14 text-center text-slate-500">
+                  <td colSpan={6} className="px-6 py-14 text-center text-slate-500">
                     กำลังโหลดบทเรียนภาษาอังกฤษ...
                   </td>
                 </tr>
@@ -415,6 +497,12 @@ const AdminDailyEnglish: React.FC = () => {
                   </td>
                   <td className="px-6 py-5 align-top text-sm font-bold text-slate-500">{lesson.date}</td>
                   <td className="px-6 py-5 align-top text-sm font-black text-slate-800">{lesson.vocabulary.length} คำ</td>
+                  <td className="px-6 py-5 align-top">
+                    <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-3 py-1 text-xs font-black text-slate-600">
+                      <Eye className="h-3.5 w-3.5" />
+                      {lesson.viewCount}
+                    </span>
+                  </td>
                   <td className="px-6 py-5 align-top">
                     <span className={`rounded-full px-3 py-1 text-xs font-black ${lesson.status === 'published' ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}>
                       {lesson.status === 'published' ? 'เผยแพร่' : 'ฉบับร่าง'}
@@ -445,7 +533,7 @@ const AdminDailyEnglish: React.FC = () => {
 
               {!isLoading && filteredLessons.length === 0 && (
                 <tr>
-                  <td colSpan={5} className="px-6 py-14 text-center">
+                  <td colSpan={6} className="px-6 py-14 text-center">
                     <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-3xl bg-slate-100 text-slate-400">
                       <Languages className="h-8 w-8" />
                     </div>

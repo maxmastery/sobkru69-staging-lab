@@ -72,7 +72,7 @@ type ProductRow = {
 
 type ContentViewRow = {
   id: string;
-  content_type: 'news' | 'discussion' | 'product';
+  content_type: 'news' | 'discussion' | 'product' | 'daily_english';
   content_id: string;
   viewer_key: string;
   viewed_at: string;
@@ -198,6 +198,7 @@ export interface ShopButtonSettings {
 export interface DailyEnglishVocabularyItem {
   id: string;
   word: string;
+  type: string;
   meaning: string;
 }
 
@@ -207,6 +208,8 @@ export interface ContentDailyEnglishLesson {
   content: string;
   translation: string;
   vocabulary: DailyEnglishVocabularyItem[];
+  imageUrl: string;
+  viewCount: number;
   date: string;
   status: 'published' | 'draft';
   updatedAt: string;
@@ -442,6 +445,7 @@ const normalizeDailyEnglishVocabulary = (items: unknown): DailyEnglishVocabulary
       return {
         id: typeof value.id === 'string' && value.id ? value.id : createId(),
         word: typeof value.word === 'string' ? value.word : '',
+        type: typeof value.type === 'string' ? value.type : '',
         meaning: typeof value.meaning === 'string' ? value.meaning : '',
       };
     })
@@ -458,6 +462,8 @@ const normalizeDailyEnglishLesson = (value: unknown): ContentDailyEnglishLesson 
     content: typeof item.content === 'string' ? item.content : '',
     translation: typeof item.translation === 'string' ? item.translation : '',
     vocabulary: normalizeDailyEnglishVocabulary(item.vocabulary),
+    imageUrl: typeof item.imageUrl === 'string' ? item.imageUrl : '',
+    viewCount: Number(item.viewCount || 0),
     date: typeof item.date === 'string' && item.date ? item.date : now.split('T')[0],
     status: item.status === 'draft' ? 'draft' : 'published',
     updatedAt: typeof item.updatedAt === 'string' && item.updatedAt ? item.updatedAt : now,
@@ -502,7 +508,12 @@ export const contentService = {
     ensureSupabase();
     const rows = await supabaseRest.select<AppSettingRow[]>('app_settings', `select=*&key=eq.${encodeValue(DAILY_ENGLISH_SETTINGS_KEY)}&limit=1`);
     const lessons = rows?.[0]?.value?.lessons;
-    return sortDailyEnglishLessons(Array.isArray(lessons) ? lessons.map(normalizeDailyEnglishLesson) : []);
+    const items = sortDailyEnglishLessons(Array.isArray(lessons) ? lessons.map(normalizeDailyEnglishLesson) : []);
+    const viewCounts = await this.getViewCounts('daily_english', items.map(item => item.id));
+    return items.map(item => ({
+      ...item,
+      viewCount: viewCounts[item.id] ? viewCounts[item.id].size : item.viewCount,
+    }));
   },
 
   async getLatestDailyEnglishLesson(): Promise<ContentDailyEnglishLesson | null> {
@@ -521,6 +532,8 @@ export const contentService = {
       content: item.content || '',
       translation: item.translation || '',
       vocabulary: normalizeDailyEnglishVocabulary(item.vocabulary),
+      imageUrl: item.imageUrl || '',
+      viewCount: Number(item.viewCount || 0),
       date: item.date || new Date().toISOString().split('T')[0],
       status: item.status || 'published',
       updatedAt: now,
@@ -558,6 +571,11 @@ export const contentService = {
       },
       updated_at: now,
     }, 'key');
+  },
+
+  async uploadDailyEnglishImage(file: File) {
+    ensureSupabase();
+    return uploadPublicImage(file, 'daily-english');
   },
 
   async getViewCounts(contentType: ContentViewRow['content_type'], contentIds: string[]): Promise<Record<string, Set<string>>> {
