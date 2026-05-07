@@ -333,29 +333,29 @@ const DailyEnglishPage: React.FC<DailyEnglishPageProps> = ({ onBack }) => {
 
   const renderVocabularyTable = (items: Array<{ vocabulary: ReturnType<typeof splitVocabulary> }>) => (
     <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white">
-      <table className="w-full table-fixed border-collapse text-left text-sm">
+      <table className="w-full table-fixed border-collapse text-left text-base md:text-lg">
         <colgroup>
           <col className="w-1/3" />
           <col className="w-1/3" />
           <col className="w-1/3" />
         </colgroup>
-        <thead className="bg-slate-950 text-xs font-black uppercase tracking-[0.16em] text-white">
+        <thead className="bg-slate-950 text-sm font-black uppercase tracking-[0.18em] text-white">
           <tr>
-            <th className="px-5 py-4">Vocabulary</th>
-            <th className="px-5 py-4">Type</th>
-            <th className="px-5 py-4 pl-14 md:pl-20">Meaning</th>
+            <th className="px-5 py-5 md:px-7">Vocabulary</th>
+            <th className="px-5 py-5 md:px-7">Type</th>
+            <th className="px-5 py-5 pl-14 md:px-7 md:pl-20">Meaning</th>
           </tr>
         </thead>
         <tbody>
           {items.map(({ vocabulary }, index) => (
             <tr key={`${vocabulary.word}-${index}`} className={`${index % 2 === 0 ? 'bg-white' : 'bg-slate-50/80'} border-t border-slate-100`}>
-              <td className="px-5 py-4 font-black text-slate-950">{vocabulary.word}</td>
-              <td className="px-5 py-4">
-                <span className="rounded-full bg-cyan-50 px-3 py-1 text-xs font-black text-cyan-700">
+              <td className="px-5 py-5 font-black leading-8 text-slate-950 md:px-7">{vocabulary.word}</td>
+              <td className="px-5 py-5 md:px-7">
+                <span className="rounded-full bg-cyan-50 px-3.5 py-1.5 text-sm font-black leading-none text-cyan-700">
                   {vocabulary.type}
                 </span>
               </td>
-              <td className="whitespace-pre-line px-5 py-4 pl-14 leading-7 text-slate-700 md:pl-20">{vocabulary.meaning}</td>
+              <td className="whitespace-pre-line px-5 py-5 pl-14 font-semibold leading-8 text-slate-700 md:px-7 md:pl-20">{vocabulary.meaning}</td>
             </tr>
           ))}
         </tbody>
