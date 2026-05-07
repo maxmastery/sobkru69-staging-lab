@@ -297,8 +297,8 @@ const ShopPage: React.FC<ShopPageProps> = ({ onBack }) => {
           <p className="text-slate-500">กำลังดึงข้อมูลสินค้าจากระบบกลาง...</p>
         </div>
       ) : filteredProducts.length > 0 ? (
-        <section className="max-w-[980px]">
-          <div className="grid items-start grid-cols-[repeat(auto-fill,minmax(170px,1fr))] gap-x-10 gap-y-14 md:grid-cols-[repeat(auto-fill,minmax(176px,190px))]">
+        <section className="w-full">
+          <div className="grid items-start grid-cols-2 gap-x-5 gap-y-8 md:grid-cols-3 lg:grid-cols-4 lg:gap-x-7 lg:gap-y-10">
             {filteredProducts.map((product) => {
               const isUpcoming = Boolean(product.isUpcoming);
               const hasDiscount = Boolean(product.isDiscounted);
@@ -309,7 +309,7 @@ const ShopPage: React.FC<ShopPageProps> = ({ onBack }) => {
                   key={product.id}
                   disabled={isUpcoming}
                   onClick={() => void openProduct(product)}
-                  className={`group flex h-full min-h-[500px] flex-col text-left transition-transform duration-300 focus:outline-none focus-visible:ring-4 focus-visible:ring-orange-100 ${
+                  className={`group flex h-full flex-col text-left transition-transform duration-300 focus:outline-none focus-visible:ring-4 focus-visible:ring-orange-100 ${
                     isUpcoming ? 'cursor-default' : 'hover:-translate-y-1'
                   }`}
                 >
@@ -339,7 +339,7 @@ const ShopPage: React.FC<ShopPageProps> = ({ onBack }) => {
                     </div>
                   </div>
 
-                  <div className="mt-4 flex min-h-[124px] flex-1 flex-col">
+                  <div className="mt-3 flex min-h-[112px] flex-1 flex-col">
                     <h3 className="line-clamp-2 min-h-[44px] text-base font-black leading-snug text-slate-950 transition-colors group-hover:text-orange-600">
                       {product.name}
                     </h3>
