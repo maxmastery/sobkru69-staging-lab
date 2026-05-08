@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { BookOpenText, CheckCircle2, Edit2, Eye, Image as ImageIcon, Languages, Loader2, MessageSquareText, Plus, Save, Search, Trash2, Upload, X } from 'lucide-react';
 import ReactQuill from 'react-quill-new';
 import 'react-quill-new/dist/quill.snow.css';
-import { contentService, ContentDailyEnglishLesson, DailyEnglishDialogueLine, DailyEnglishVocabularyItem } from '../../services/contentService';
+import { contentService, ContentDailyEnglishLesson, DailyEnglishDialogueLine, DailyEnglishSpeakerGender, DailyEnglishSpeakerProfile, DailyEnglishVocabularyItem } from '../../services/contentService';
 
 const createId = () => {
   if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
@@ -25,12 +25,31 @@ const createDialogueLine = (index = 0): DailyEnglishDialogueLine => ({
 });
 
 const createDialogueSpeakers = (count = 2) => Array.from({ length: count }, (_, index) => `Speaker ${index + 1}`);
+const createDialogueSpeakerProfiles = (count = 2): DailyEnglishSpeakerProfile[] => Array.from({ length: count }, (_, index) => ({
+  id: createId(),
+  name: `Speaker ${index + 1}`,
+  gender: index % 2 === 0 ? 'female' : 'male',
+}));
+
+const getSpeakerProfiles = (lesson: Partial<ContentDailyEnglishLesson>): DailyEnglishSpeakerProfile[] => {
+  if (lesson.dialogueSpeakerProfiles?.length) {
+    return lesson.dialogueSpeakerProfiles;
+  }
+
+  const speakers = lesson.dialogueSpeakers?.length ? lesson.dialogueSpeakers : createDialogueSpeakers(2);
+  return speakers.map((name, index) => ({
+    id: createId(),
+    name: name || `Speaker ${index + 1}`,
+    gender: index % 2 === 0 ? 'female' : 'male',
+  }));
+};
 
 const createNewLesson = (): Partial<ContentDailyEnglishLesson> => ({
   title: '',
   lessonType: 'article',
   content: '',
   dialogueSpeakers: createDialogueSpeakers(2),
+  dialogueSpeakerProfiles: createDialogueSpeakerProfiles(2),
   dialogueLines: [createDialogueLine(0)],
   translation: '',
   vocabulary: [createVocabularyRow()],
@@ -112,10 +131,12 @@ const AdminDailyEnglish: React.FC = () => {
   };
 
   const handleEdit = (lesson: ContentDailyEnglishLesson) => {
+    const speakerProfiles = getSpeakerProfiles(lesson);
     setCurrentLesson({
       ...lesson,
       vocabulary: lesson.vocabulary.length > 0 ? lesson.vocabulary : [createVocabularyRow()],
-      dialogueSpeakers: lesson.dialogueSpeakers.length > 0 ? lesson.dialogueSpeakers : createDialogueSpeakers(2),
+      dialogueSpeakers: speakerProfiles.map(item => item.name),
+      dialogueSpeakerProfiles: speakerProfiles,
       dialogueLines: lesson.dialogueLines.length > 0 ? lesson.dialogueLines : [createDialogueLine(0)],
     });
     setIsEditing(true);
@@ -123,25 +144,39 @@ const AdminDailyEnglish: React.FC = () => {
 
   const setDialogueSpeakerCount = (count: number) => {
     setCurrentLesson(current => {
-      const existing = current.dialogueSpeakers || createDialogueSpeakers(2);
-      const nextSpeakers = Array.from({ length: count }, (_, index) => existing[index] || `Speaker ${index + 1}`);
+      const existingProfiles = getSpeakerProfiles(current);
+      const nextProfiles = Array.from({ length: count }, (_, index) => existingProfiles[index] || {
+        id: createId(),
+        name: `Speaker ${index + 1}`,
+        gender: index % 2 === 0 ? 'female' : 'male',
+      });
+      const nextSpeakers = nextProfiles.map(item => item.name);
       const fallbackSpeaker = nextSpeakers[0] || 'Speaker 1';
       const nextLines = (current.dialogueLines || []).map(line => ({
         ...line,
         speaker: nextSpeakers.includes(line.speaker) ? line.speaker : fallbackSpeaker,
       }));
-      return { ...current, dialogueSpeakers: nextSpeakers, dialogueLines: nextLines };
+      return { ...current, dialogueSpeakers: nextSpeakers, dialogueSpeakerProfiles: nextProfiles, dialogueLines: nextLines };
     });
   };
 
   const updateDialogueSpeaker = (index: number, value: string) => {
     setCurrentLesson(current => {
-      const speakers = current.dialogueSpeakers || createDialogueSpeakers(2);
-      const previousName = speakers[index] || `Speaker ${index + 1}`;
+      const profiles = getSpeakerProfiles(current);
+      const previousName = profiles[index]?.name || `Speaker ${index + 1}`;
       const nextName = value || `Speaker ${index + 1}`;
-      const nextSpeakers = speakers.map((speaker, speakerIndex) => speakerIndex === index ? nextName : speaker);
+      const nextProfiles = profiles.map((profile, speakerIndex) => speakerIndex === index ? { ...profile, name: nextName } : profile);
+      const nextSpeakers = nextProfiles.map(profile => profile.name);
       const nextLines = (current.dialogueLines || []).map(line => line.speaker === previousName ? { ...line, speaker: nextName } : line);
-      return { ...current, dialogueSpeakers: nextSpeakers, dialogueLines: nextLines };
+      return { ...current, dialogueSpeakers: nextSpeakers, dialogueSpeakerProfiles: nextProfiles, dialogueLines: nextLines };
+    });
+  };
+
+  const updateDialogueSpeakerGender = (index: number, gender: DailyEnglishSpeakerGender) => {
+    setCurrentLesson(current => {
+      const profiles = getSpeakerProfiles(current);
+      const nextProfiles = profiles.map((profile, speakerIndex) => speakerIndex === index ? { ...profile, gender } : profile);
+      return { ...current, dialogueSpeakers: nextProfiles.map(profile => profile.name), dialogueSpeakerProfiles: nextProfiles };
     });
   };
 
@@ -154,13 +189,15 @@ const AdminDailyEnglish: React.FC = () => {
 
   const addDialogueTurn = () => {
     setCurrentLesson(current => {
-      const speakers = current.dialogueSpeakers || createDialogueSpeakers(2);
+      const speakerProfiles = getSpeakerProfiles(current);
+      const speakers = speakerProfiles.map(profile => profile.name);
       const lines = current.dialogueLines || [];
       const previousSpeaker = lines[lines.length - 1]?.speaker;
       const nextSpeaker = speakers.find(speaker => speaker !== previousSpeaker) || speakers[0] || 'Speaker 1';
       return {
         ...current,
         dialogueSpeakers: speakers,
+        dialogueSpeakerProfiles: speakerProfiles,
         dialogueLines: [...lines, { ...createDialogueLine(lines.length), speaker: nextSpeaker }],
       };
     });
@@ -171,7 +208,7 @@ const AdminDailyEnglish: React.FC = () => {
       const nextLines = (current.dialogueLines || []).filter(line => line.id !== id);
       return {
         ...current,
-        dialogueLines: nextLines.length > 0 ? nextLines : [{ ...createDialogueLine(0), speaker: current.dialogueSpeakers?.[0] || 'Speaker 1' }],
+        dialogueLines: nextLines.length > 0 ? nextLines : [{ ...createDialogueLine(0), speaker: getSpeakerProfiles(current)[0]?.name || 'Speaker 1' }],
       };
     });
   };
@@ -247,13 +284,21 @@ const AdminDailyEnglish: React.FC = () => {
           .filter(item => stripHtml(item.content))
         : [];
       const cleanedDialogueSpeakers = lessonType === 'dialogue'
-        ? (currentLesson.dialogueSpeakers || createDialogueSpeakers(2)).map((speaker, index) => speaker.trim() || `Speaker ${index + 1}`)
+        ? getSpeakerProfiles(currentLesson).map((speaker, index) => speaker.name.trim() || `Speaker ${index + 1}`)
+        : [];
+      const cleanedDialogueSpeakerProfiles = lessonType === 'dialogue'
+        ? getSpeakerProfiles(currentLesson).map((speaker, index) => ({
+          ...speaker,
+          name: speaker.name.trim() || `Speaker ${index + 1}`,
+          gender: speaker.gender === 'male' ? 'male' : 'female',
+        }))
         : [];
 
       const saved = await contentService.saveDailyEnglishLesson({
         ...currentLesson,
         lessonType,
         dialogueSpeakers: cleanedDialogueSpeakers,
+        dialogueSpeakerProfiles: cleanedDialogueSpeakerProfiles,
         dialogueLines: cleanedDialogueLines,
         vocabulary: cleanedVocabulary,
       });
@@ -375,12 +420,16 @@ const AdminDailyEnglish: React.FC = () => {
                     <button
                       key={option.value}
                       type="button"
-                      onClick={() => setCurrentLesson(current => ({
-                        ...current,
-                        lessonType: option.value as 'article' | 'dialogue',
-                        dialogueSpeakers: current.dialogueSpeakers?.length ? current.dialogueSpeakers : createDialogueSpeakers(2),
-                        dialogueLines: current.dialogueLines?.length ? current.dialogueLines : [createDialogueLine(0)],
-                      }))}
+                      onClick={() => setCurrentLesson(current => {
+                        const speakerProfiles = getSpeakerProfiles(current);
+                        return {
+                          ...current,
+                          lessonType: option.value as 'article' | 'dialogue',
+                          dialogueSpeakers: speakerProfiles.map(item => item.name),
+                          dialogueSpeakerProfiles: speakerProfiles,
+                          dialogueLines: current.dialogueLines?.length ? current.dialogueLines : [createDialogueLine(0)],
+                        };
+                      })}
                       className={`flex items-start gap-3 rounded-2xl border p-4 text-left transition ${
                         isActive
                           ? 'border-cyan-300 bg-cyan-50 text-cyan-900 ring-2 ring-cyan-100'
@@ -439,7 +488,26 @@ const AdminDailyEnglish: React.FC = () => {
                 font-size: 16px;
               }
               .daily-english-dialogue-editor .ql-editor {
-                min-height: 150px;
+                min-height: 76px;
+                max-height: 96px;
+                padding: 14px !important;
+                font-size: 15px;
+              }
+              .daily-english-dialogue-editor .ql-toolbar.ql-snow {
+                display: flex;
+                flex-wrap: nowrap;
+                align-items: center;
+                gap: 2px;
+                overflow-x: auto;
+                overflow-y: hidden;
+                padding: 7px 10px !important;
+                white-space: nowrap;
+              }
+              .daily-english-dialogue-editor .ql-toolbar.ql-snow .ql-formats {
+                display: inline-flex !important;
+                align-items: center;
+                margin-right: 6px !important;
+                white-space: nowrap;
               }
             `}</style>
 
@@ -467,7 +535,7 @@ const AdminDailyEnglish: React.FC = () => {
                   <div>
                     <label className="mb-1 block text-xs font-black uppercase tracking-[0.12em] text-slate-400">จำนวนตัวละคร</label>
                     <select
-                      value={(currentLesson.dialogueSpeakers || []).length || 2}
+                      value={getSpeakerProfiles(currentLesson).length || 2}
                       onChange={(event) => setDialogueSpeakerCount(Number(event.target.value))}
                       className="rounded-2xl border border-cyan-200 bg-cyan-50 px-4 py-2.5 text-sm font-black text-cyan-800 outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-100"
                     >
@@ -484,42 +552,44 @@ const AdminDailyEnglish: React.FC = () => {
                     <h4 className="text-base font-black text-slate-900">ตัวละครในการสนทนา</h4>
                   </div>
                   <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-                    {(currentLesson.dialogueSpeakers || createDialogueSpeakers(2)).map((speaker, index) => (
+                    {getSpeakerProfiles(currentLesson).map((speaker, index) => (
                       <label key={index} className="block rounded-2xl border border-cyan-100 bg-white p-3">
                         <span className="mb-2 block text-xs font-black uppercase tracking-[0.12em] text-cyan-700">ผู้พูด {index + 1}</span>
-                        <input
-                          type="text"
-                          value={speaker}
-                          onChange={(event) => updateDialogueSpeaker(index, event.target.value)}
-                          className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-black text-slate-800 outline-none focus:border-cyan-500"
-                          placeholder={`Speaker ${index + 1}`}
-                        />
+                        <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_104px]">
+                          <input
+                            type="text"
+                            value={speaker.name}
+                            onChange={(event) => updateDialogueSpeaker(index, event.target.value)}
+                            className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-black text-slate-800 outline-none focus:border-cyan-500"
+                            placeholder={`Speaker ${index + 1}`}
+                          />
+                          <select
+                            value={speaker.gender}
+                            onChange={(event) => updateDialogueSpeakerGender(index, event.target.value as DailyEnglishSpeakerGender)}
+                            className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-black text-slate-700 outline-none focus:border-cyan-500"
+                          >
+                            <option value="female">หญิง</option>
+                            <option value="male">ชาย</option>
+                          </select>
+                        </div>
                       </label>
                     ))}
                   </div>
                 </div>
 
                 <div className="space-y-4">
-                  <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div>
                     <div>
                       <h4 className="text-base font-black text-slate-900">ลำดับบทสนทนา</h4>
                       <p className="mt-1 text-sm text-slate-500">เพิ่มทีละประโยคตามลำดับจริง แล้วเลือกว่าตัวละครคนไหนเป็นผู้พูด</p>
                     </div>
-                    <button
-                      type="button"
-                      onClick={addDialogueTurn}
-                      className="inline-flex items-center gap-2 rounded-2xl bg-cyan-600 px-4 py-2.5 text-sm font-black text-white shadow-lg shadow-cyan-600/20 transition hover:-translate-y-0.5"
-                    >
-                      <Plus className="h-4 w-4" />
-                      เพิ่มประโยค
-                    </button>
                   </div>
 
                   {(currentLesson.dialogueLines || [createDialogueLine(0)]).map((line, index) => (
-                    <div key={line.id} className="rounded-3xl border border-slate-200 bg-white p-4">
-                      <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+                    <div key={line.id} className="rounded-3xl border border-slate-200 bg-white p-3">
+                      <div className="mb-2 flex flex-wrap items-center justify-between gap-3">
                         <div className="flex flex-wrap items-center gap-3">
-                          <span className="flex h-9 w-9 items-center justify-center rounded-2xl bg-cyan-50 text-sm font-black text-cyan-700">
+                          <span className="flex h-8 w-8 items-center justify-center rounded-2xl bg-cyan-50 text-sm font-black text-cyan-700">
                             {index + 1}
                           </span>
                           <select
@@ -527,8 +597,8 @@ const AdminDailyEnglish: React.FC = () => {
                             onChange={(event) => updateDialogueLine(line.id, 'speaker', event.target.value)}
                             className="w-52 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-black text-slate-800 outline-none focus:border-cyan-500"
                           >
-                            {(currentLesson.dialogueSpeakers || createDialogueSpeakers(2)).map((speaker, speakerIndex) => (
-                              <option key={`${speaker}-${speakerIndex}`} value={speaker}>{speaker}</option>
+                            {getSpeakerProfiles(currentLesson).map((speaker, speakerIndex) => (
+                              <option key={`${speaker.name}-${speakerIndex}`} value={speaker.name}>{speaker.name}</option>
                             ))}
                           </select>
                         </div>
@@ -553,18 +623,28 @@ const AdminDailyEnglish: React.FC = () => {
                       </div>
                     </div>
                   ))}
+                  <div className="flex justify-center pt-1">
+                    <button
+                      type="button"
+                      onClick={addDialogueTurn}
+                      className="inline-flex items-center gap-2 rounded-2xl bg-cyan-600 px-5 py-3 text-sm font-black text-white shadow-lg shadow-cyan-600/20 transition hover:-translate-y-0.5"
+                    >
+                      <Plus className="h-4 w-4" />
+                      เพิ่มประโยค
+                    </button>
+                  </div>
                 </div>
               </div>
             )}
 
             <div>
-              <label className="mb-2 block text-sm font-bold text-slate-700">คำแปลภาษาไทยทั้งบทความ</label>
+              <label className="mb-2 block text-sm font-bold text-slate-700">คำแปลภาษาไทยทั้งบทเรียน</label>
               <textarea
                 required
                 value={currentLesson.translation || ''}
                 onChange={(event) => setCurrentLesson({ ...currentLesson, translation: event.target.value })}
                 className="min-h-[220px] w-full resize-y rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-base leading-8 text-slate-700 outline-none transition focus:border-cyan-500 focus:ring-2 focus:ring-cyan-100"
-                placeholder="ใส่คำแปลภาษาไทยของบทความทั้งบท..."
+                placeholder="ใส่คำแปลภาษาไทยของบทเรียนทั้งบท..."
               />
             </div>
           </div>

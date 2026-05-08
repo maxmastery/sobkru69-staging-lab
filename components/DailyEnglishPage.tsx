@@ -1,6 +1,6 @@
 import React, { CSSProperties, ReactNode, useEffect, useMemo, useRef, useState } from 'react';
 import { ArrowLeft, BookOpenText, CalendarDays, Eye, Languages, Loader2, Play, RefreshCcw, Square, TableProperties, Volume2 } from 'lucide-react';
-import { contentService, ContentDailyEnglishLesson, DailyEnglishVocabularyItem } from '../services/contentService';
+import { contentService, ContentDailyEnglishLesson, DailyEnglishSpeakerGender, DailyEnglishVocabularyItem } from '../services/contentService';
 
 interface DailyEnglishPageProps {
   onBack: () => void;
@@ -193,12 +193,12 @@ const renderDialogueWithWordHighlights = (
   return lines.map((line, index) => {
     const doc = new DOMParser().parseFromString(normalizeArticleHtml(line.content), 'text/html');
     return (
-      <div key={line.id} className="my-6 rounded-3xl border border-slate-200 bg-white/60 p-5 md:p-6">
-        <div className="mb-3 inline-flex items-center gap-2 rounded-full bg-cyan-50 px-3 py-1 text-sm font-black text-cyan-700">
+      <div key={line.id} className="my-2 grid gap-2 md:grid-cols-[128px_minmax(0,1fr)] md:items-start">
+        <div className="inline-flex items-center gap-2 text-sm font-black text-cyan-700">
           <span className="flex h-6 w-6 items-center justify-center rounded-full bg-cyan-600 text-xs text-white">{index + 1}</span>
           {line.speaker}
         </div>
-        <div>
+        <div className="min-w-0 leading-8 text-slate-700">
           {Array.from(doc.body.childNodes).map((node, childIndex) =>
             renderArticleNode(node, `dialogue-${line.id}-${childIndex}`, wordCounter, activeWordIndex)
           )}
@@ -251,10 +251,16 @@ const getEnglishVoices = () => {
     .sort((a, b) => scoreVoice(b) - scoreVoice(a));
 };
 
-const pickEnglishVoice = (index = 0) => {
+const pickEnglishVoice = (index = 0, gender?: DailyEnglishSpeakerGender) => {
   const voices = getEnglishVoices();
+  const preferredFemale = /samantha|karen|moira|victoria|allison|ava|serena|tessa|veena|zira|aria|jenny|susan|female/i;
+  const preferredMale = /alex|daniel|guy|david|mark|fred|tom|arthur|george|oliver|rishi|male/i;
+  const genderVoices = gender
+    ? voices.filter(voice => (gender === 'male' ? preferredMale : preferredFemale).test(voice.name))
+    : [];
   const naturalVoice = voices.find(voice => /google|microsoft|natural|neural|samantha|alex|daniel|karen|moira|aria|jenny|guy/i.test(voice.name));
-  return voices[index % Math.max(Math.min(voices.length, 4), 1)]
+  return genderVoices[index % Math.max(genderVoices.length, 1)]
+    || voices[index % Math.max(Math.min(voices.length, 4), 1)]
     || naturalVoice
     || null;
 };
@@ -291,10 +297,12 @@ const DailyEnglishPage: React.FC<DailyEnglishPageProps> = ({ onBack }) => {
           .filter(line => stripHtml(line.content))
           .map((line) => ({
             voiceIndex: Math.max(0, selectedLesson.dialogueSpeakers.findIndex(speaker => speaker === line.speaker)),
+            voiceGender: selectedLesson.dialogueSpeakerProfiles.find(speaker => speaker.name === line.speaker)?.gender,
             text: buildNaturalSpeechText(stripSpeakerPrefix(stripHtml(line.content), line.speaker)),
           }))
       : [{
           voiceIndex: 0,
+          voiceGender: undefined,
           text: buildNaturalSpeechText(articleText),
         }];
 
@@ -401,7 +409,7 @@ const DailyEnglishPage: React.FC<DailyEnglishPageProps> = ({ onBack }) => {
       }
 
       const utterance = new SpeechSynthesisUtterance(segment.text);
-      const voice = pickEnglishVoice(segment.voiceIndex);
+      const voice = pickEnglishVoice(segment.voiceIndex, segment.voiceGender);
       if (voice) {
         utterance.voice = voice;
         utterance.lang = voice.lang;
@@ -409,7 +417,7 @@ const DailyEnglishPage: React.FC<DailyEnglishPageProps> = ({ onBack }) => {
         utterance.lang = 'en-US';
       }
       utterance.rate = 0.82;
-      utterance.pitch = segment.voiceIndex % 2 === 0 ? 0.98 : 1.02;
+      utterance.pitch = segment.voiceGender === 'male' ? 0.92 : 1.02;
       utterance.volume = 1;
       utterance.onboundary = (event) => {
         if (event.charIndex < 0) return;
@@ -568,8 +576,8 @@ const DailyEnglishPage: React.FC<DailyEnglishPageProps> = ({ onBack }) => {
     return (
       <div className="space-y-8">
         {selectedLesson.imageUrl && (
-          <div className="overflow-hidden rounded-[30px] border border-slate-200 bg-white">
-            <img src={selectedLesson.imageUrl} alt={selectedLesson.title} className="h-auto max-h-[420px] w-full object-cover" />
+          <div className="rounded-[30px] border border-slate-200 bg-white p-2">
+            <img src={selectedLesson.imageUrl} alt={selectedLesson.title} className="mx-auto max-h-[520px] w-full object-contain" />
           </div>
         )}
 

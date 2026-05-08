@@ -208,12 +208,21 @@ export interface DailyEnglishDialogueLine {
   content: string;
 }
 
+export type DailyEnglishSpeakerGender = 'female' | 'male';
+
+export interface DailyEnglishSpeakerProfile {
+  id: string;
+  name: string;
+  gender: DailyEnglishSpeakerGender;
+}
+
 export interface ContentDailyEnglishLesson {
   id: string;
   title: string;
   lessonType: 'article' | 'dialogue';
   content: string;
   dialogueSpeakers: string[];
+  dialogueSpeakerProfiles: DailyEnglishSpeakerProfile[];
   dialogueLines: DailyEnglishDialogueLine[];
   translation: string;
   vocabulary: DailyEnglishVocabularyItem[];
@@ -493,17 +502,61 @@ const normalizeDailyEnglishDialogueSpeakers = (items: unknown, lines: DailyEngli
   return unique.length > 0 ? unique : ['Speaker 1', 'Speaker 2'];
 };
 
+const normalizeDailyEnglishSpeakerProfiles = (
+  items: unknown,
+  speakers: string[],
+  lines: DailyEnglishDialogueLine[]
+): DailyEnglishSpeakerProfile[] => {
+  const profiles = Array.isArray(items)
+    ? items
+      .map((item, index) => {
+        const value = item && typeof item === 'object' ? item as Record<string, any> : {};
+        const name = typeof value.name === 'string' && value.name.trim()
+          ? value.name.trim()
+          : speakers[index] || `Speaker ${index + 1}`;
+        return {
+          id: typeof value.id === 'string' && value.id ? value.id : createId(),
+          name,
+          gender: value.gender === 'male' ? 'male' : 'female',
+        };
+      })
+      .filter(item => item.name)
+    : [];
+
+  const derivedNames = normalizeDailyEnglishDialogueSpeakers(speakers, lines);
+  const merged = [...profiles];
+  derivedNames.forEach((name, index) => {
+    if (!merged.some(item => item.name === name)) {
+      merged.push({
+        id: createId(),
+        name,
+        gender: index % 2 === 0 ? 'female' : 'male',
+      });
+    }
+  });
+
+  return merged.length > 0
+    ? merged
+    : [
+        { id: createId(), name: 'Speaker 1', gender: 'female' },
+        { id: createId(), name: 'Speaker 2', gender: 'male' },
+      ];
+};
+
 const normalizeDailyEnglishLesson = (value: unknown): ContentDailyEnglishLesson => {
   const item = value && typeof value === 'object' ? value as Record<string, any> : {};
   const now = new Date().toISOString();
   const dialogueLines = normalizeDailyEnglishDialogueLines(item.dialogueLines);
+  const dialogueSpeakers = normalizeDailyEnglishDialogueSpeakers(item.dialogueSpeakers, dialogueLines);
+  const dialogueSpeakerProfiles = normalizeDailyEnglishSpeakerProfiles(item.dialogueSpeakerProfiles, dialogueSpeakers, dialogueLines);
 
   return {
     id: typeof item.id === 'string' && item.id ? item.id : createId(),
     title: typeof item.title === 'string' ? item.title : '',
     lessonType: item.lessonType === 'dialogue' ? 'dialogue' : 'article',
     content: typeof item.content === 'string' ? item.content : '',
-    dialogueSpeakers: normalizeDailyEnglishDialogueSpeakers(item.dialogueSpeakers, dialogueLines),
+    dialogueSpeakers: dialogueSpeakerProfiles.map(profile => profile.name),
+    dialogueSpeakerProfiles,
     dialogueLines,
     translation: typeof item.translation === 'string' ? item.translation : '',
     vocabulary: normalizeDailyEnglishVocabulary(item.vocabulary),
@@ -577,6 +630,7 @@ export const contentService = {
       lessonType: item.lessonType || 'article',
       content: item.content || '',
       dialogueSpeakers: item.dialogueSpeakers,
+      dialogueSpeakerProfiles: item.dialogueSpeakerProfiles,
       dialogueLines: normalizeDailyEnglishDialogueLines(item.dialogueLines),
       translation: item.translation || '',
       vocabulary: normalizeDailyEnglishVocabulary(item.vocabulary),

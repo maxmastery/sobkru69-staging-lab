@@ -41,6 +41,13 @@ const ProductRibbon = ({ label, tone = 'new' }: { label: string; tone?: 'new' | 
   </div>
 );
 
+const DiscountRibbon = ({ percent }: { percent: number }) => (
+  <div className="pointer-events-none absolute right-0 top-2 z-30 bg-red-600 px-4 py-1.5 text-sm font-black leading-none text-white shadow-lg shadow-red-900/25">
+    -{percent}%
+    <span className="absolute -bottom-1 right-0 border-l-[8px] border-t-[4px] border-l-red-900 border-t-red-900/80" />
+  </div>
+);
+
 const ShopPage: React.FC<ShopPageProps> = ({ onBack }) => {
   const [products, setProducts] = useState<ProductItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -90,6 +97,9 @@ const ShopPage: React.FC<ShopPageProps> = ({ onBack }) => {
         return matchesSearch && matchesCategory && matchesSubject;
       })
       .sort((a, b) => {
+        if (Boolean(a.isUpcoming) !== Boolean(b.isUpcoming)) {
+          return a.isUpcoming ? 1 : -1;
+        }
         if (sortOrder === 'oldest') {
           return new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime();
         }
@@ -303,6 +313,9 @@ const ShopPage: React.FC<ShopPageProps> = ({ onBack }) => {
               const isUpcoming = Boolean(product.isUpcoming);
               const hasDiscount = Boolean(product.isDiscounted);
               const hasOriginalPrice = !isUpcoming && hasDiscount && product.originalPrice > product.price;
+              const discountPercent = hasOriginalPrice
+                ? Math.max(1, Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100))
+                : 0;
               return (
                 <button
                   type="button"
@@ -328,9 +341,7 @@ const ShopPage: React.FC<ShopPageProps> = ({ onBack }) => {
                           <Package className="h-12 w-12 text-slate-300" />
                         </div>
                       )}
-                      <div className="absolute left-2 top-2 flex flex-col gap-1.5">
-                        {!isUpcoming && hasDiscount && <span className="rounded-full bg-orange-500 px-2.5 py-1 text-[10px] font-black text-white shadow-sm">SALE</span>}
-                      </div>
+                      {discountPercent > 0 && <DiscountRibbon percent={discountPercent} />}
                       {!isUpcoming && product.status === 'out_of_stock' && (
                         <div className="absolute inset-0 flex items-center justify-center bg-white/75 backdrop-blur-[2px]">
                           <span className="rotate-[-10deg] rounded-full bg-red-600 px-4 py-2 text-sm font-black text-white">สินค้าหมด</span>
