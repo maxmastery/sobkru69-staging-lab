@@ -532,36 +532,32 @@ const DailyEnglishPage: React.FC<DailyEnglishPageProps> = ({ onBack }) => {
         </span>
       </div>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        {lessons.map((item, index) => {
+        {lessons.map((item) => {
           const isToday = item.date === todayKey;
-          const preview = getLessonPreviewText(item);
           return (
             <button
               key={item.id}
               type="button"
               onClick={() => openLesson(item.id)}
-              className="group min-h-[154px] rounded-3xl border border-slate-200 bg-white/55 p-4 text-left transition-all hover:-translate-y-0.5 hover:border-cyan-300 hover:bg-white hover:ring-4 hover:ring-cyan-100"
+              className="group min-h-[178px] rounded-3xl border border-slate-200 bg-white/55 p-4 text-left transition-all hover:-translate-y-0.5 hover:border-cyan-300 hover:bg-white hover:ring-4 hover:ring-cyan-100"
             >
               <div className="mb-3 flex items-center justify-between gap-2">
                 <span className={`rounded-full px-2.5 py-1 text-[11px] font-black ${isToday ? 'bg-orange-500 text-white' : 'bg-slate-100 text-slate-500'}`}>
                   {isToday ? 'Today' : formatDisplayDate(item.date)}
                 </span>
-                {index === 0 && (
-                  <span className="rounded-full bg-slate-950 px-2.5 py-1 text-[11px] font-black text-white">
-                    ล่าสุด
-                  </span>
-                )}
+                <span className="inline-flex items-center gap-1.5 text-xs font-black text-slate-400">
+                  <Eye className="h-3.5 w-3.5" />
+                  {item.viewCount} reads
+                </span>
               </div>
-            <h3 className="line-clamp-2 text-base font-black leading-snug text-slate-950 group-hover:text-cyan-700">
+              {item.imageUrl ? (
+                <div className="mb-3 aspect-[16/9] w-full overflow-hidden rounded-2xl bg-slate-100">
+                  <img src={item.imageUrl} alt={item.title || 'lesson cover'} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.02]" />
+                </div>
+              ) : null}
+              <h3 className="line-clamp-2 text-base font-black leading-snug text-slate-950 group-hover:text-cyan-700">
                 {item.title || 'ไม่มีหัวข้อ'}
               </h3>
-              <p className="mt-2 line-clamp-2 text-sm leading-6 text-slate-500">
-                {preview || 'ยังไม่มีตัวอย่างเนื้อหา'}
-              </p>
-              <div className="mt-3 inline-flex items-center gap-1.5 text-xs font-black text-slate-400">
-                <Eye className="h-3.5 w-3.5" />
-                {item.viewCount} reads
-              </div>
             </button>
           );
         })}
@@ -576,9 +572,7 @@ const DailyEnglishPage: React.FC<DailyEnglishPageProps> = ({ onBack }) => {
     return (
       <div className="space-y-8">
         {selectedLesson.imageUrl && (
-          <div className="rounded-[30px] border border-slate-200 bg-white p-2">
-            <img src={selectedLesson.imageUrl} alt={selectedLesson.title} className="mx-auto max-h-[520px] w-full object-contain" />
-          </div>
+          <img src={selectedLesson.imageUrl} alt={selectedLesson.title} className="mx-auto max-h-[520px] w-full object-contain" />
         )}
 
         <section className="overflow-visible border-t border-slate-200 pt-7">
