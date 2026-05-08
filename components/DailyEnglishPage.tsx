@@ -539,25 +539,27 @@ const DailyEnglishPage: React.FC<DailyEnglishPageProps> = ({ onBack }) => {
               key={item.id}
               type="button"
               onClick={() => openLesson(item.id)}
-              className="group min-h-[178px] rounded-3xl border border-slate-200 bg-white/55 p-4 text-left transition-all hover:-translate-y-0.5 hover:border-cyan-300 hover:bg-white hover:ring-4 hover:ring-cyan-100"
+              className="group min-h-[178px] overflow-hidden rounded-3xl border border-slate-200 bg-white/55 text-left transition-all hover:-translate-y-0.5 hover:border-cyan-300 hover:bg-white hover:ring-4 hover:ring-cyan-100"
             >
-              <div className="mb-3 flex items-center justify-between gap-2">
-                <span className={`rounded-full px-2.5 py-1 text-[11px] font-black ${isToday ? 'bg-orange-500 text-white' : 'bg-slate-100 text-slate-500'}`}>
-                  {isToday ? 'Today' : formatDisplayDate(item.date)}
-                </span>
-                <span className="inline-flex items-center gap-1.5 text-xs font-black text-slate-400">
-                  <Eye className="h-3.5 w-3.5" />
-                  {item.viewCount} reads
-                </span>
-              </div>
-              {item.imageUrl ? (
-                <div className="mb-3 aspect-[16/9] w-full overflow-hidden rounded-2xl bg-slate-100">
+              <div className="relative aspect-[16/9] w-full overflow-hidden bg-slate-100">
+                {item.imageUrl ? (
                   <img src={item.imageUrl} alt={item.title || 'lesson cover'} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.02]" />
+                ) : null}
+                <div className="pointer-events-none absolute inset-x-0 top-0 flex items-center justify-between p-3">
+                  <span className={`rounded-full px-2.5 py-1 text-[11px] font-black shadow-sm ${isToday ? 'bg-orange-500 text-white' : 'bg-white/90 text-slate-700'}`}>
+                    {isToday ? 'Today' : formatDisplayDate(item.date)}
+                  </span>
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-950/70 px-2.5 py-1 text-xs font-black text-white">
+                    <Eye className="h-3.5 w-3.5" />
+                    {item.viewCount} reads
+                  </span>
                 </div>
-              ) : null}
-              <h3 className="line-clamp-2 text-base font-black leading-snug text-slate-950 group-hover:text-cyan-700">
-                {item.title || 'ไม่มีหัวข้อ'}
-              </h3>
+              </div>
+              <div className="p-4">
+                <h3 className="line-clamp-2 text-base font-black leading-snug text-slate-950 group-hover:text-cyan-700">
+                  {item.title || 'ไม่มีหัวข้อ'}
+                </h3>
+              </div>
             </button>
           );
         })}
