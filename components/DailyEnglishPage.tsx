@@ -559,6 +559,9 @@ const DailyEnglishPage: React.FC<DailyEnglishPageProps> = ({ onBack }) => {
                 <h3 className="line-clamp-2 text-base font-black leading-snug text-slate-950 group-hover:text-cyan-700">
                   {item.title || 'ไม่มีหัวข้อ'}
                 </h3>
+                <p className="mt-1 text-xs font-bold uppercase tracking-[0.12em] text-slate-500">
+                  {item.lessonType === 'dialogue' ? 'Conversation' : 'Reading'}
+                </p>
               </div>
             </button>
           );
