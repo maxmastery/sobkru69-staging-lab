@@ -10,6 +10,11 @@ type PageMode = 'list' | 'lesson' | 'vocabulary';
 
 const VOCABULARY_PAGE_SIZE = 100;
 const ARTICLE_WORD_PATTERN = /[\p{L}\p{N}]+(?:[’'-][\p{L}\p{N}]+)*/gu;
+type HighlightTone = 'sky' | 'orange';
+
+const getActiveWordClass = (tone: HighlightTone) => tone === 'orange'
+  ? 'relative z-10 bg-orange-300 text-orange-950 shadow-[0_0_0_3px_rgba(251,146,60,0.45)]'
+  : 'relative z-10 bg-sky-200 text-sky-950 shadow-[0_0_0_3px_rgba(125,211,252,0.45)]';
 
 const stripHtml = (value: string) => {
   if (typeof window !== 'undefined' && 'DOMParser' in window) {
@@ -134,7 +139,8 @@ const renderHighlightedText = (
   text: string,
   wordCounter: { current: number },
   activeWordIndex: number,
-  keyPrefix: string
+  keyPrefix: string,
+  activeTone: HighlightTone = 'sky'
 ) => {
   const nodes: ReactNode[] = [];
   let lastIndex = 0;
@@ -151,9 +157,9 @@ const renderHighlightedText = (
     nodes.push(
       <span
         key={`${keyPrefix}-${wordIndex}`}
-        className={`rounded-[6px] px-0.5 transition-colors duration-150 ${
+        className={`rounded-[6px] px-0.5 box-decoration-clone transition-colors duration-150 ${
           activeWordIndex === wordIndex
-            ? 'bg-sky-200 text-sky-950 shadow-[0_0_0_3px_rgba(125,211,252,0.45)]'
+            ? getActiveWordClass(activeTone)
             : ''
         }`}
       >
@@ -174,10 +180,11 @@ const renderArticleNode = (
   node: ChildNode,
   key: string,
   wordCounter: { current: number },
-  activeWordIndex: number
+  activeWordIndex: number,
+  activeTone: HighlightTone = 'sky'
 ): ReactNode => {
   if (node.nodeType === Node.TEXT_NODE) {
-    return renderHighlightedText(node.textContent || '', wordCounter, activeWordIndex, key);
+    return renderHighlightedText(node.textContent || '', wordCounter, activeWordIndex, key, activeTone);
   }
 
   if (node.nodeType !== Node.ELEMENT_NODE) return null;
@@ -191,7 +198,7 @@ const renderArticleNode = (
     'li', 'mark', 'ol', 'p', 'span', 'strong', 'u', 'ul',
   ]);
   const children = Array.from(element.childNodes).map((child, index) =>
-    renderArticleNode(child, `${key}-${index}`, wordCounter, activeWordIndex)
+    renderArticleNode(child, `${key}-${index}`, wordCounter, activeWordIndex, activeTone)
   );
 
   if (!allowedTags.has(tag)) {
@@ -220,7 +227,7 @@ const renderArticleWithWordHighlights = (html: string, activeWordIndex: number) 
   const doc = new DOMParser().parseFromString(html, 'text/html');
   const wordCounter = { current: 0 };
   return Array.from(doc.body.childNodes).map((node, index) =>
-    renderArticleNode(node, `article-${index}`, wordCounter, activeWordIndex)
+    renderArticleNode(node, `article-${index}`, wordCounter, activeWordIndex, 'sky')
   );
 };
 
@@ -240,6 +247,7 @@ const renderDialogueWithWordHighlights = (
   const wordCounter = { current: 0 };
   return lines.map((line, index) => {
     const doc = new DOMParser().parseFromString(normalizeArticleHtml(line.content), 'text/html');
+    const activeTone: HighlightTone = index % 2 === 1 ? 'orange' : 'sky';
     return (
       <div key={line.id} className="my-2 grid gap-2 md:grid-cols-[128px_minmax(0,1fr)] md:items-start">
         <div className="inline-flex items-center gap-2 text-sm font-black text-cyan-700">
@@ -248,7 +256,7 @@ const renderDialogueWithWordHighlights = (
         </div>
         <div className="min-w-0 leading-8 text-slate-700">
           {Array.from(doc.body.childNodes).map((node, childIndex) =>
-            renderArticleNode(node, `dialogue-${line.id}-${childIndex}`, wordCounter, activeWordIndex)
+            renderArticleNode(node, `dialogue-${line.id}-${childIndex}`, wordCounter, activeWordIndex, activeTone)
           )}
         </div>
       </div>

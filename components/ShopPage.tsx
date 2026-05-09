@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { ArrowLeft, ShoppingCart, CheckCircle2, Package, Search, SlidersHorizontal, Sparkles, Percent, Tag, ExternalLink } from 'lucide-react';
+import { ArrowLeft, ShoppingCart, CheckCircle2, Package, Search, SlidersHorizontal, Sparkles, Percent, Tag, ExternalLink, Loader2 } from 'lucide-react';
 import { ProductItem } from './admin/AdminShop';
 import { contentService } from '../services/contentService';
 
@@ -58,6 +58,8 @@ const ShopPage: React.FC<ShopPageProps> = ({ onBack }) => {
   const [subjectFilter, setSubjectFilter] = useState('all');
   const [sortOrder, setSortOrder] = useState('newest');
   const [showFilters, setShowFilters] = useState(false);
+  const [checkoutProductId, setCheckoutProductId] = useState('');
+  const [checkoutError, setCheckoutError] = useState('');
 
   useEffect(() => {
     const loadProducts = async () => {
@@ -128,12 +130,41 @@ const ShopPage: React.FC<ShopPageProps> = ({ onBack }) => {
     }
   };
 
+  const handleCheckout = async (product: ProductItem) => {
+    const canBuyProduct = product.status === 'in_stock' && Boolean(product.stripePriceId || product.stripeUrl);
+    if (!canBuyProduct || checkoutProductId) return;
+
+    setCheckoutError('');
+    if (!product.stripePriceId) {
+      window.location.href = product.stripeUrl;
+      return;
+    }
+
+    setCheckoutProductId(product.id);
+    try {
+      const response = await fetch('/api/create-stripe-checkout', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ productId: product.id }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || !data.success || !data.url) {
+        throw new Error(data.message || 'สร้างลิงก์ชำระเงินไม่สำเร็จ');
+      }
+      window.location.href = data.url;
+    } catch (error) {
+      setCheckoutError(error instanceof Error ? error.message : 'สร้างลิงก์ชำระเงินไม่สำเร็จ');
+      setCheckoutProductId('');
+    }
+  };
+
   if (selectedProduct) {
     const images = getProductImages(selectedProduct);
     const activeImage = images[activeImageIndex] || selectedProduct.imageUrl;
     const hasDiscount = Boolean(selectedProduct.isDiscounted);
     const hasOriginalPrice = hasDiscount && selectedProduct.originalPrice > selectedProduct.price;
-    const canBuy = selectedProduct.status === 'in_stock' && Boolean(selectedProduct.stripeUrl);
+    const canBuy = selectedProduct.status === 'in_stock' && Boolean(selectedProduct.stripePriceId || selectedProduct.stripeUrl);
+    const isCheckingOut = checkoutProductId === selectedProduct.id;
 
     return (
       <div className="w-full max-w-[1180px] mx-auto px-6 md:px-[80px] pt-8 md:pt-[56px] pb-14 animate-in fade-in duration-300">
@@ -215,26 +246,26 @@ const ShopPage: React.FC<ShopPageProps> = ({ onBack }) => {
                 </div>
               </div>
 
-              <a
-                href={canBuy ? selectedProduct.stripeUrl : undefined}
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-disabled={!canBuy}
-                onClick={(event) => {
-                  if (!canBuy) {
-                    event.preventDefault();
-                  }
-                }}
+              {checkoutError && (
+                <div className="mb-4 rounded-2xl border border-red-100 bg-red-50 px-4 py-3 text-sm font-bold text-red-700">
+                  {checkoutError}
+                </div>
+              )}
+
+              <button
+                type="button"
+                disabled={!canBuy || isCheckingOut}
+                onClick={() => void handleCheckout(selectedProduct)}
                 className={`inline-flex w-full items-center justify-center gap-3 rounded-3xl px-6 py-[17px] text-lg font-black text-white transition-all ${
-                  canBuy
+                  canBuy && !isCheckingOut
                     ? 'bg-[#FA6B19] shadow-[0_20px_45px_rgba(250,107,25,.30)] hover:-translate-y-1 hover:bg-[#E75F13] hover:shadow-[0_26px_54px_rgba(250,107,25,.38)]'
                     : 'cursor-not-allowed bg-[#FA6B19] opacity-70'
                 }`}
               >
-                <ShoppingCart className="h-6 w-6" />
-                {selectedProduct.status === 'out_of_stock' ? 'สินค้าหมด' : 'สั่งซื้อเลย'}
-                {canBuy && <ExternalLink className="h-5 w-5" />}
-              </a>
+                {isCheckingOut ? <Loader2 className="h-6 w-6 animate-spin" /> : <ShoppingCart className="h-6 w-6" />}
+                {selectedProduct.status === 'out_of_stock' ? 'สินค้าหมด' : isCheckingOut ? 'กำลังไปหน้าชำระเงิน...' : 'สั่งซื้อเลย'}
+                {canBuy && !isCheckingOut && <ExternalLink className="h-5 w-5" />}
+              </button>
             </div>
           </section>
         </div>
