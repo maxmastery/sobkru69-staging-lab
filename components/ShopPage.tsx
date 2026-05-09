@@ -131,15 +131,10 @@ const ShopPage: React.FC<ShopPageProps> = ({ onBack }) => {
   };
 
   const handleCheckout = async (product: ProductItem) => {
-    const canBuyProduct = product.status === 'in_stock' && Boolean(product.stripePriceId || product.stripeUrl);
+    const canBuyProduct = product.status === 'in_stock' && Boolean(product.stripePriceId);
     if (!canBuyProduct || checkoutProductId) return;
 
     setCheckoutError('');
-    if (!product.stripePriceId) {
-      window.location.href = product.stripeUrl;
-      return;
-    }
-
     setCheckoutProductId(product.id);
     try {
       const response = await fetch('/api/create-stripe-checkout', {
@@ -163,7 +158,8 @@ const ShopPage: React.FC<ShopPageProps> = ({ onBack }) => {
     const activeImage = images[activeImageIndex] || selectedProduct.imageUrl;
     const hasDiscount = Boolean(selectedProduct.isDiscounted);
     const hasOriginalPrice = hasDiscount && selectedProduct.originalPrice > selectedProduct.price;
-    const canBuy = selectedProduct.status === 'in_stock' && Boolean(selectedProduct.stripePriceId || selectedProduct.stripeUrl);
+    const hasAutoCheckout = Boolean(selectedProduct.stripePriceId);
+    const canBuy = selectedProduct.status === 'in_stock' && hasAutoCheckout;
     const isCheckingOut = checkoutProductId === selectedProduct.id;
 
     return (
@@ -263,7 +259,13 @@ const ShopPage: React.FC<ShopPageProps> = ({ onBack }) => {
                 }`}
               >
                 {isCheckingOut ? <Loader2 className="h-6 w-6 animate-spin" /> : <ShoppingCart className="h-6 w-6" />}
-                {selectedProduct.status === 'out_of_stock' ? 'สินค้าหมด' : isCheckingOut ? 'กำลังไปหน้าชำระเงิน...' : 'สั่งซื้อเลย'}
+                {selectedProduct.status === 'out_of_stock'
+                  ? 'สินค้าหมด'
+                  : !hasAutoCheckout
+                    ? 'ยังไม่ได้ตั้งค่า Stripe Price ID'
+                    : isCheckingOut
+                      ? 'กำลังไปหน้าชำระเงิน...'
+                      : 'สั่งซื้อเลย'}
                 {canBuy && !isCheckingOut && <ExternalLink className="h-5 w-5" />}
               </button>
             </div>

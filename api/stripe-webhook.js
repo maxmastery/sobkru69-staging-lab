@@ -173,6 +173,26 @@ export const fulfillCheckoutSession = async ({ session, event }) => {
   }
 };
 
+export const fulfillPaymentIntent = async ({ paymentIntent, event }) => {
+  const paymentIntentId = String(paymentIntent?.id || '').trim();
+  if (!paymentIntentId) {
+    return { skipped: true, message: 'ไม่พบเลขอ้างอิง payment intent จาก Stripe' };
+  }
+
+  const sessionsResponse = await stripeFetch(
+    `/v1/checkout/sessions?payment_intent=${encodeURIComponent(paymentIntentId)}&limit=1`
+  );
+  const session = Array.isArray(sessionsResponse.data) && sessionsResponse.data.length > 0
+    ? sessionsResponse.data[0]
+    : null;
+
+  if (!session) {
+    return { skipped: true, message: 'ไม่พบ Checkout Session ที่ผูกกับ payment intent นี้' };
+  }
+
+  return fulfillCheckoutSession({ session, event });
+};
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return json(res, 405, { success: false, message: 'Method not allowed' });
@@ -200,11 +220,17 @@ export default async function handler(req, res) {
       event = verifiedEvent;
     }
 
-    if (!['checkout.session.completed', 'checkout.session.async_payment_succeeded'].includes(event.type)) {
+    if (![
+      'checkout.session.completed',
+      'checkout.session.async_payment_succeeded',
+      'payment_intent.succeeded',
+    ].includes(event.type)) {
       return json(res, 200, { received: true, ignored: true });
     }
 
-    const result = await fulfillCheckoutSession({ session: event.data.object, event });
+    const result = event.type === 'payment_intent.succeeded'
+      ? await fulfillPaymentIntent({ paymentIntent: event.data.object, event })
+      : await fulfillCheckoutSession({ session: event.data.object, event });
     return json(res, 200, { received: true, ...result });
   } catch (error) {
     console.error('Stripe webhook failed', error);

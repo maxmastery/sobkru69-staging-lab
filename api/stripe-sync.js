@@ -3,8 +3,10 @@ import { fulfillCheckoutSession } from './stripe-webhook.js';
 
 const isCronAuthorized = (req) => {
   const cronSecret = process.env.CRON_SECRET;
-  if (!cronSecret) return false;
-  return req.headers.authorization === `Bearer ${cronSecret}`;
+  if (cronSecret) return req.headers.authorization === `Bearer ${cronSecret}`;
+
+  const userAgent = String(req.headers['user-agent'] || '').toLowerCase();
+  return req.headers['x-vercel-cron'] === '1' || userAgent.includes('vercel-cron');
 };
 
 export default async function handler(req, res) {

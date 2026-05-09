@@ -1,11 +1,13 @@
 import { json, parseProductMeta, stripeFetch, supabaseRequest } from './_stripeFulfillment.js';
 
 const getOrigin = (req) => {
-  const configured = process.env.PUBLIC_SITE_URL || process.env.VITE_PUBLIC_SITE_URL || process.env.SITE_URL;
-  if (configured) return configured.replace(/\/+$/, '');
   const protocol = req.headers['x-forwarded-proto'] || 'https';
   const host = req.headers['x-forwarded-host'] || req.headers.host;
-  return `${protocol}://${host}`;
+  if (host) return `${protocol}://${host}`;
+
+  const configured = process.env.PUBLIC_SITE_URL || process.env.VITE_PUBLIC_SITE_URL || process.env.SITE_URL;
+  if (configured) return configured.replace(/\/+$/, '');
+  throw new Error('ไม่สามารถระบุ URL เว็บไซต์สำหรับกลับหลังชำระเงินได้');
 };
 
 const readBody = (req) => {
