@@ -240,6 +240,8 @@ export interface ContentDailyEnglishLesson {
 
 const SUPABASE_NOT_CONFIGURED_MESSAGE = 'ยังไม่ได้ตั้งค่า Supabase';
 const DAILY_ENGLISH_SETTINGS_KEY = 'daily_english_lessons';
+const DAILY_ENGLISH_VIEW_FALLBACK_TYPE: ContentViewRow['content_type'] = 'news';
+const DAILY_ENGLISH_VIEW_FALLBACK_PREFIX = 'daily_english:';
 
 const ensureSupabase = () => {
   if (!isSupabaseConfigured()) {
@@ -257,6 +259,11 @@ const createId = () => {
   }
   return `${Date.now()}-${Math.random().toString(36).slice(2, 12)}`;
 };
+
+const getContentViewRowId = (contentType: ContentViewRow['content_type'], contentId: string, viewerKey: string) =>
+  `${contentType}_${contentId}_${viewerKey}`.replace(/[^a-zA-Z0-9._-]+/g, '-').slice(0, 260);
+
+const getDailyEnglishFallbackViewId = (contentId: string) => `${DAILY_ENGLISH_VIEW_FALLBACK_PREFIX}${contentId}`;
 
 const toNewsItem = (row: NewsRow): ContentNewsItem => ({
   id: row.id,
@@ -637,7 +644,7 @@ export const contentService = {
     const rows = await supabaseRest.select<AppSettingRow[]>('app_settings', `select=*&key=eq.${encodeValue(DAILY_ENGLISH_SETTINGS_KEY)}&limit=1`);
     const lessons = rows?.[0]?.value?.lessons;
     const items = sortDailyEnglishLessons(Array.isArray(lessons) ? lessons.map(normalizeDailyEnglishLesson) : []);
-    const viewCounts = await this.getViewCounts('daily_english', items.map(item => item.id));
+    const viewCounts = await this.getDailyEnglishViewCounts(items.map(item => item.id));
     return items.map(item => ({
       ...item,
       viewCount: viewCounts[item.id] ? viewCounts[item.id].size : item.viewCount,
@@ -710,6 +717,58 @@ export const contentService = {
     return uploadPublicImage(file, 'daily-english');
   },
 
+  async getDailyEnglishViewCounts(contentIds: string[]): Promise<Record<string, Set<string>>> {
+    const validIds = contentIds.filter(Boolean);
+    if (validIds.length === 0) return {};
+
+    const [directCounts, fallbackCounts] = await Promise.all([
+      this.getViewCounts('daily_english', validIds),
+      this.getViewCounts(DAILY_ENGLISH_VIEW_FALLBACK_TYPE, validIds.map(getDailyEnglishFallbackViewId)),
+    ]);
+
+    return validIds.reduce<Record<string, Set<string>>>((acc, id) => {
+      const viewers = new Set<string>();
+      directCounts[id]?.forEach(viewer => viewers.add(viewer));
+      fallbackCounts[getDailyEnglishFallbackViewId(id)]?.forEach(viewer => viewers.add(viewer));
+      acc[id] = viewers;
+      return acc;
+    }, {});
+  },
+
+  async getDailyEnglishViewCount(contentId: string): Promise<number> {
+    const counts = await this.getDailyEnglishViewCounts([contentId]);
+    return counts[contentId]?.size || 0;
+  },
+
+  async recordDailyEnglishView(contentId: string): Promise<number> {
+    ensureSupabase();
+    const viewerKey = getViewerKey();
+    const viewedAt = new Date().toISOString();
+
+    const directPayload: ContentViewRow = {
+      id: getContentViewRowId('daily_english', contentId, viewerKey),
+      content_type: 'daily_english',
+      content_id: contentId,
+      viewer_key: viewerKey,
+      viewed_at: viewedAt,
+    };
+
+    try {
+      await supabaseRest.upsert<ContentViewRow[]>('content_views', directPayload, 'id');
+    } catch (error) {
+      const fallbackContentId = getDailyEnglishFallbackViewId(contentId);
+      await supabaseRest.upsert<ContentViewRow[]>('content_views', {
+        id: getContentViewRowId(DAILY_ENGLISH_VIEW_FALLBACK_TYPE, fallbackContentId, viewerKey),
+        content_type: DAILY_ENGLISH_VIEW_FALLBACK_TYPE,
+        content_id: fallbackContentId,
+        viewer_key: viewerKey,
+        viewed_at: viewedAt,
+      }, 'id');
+    }
+
+    return this.getDailyEnglishViewCount(contentId);
+  },
+
   async getViewCounts(contentType: ContentViewRow['content_type'], contentIds: string[]): Promise<Record<string, Set<string>>> {
     ensureSupabase();
     const validIds = contentIds.filter(Boolean);
@@ -741,7 +800,7 @@ export const contentService = {
     try {
       const viewerKey = getViewerKey();
       await supabaseRest.upsert<ContentViewRow[]>('content_views', {
-        id: `${contentType}_${contentId}_${viewerKey}`.replace(/[^a-zA-Z0-9._-]+/g, '-').slice(0, 260),
+        id: getContentViewRowId(contentType, contentId, viewerKey),
         content_type: contentType,
         content_id: contentId,
         viewer_key: viewerKey,

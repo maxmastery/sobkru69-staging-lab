@@ -32,12 +32,19 @@ create index if not exists user_sessions_last_active_idx
 
 create table if not exists public.content_views (
   id text primary key,
-  content_type text not null check (content_type in ('news', 'discussion', 'product')),
+  content_type text not null check (content_type in ('news', 'discussion', 'product', 'daily_english')),
   content_id text not null,
   viewer_key text not null,
   viewed_at timestamptz not null default now(),
   unique(content_type, content_id, viewer_key)
 );
+
+alter table public.content_views
+  drop constraint if exists content_views_content_type_check;
+
+alter table public.content_views
+  add constraint content_views_content_type_check
+  check (content_type in ('news', 'discussion', 'product', 'daily_english'));
 
 alter table public.content_views enable row level security;
 

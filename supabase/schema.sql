@@ -1116,7 +1116,7 @@ create policy "daily_login_log_anon_all" on public.daily_login_log
 
 create table if not exists public.content_views (
   id text primary key,
-  content_type text not null check (content_type in ('news', 'discussion', 'product')),
+  content_type text not null check (content_type in ('news', 'discussion', 'product', 'daily_english')),
   content_id text not null,
   viewer_key text not null,
   viewed_at timestamptz not null default now(),

@@ -469,7 +469,16 @@ const DailyEnglishPage: React.FC<DailyEnglishPageProps> = ({ onBack }) => {
     resetActiveSpeechHighlight();
     setSelectedLessonId(id);
     setMode('lesson');
-    void contentService.recordContentView('daily_english', id);
+    void (async () => {
+      try {
+        const viewCount = await contentService.recordDailyEnglishView(id);
+        setLessons(current => current.map(item => (
+          item.id === id ? { ...item, viewCount: Math.max(item.viewCount || 0, viewCount) } : item
+        )));
+      } catch (error) {
+        console.error('Failed to record daily English view', error);
+      }
+    })();
   };
 
   const showList = () => {
