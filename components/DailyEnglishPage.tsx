@@ -42,11 +42,59 @@ const styleStringToObject = (value: string): CSSProperties => {
     }, {});
 };
 
-const buildNaturalSpeechText = (value: string) => value
+const SOFT_PAUSE_WORDS = new Set([
+  'and', 'but', 'because', 'so', 'then', 'however', 'although', 'while',
+  'when', 'which', 'that', 'who', 'where', 'before', 'after', 'instead',
+  'therefore', 'meanwhile', 'especially', 'including',
+]);
+
+const normalizeSpeechText = (value: string) => value
   .replace(/\s+/g, ' ')
-  .replace(/\s*([,;:])\s*/g, '$1  ')
-  .replace(/\s*([.!?])\s*/g, '$1   ')
+  .replace(/\s*([,;:])\s*/g, '$1 ')
+  .replace(/\s*([.!?])\s*/g, '$1 ')
   .trim();
+
+const getSpeechPauseMs = (value: string) => {
+  if (/[.!?]$/.test(value)) return 420;
+  if (/[,;:]$/.test(value)) return 260;
+  return 170;
+};
+
+const splitNaturalSpeechParts = (value: string) => {
+  const normalized = normalizeSpeechText(value);
+  if (!normalized) return [];
+
+  const clauses = normalized.match(/[^.!?,;:]+[.!?,;:]?/g) || [normalized];
+  return clauses.flatMap((clause) => {
+    const text = clause.trim();
+    if (!text) return [];
+
+    const words = text.split(/\s+/).filter(Boolean);
+    if (words.length <= 12) {
+      return [{ text, pauseMs: getSpeechPauseMs(text) }];
+    }
+
+    const parts: Array<{ text: string; pauseMs: number }> = [];
+    let chunk: string[] = [];
+    words.forEach((word, index) => {
+      chunk.push(word);
+      const normalizedWord = word.replace(/[^\p{L}\p{N}'-]/gu, '').toLowerCase();
+      const isLast = index === words.length - 1;
+      const canPauseAtWord = chunk.length >= 7 && SOFT_PAUSE_WORDS.has(normalizedWord);
+      const shouldForcePause = chunk.length >= 11;
+
+      if (isLast || canPauseAtWord || shouldForcePause) {
+        parts.push({
+          text: chunk.join(' '),
+          pauseMs: isLast ? getSpeechPauseMs(text) : 180,
+        });
+        chunk = [];
+      }
+    });
+
+    return parts;
+  });
+};
 
 const stripSpeakerPrefix = (value: string, speaker: string) => {
   const escapedSpeaker = speaker.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -298,16 +346,27 @@ const DailyEnglishPage: React.FC<DailyEnglishPageProps> = ({ onBack }) => {
           .map((line) => ({
             voiceIndex: Math.max(0, selectedLesson.dialogueSpeakers.findIndex(speaker => speaker === line.speaker)),
             voiceGender: selectedLesson.dialogueSpeakerProfiles.find(speaker => speaker.name === line.speaker)?.gender,
-            text: buildNaturalSpeechText(stripSpeakerPrefix(stripHtml(line.content), line.speaker)),
+            text: normalizeSpeechText(stripSpeakerPrefix(stripHtml(line.content), line.speaker)),
+            finalPauseMs: 360,
           }))
       : [{
           voiceIndex: 0,
           voiceGender: undefined,
-          text: buildNaturalSpeechText(articleText),
+          text: normalizeSpeechText(articleText),
+          finalPauseMs: 260,
         }];
+    const chunkedSource = source.flatMap(segment => {
+      const parts = splitNaturalSpeechParts(segment.text);
+      return parts.map((part, index) => ({
+        voiceIndex: segment.voiceIndex,
+        voiceGender: segment.voiceGender,
+        text: part.text,
+        pauseMs: index === parts.length - 1 ? Math.max(part.pauseMs, segment.finalPauseMs) : part.pauseMs,
+      }));
+    });
 
     let wordOffset = 0;
-    return source
+    return chunkedSource
       .filter(segment => segment.text)
       .map(segment => {
         const wordStarts = getWordStarts(segment.text);
@@ -416,8 +475,8 @@ const DailyEnglishPage: React.FC<DailyEnglishPageProps> = ({ onBack }) => {
       } else {
         utterance.lang = 'en-US';
       }
-      utterance.rate = 0.82;
-      utterance.pitch = segment.voiceGender === 'male' ? 0.92 : 1.02;
+      utterance.rate = 0.78 + (segment.voiceIndex % 3) * 0.025;
+      utterance.pitch = (segment.voiceGender === 'male' ? 0.9 : 1.03) + ((segment.voiceIndex % 3) - 1) * 0.035;
       utterance.volume = 1;
       utterance.onboundary = (event) => {
         if (event.charIndex < 0) return;
@@ -426,8 +485,15 @@ const DailyEnglishPage: React.FC<DailyEnglishPageProps> = ({ onBack }) => {
           setActiveWordIndex(segment.wordOffset + nextWordIndex);
         }
       };
-      utterance.onend = () => speakSegment(index + 1);
-      utterance.onerror = () => speakSegment(index + 1);
+      const continueReading = () => {
+        window.setTimeout(() => {
+          if (speechRunIdRef.current === runId) {
+            speakSegment(index + 1);
+          }
+        }, segment.pauseMs);
+      };
+      utterance.onend = continueReading;
+      utterance.onerror = continueReading;
       window.speechSynthesis.speak(utterance);
     };
 
@@ -543,7 +609,7 @@ const DailyEnglishPage: React.FC<DailyEnglishPageProps> = ({ onBack }) => {
             >
               <div className="relative aspect-[16/9] w-full overflow-hidden bg-slate-100">
                 {item.imageUrl ? (
-                  <img src={item.imageUrl} alt={item.title || 'lesson cover'} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.02]" />
+                  <img src={item.imageUrl} alt={item.title || 'lesson cover'} className="absolute inset-0 h-full w-full scale-[1.08] object-cover transition-transform duration-500 group-hover:scale-[1.12]" />
                 ) : null}
                 <div className="pointer-events-none absolute inset-x-0 top-0 flex items-center justify-between p-3">
                   <span className={`rounded-full px-2.5 py-1 text-[11px] font-black shadow-sm ${isToday ? 'bg-orange-500 text-white' : 'bg-white/90 text-slate-700'}`}>

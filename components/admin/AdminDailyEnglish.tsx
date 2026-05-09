@@ -493,21 +493,33 @@ const AdminDailyEnglish: React.FC = () => {
                 padding: 14px !important;
                 font-size: 15px;
               }
+              .daily-english-dialogue-editor {
+                position: relative;
+                overflow: visible !important;
+              }
+              .daily-english-dialogue-editor:focus-within {
+                z-index: 60;
+              }
               .daily-english-dialogue-editor .ql-toolbar.ql-snow {
                 display: flex;
                 flex-wrap: nowrap;
                 align-items: center;
                 gap: 2px;
-                overflow-x: auto;
-                overflow-y: hidden;
+                overflow: visible;
                 padding: 7px 10px !important;
+                position: relative;
                 white-space: nowrap;
+                z-index: 80;
               }
               .daily-english-dialogue-editor .ql-toolbar.ql-snow .ql-formats {
                 display: inline-flex !important;
                 align-items: center;
                 margin-right: 6px !important;
                 white-space: nowrap;
+              }
+              .daily-english-dialogue-editor .ql-picker-options,
+              .daily-english-dialogue-editor .ql-color-picker .ql-picker-options {
+                z-index: 9999 !important;
               }
             `}</style>
 
@@ -611,7 +623,7 @@ const AdminDailyEnglish: React.FC = () => {
                           <Trash2 className="h-4 w-4" />
                         </button>
                       </div>
-                      <div className="daily-english-editor daily-english-dialogue-editor overflow-hidden rounded-2xl border border-slate-200 bg-white focus-within:ring-2 focus-within:ring-cyan-100">
+                      <div className="daily-english-editor daily-english-dialogue-editor overflow-visible rounded-2xl border border-slate-200 bg-white focus-within:ring-2 focus-within:ring-cyan-100">
                         <ReactQuill
                           theme="snow"
                           value={line.content}
