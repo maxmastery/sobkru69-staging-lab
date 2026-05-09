@@ -4,6 +4,12 @@
     "api/send-email-campaign.js": {
       "maxDuration": 60
     },
+    "api/stripe-webhook.js": {
+      "maxDuration": 60
+    },
+    "api/stripe-resend-delivery.js": {
+      "maxDuration": 60
+    },
     "api/email-inbox.js": {
       "maxDuration": 30
     }

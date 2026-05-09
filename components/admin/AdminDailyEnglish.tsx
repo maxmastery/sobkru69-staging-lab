@@ -28,7 +28,7 @@ const createDialogueSpeakers = (count = 2) => Array.from({ length: count }, (_, 
 const createDialogueSpeakerProfiles = (count = 2): DailyEnglishSpeakerProfile[] => Array.from({ length: count }, (_, index) => ({
   id: createId(),
   name: `Speaker ${index + 1}`,
-  gender: index % 2 === 0 ? 'female' : 'male',
+  gender: (index % 2 === 0 ? 'female' : 'male') as DailyEnglishSpeakerGender,
 }));
 
 const getSpeakerProfiles = (lesson: Partial<ContentDailyEnglishLesson>): DailyEnglishSpeakerProfile[] => {
@@ -40,7 +40,7 @@ const getSpeakerProfiles = (lesson: Partial<ContentDailyEnglishLesson>): DailyEn
   return speakers.map((name, index) => ({
     id: createId(),
     name: name || `Speaker ${index + 1}`,
-    gender: index % 2 === 0 ? 'female' : 'male',
+    gender: (index % 2 === 0 ? 'female' : 'male') as DailyEnglishSpeakerGender,
   }));
 };
 
@@ -148,7 +148,7 @@ const AdminDailyEnglish: React.FC = () => {
       const nextProfiles = Array.from({ length: count }, (_, index) => existingProfiles[index] || {
         id: createId(),
         name: `Speaker ${index + 1}`,
-        gender: index % 2 === 0 ? 'female' : 'male',
+        gender: (index % 2 === 0 ? 'female' : 'male') as DailyEnglishSpeakerGender,
       });
       const nextSpeakers = nextProfiles.map(item => item.name);
       const fallbackSpeaker = nextSpeakers[0] || 'Speaker 1';
@@ -290,7 +290,7 @@ const AdminDailyEnglish: React.FC = () => {
         ? getSpeakerProfiles(currentLesson).map((speaker, index) => ({
           ...speaker,
           name: speaker.name.trim() || `Speaker ${index + 1}`,
-          gender: speaker.gender === 'male' ? 'male' : 'female',
+          gender: (speaker.gender === 'male' ? 'male' : 'female') as DailyEnglishSpeakerGender,
         }))
         : [];
 

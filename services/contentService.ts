@@ -172,6 +172,11 @@ export interface ContentProductItem {
   categoryPart: string;
   subject: string;
   stripeUrl: string;
+  stripePriceId: string;
+  stripeProductId: string;
+  deliveryFileUrl: string;
+  deliveryFileLabel: string;
+  deliveryEmailNote: string;
   isDiscounted: boolean;
   originalPrice: number;
   isNew: boolean;
@@ -331,6 +336,11 @@ const parseProductFeatures = (features: unknown) => {
       categoryPart: '',
       subject: '',
       stripeUrl: '',
+      stripePriceId: '',
+      stripeProductId: '',
+      deliveryFileUrl: '',
+      deliveryFileLabel: '',
+      deliveryEmailNote: '',
       isDiscounted: false,
       originalPrice: 0,
       isNew: false,
@@ -353,6 +363,11 @@ const parseProductFeatures = (features: unknown) => {
       categoryPart: typeof value.categoryPart === 'string' ? value.categoryPart : '',
       subject: typeof value.subject === 'string' ? value.subject : '',
       stripeUrl: typeof value.stripeUrl === 'string' ? value.stripeUrl : '',
+      stripePriceId: typeof value.stripePriceId === 'string' ? value.stripePriceId : '',
+      stripeProductId: typeof value.stripeProductId === 'string' ? value.stripeProductId : '',
+      deliveryFileUrl: typeof value.deliveryFileUrl === 'string' ? value.deliveryFileUrl : '',
+      deliveryFileLabel: typeof value.deliveryFileLabel === 'string' ? value.deliveryFileLabel : '',
+      deliveryEmailNote: typeof value.deliveryEmailNote === 'string' ? value.deliveryEmailNote : '',
       isDiscounted: Boolean(value.isDiscounted),
       originalPrice: Number(value.originalPrice || 0),
       isNew: Boolean(value.isNew),
@@ -366,6 +381,11 @@ const parseProductFeatures = (features: unknown) => {
     categoryPart: '',
     subject: '',
     stripeUrl: '',
+    stripePriceId: '',
+    stripeProductId: '',
+    deliveryFileUrl: '',
+    deliveryFileLabel: '',
+    deliveryEmailNote: '',
     isDiscounted: false,
     originalPrice: 0,
     isNew: false,
@@ -379,6 +399,11 @@ const toProductFeaturesPayload = (product: Partial<ContentProductItem>) => ({
   categoryPart: product.categoryPart || '',
   subject: product.subject || '',
   stripeUrl: product.stripeUrl || '',
+  stripePriceId: product.stripePriceId || '',
+  stripeProductId: product.stripeProductId || '',
+  deliveryFileUrl: product.deliveryFileUrl || '',
+  deliveryFileLabel: product.deliveryFileLabel || '',
+  deliveryEmailNote: product.deliveryEmailNote || '',
   isDiscounted: Boolean(product.isDiscounted),
   originalPrice: Number(product.originalPrice || 0),
   isNew: Boolean(product.isNew),
@@ -401,6 +426,11 @@ const toProductItem = (row: ProductRow): ContentProductItem => {
     categoryPart: meta.categoryPart,
     subject: meta.subject,
     stripeUrl: meta.stripeUrl,
+    stripePriceId: meta.stripePriceId,
+    stripeProductId: meta.stripeProductId,
+    deliveryFileUrl: meta.deliveryFileUrl,
+    deliveryFileLabel: meta.deliveryFileLabel,
+    deliveryEmailNote: meta.deliveryEmailNote,
     isDiscounted: meta.isDiscounted,
     originalPrice: meta.originalPrice,
     isNew: meta.isNew,
@@ -517,7 +547,7 @@ const normalizeDailyEnglishSpeakerProfiles = (
         return {
           id: typeof value.id === 'string' && value.id ? value.id : createId(),
           name,
-          gender: value.gender === 'male' ? 'male' : 'female',
+          gender: (value.gender === 'male' ? 'male' : 'female') as DailyEnglishSpeakerGender,
         };
       })
       .filter(item => item.name)
@@ -530,7 +560,7 @@ const normalizeDailyEnglishSpeakerProfiles = (
       merged.push({
         id: createId(),
         name,
-        gender: index % 2 === 0 ? 'female' : 'male',
+        gender: (index % 2 === 0 ? 'female' : 'male') as DailyEnglishSpeakerGender,
       });
     }
   });
@@ -538,8 +568,8 @@ const normalizeDailyEnglishSpeakerProfiles = (
   return merged.length > 0
     ? merged
     : [
-        { id: createId(), name: 'Speaker 1', gender: 'female' },
-        { id: createId(), name: 'Speaker 2', gender: 'male' },
+        { id: createId(), name: 'Speaker 1', gender: 'female' as DailyEnglishSpeakerGender },
+        { id: createId(), name: 'Speaker 2', gender: 'male' as DailyEnglishSpeakerGender },
       ];
 };
 

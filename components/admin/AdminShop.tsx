@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Edit2, Trash2, Image as ImageIcon, Search, DollarSign, Package, X, Save, CheckCircle2, ShoppingCart, Eye, EyeOff, Store, Link as LinkIcon, Sparkles, Percent, Tag, UploadCloud, Loader2 } from 'lucide-react';
+import { Plus, Edit2, Trash2, Image as ImageIcon, Search, DollarSign, Package, X, Save, CheckCircle2, ShoppingCart, Eye, EyeOff, Store, Link as LinkIcon, Sparkles, Percent, Tag, UploadCloud, Loader2, FileDown, Fingerprint } from 'lucide-react';
 import { contentService } from '../../services/contentService';
 
 export interface ProductItem {
@@ -15,6 +15,11 @@ export interface ProductItem {
   categoryPart: string;
   subject: string;
   stripeUrl: string;
+  stripePriceId: string;
+  stripeProductId: string;
+  deliveryFileUrl: string;
+  deliveryFileLabel: string;
+  deliveryEmailNote: string;
   isDiscounted: boolean;
   originalPrice: number;
   isNew: boolean;
@@ -81,6 +86,11 @@ const AdminShop: React.FC<AdminShopProps> = ({ onPreviewShop, onShopButtonVisibi
       categoryPart: '',
       subject: '',
       stripeUrl: '',
+      stripePriceId: '',
+      stripeProductId: '',
+      deliveryFileUrl: '',
+      deliveryFileLabel: '',
+      deliveryEmailNote: '',
       isDiscounted: false,
       isNew: false,
       isUpcoming: false,
@@ -367,6 +377,78 @@ const AdminShop: React.FC<AdminShopProps> = ({ onPreviewShop, onShopButtonVisibi
               />
             </div>
 
+            <div className="md:col-span-2 rounded-2xl border border-cyan-100 bg-cyan-50/60 p-4">
+              <div className="mb-4 flex items-start gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-cyan-100 text-cyan-700">
+                  <FileDown className="h-5 w-5" />
+                </div>
+                <div>
+                  <h4 className="text-sm font-black text-slate-900">ส่งไฟล์อัตโนมัติหลังชำระเงิน</h4>
+                  <p className="mt-1 text-xs font-semibold leading-5 text-slate-500">
+                    ใส่ Stripe Price ID หรือ Product ID เพื่อจับคู่ยอดขายจาก webhook และใส่ลิงก์ไฟล์ที่จะส่งให้ลูกค้าทางอีเมล
+                  </p>
+                </div>
+              </div>
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <div>
+                  <label className="mb-2 flex items-center gap-2 text-sm font-bold text-slate-700">
+                    <Fingerprint className="h-4 w-4 text-cyan-600" /> Stripe Price ID
+                  </label>
+                  <input
+                    type="text"
+                    value={currentProduct.stripePriceId || ''}
+                    onChange={(e) => setCurrentProduct({ ...currentProduct, stripePriceId: e.target.value })}
+                    className="w-full rounded-xl border border-cyan-100 bg-white px-4 py-2.5 outline-none transition-all focus:ring-2 focus:ring-cyan-400"
+                    placeholder="price_..."
+                  />
+                </div>
+                <div>
+                  <label className="mb-2 flex items-center gap-2 text-sm font-bold text-slate-700">
+                    <Fingerprint className="h-4 w-4 text-cyan-600" /> Stripe Product ID
+                  </label>
+                  <input
+                    type="text"
+                    value={currentProduct.stripeProductId || ''}
+                    onChange={(e) => setCurrentProduct({ ...currentProduct, stripeProductId: e.target.value })}
+                    className="w-full rounded-xl border border-cyan-100 bg-white px-4 py-2.5 outline-none transition-all focus:ring-2 focus:ring-cyan-400"
+                    placeholder="prod_..."
+                  />
+                </div>
+                <div className="md:col-span-2">
+                  <label className="mb-2 flex items-center gap-2 text-sm font-bold text-slate-700">
+                    <LinkIcon className="h-4 w-4 text-cyan-600" /> ลิงก์ไฟล์ที่จะส่งให้ลูกค้า
+                  </label>
+                  <input
+                    type="url"
+                    value={currentProduct.deliveryFileUrl || ''}
+                    onChange={(e) => setCurrentProduct({ ...currentProduct, deliveryFileUrl: e.target.value })}
+                    className="w-full rounded-xl border border-cyan-100 bg-white px-4 py-2.5 outline-none transition-all focus:ring-2 focus:ring-cyan-400"
+                    placeholder="https://..."
+                  />
+                </div>
+                <div>
+                  <label className="mb-2 block text-sm font-bold text-slate-700">ชื่อไฟล์ที่แสดงในอีเมล</label>
+                  <input
+                    type="text"
+                    value={currentProduct.deliveryFileLabel || ''}
+                    onChange={(e) => setCurrentProduct({ ...currentProduct, deliveryFileLabel: e.target.value })}
+                    className="w-full rounded-xl border border-cyan-100 bg-white px-4 py-2.5 outline-none transition-all focus:ring-2 focus:ring-cyan-400"
+                    placeholder="เช่น ไฟล์ PDF บทเรียนภาษาไทย"
+                  />
+                </div>
+                <div>
+                  <label className="mb-2 block text-sm font-bold text-slate-700">ข้อความเพิ่มเติมในอีเมล</label>
+                  <input
+                    type="text"
+                    value={currentProduct.deliveryEmailNote || ''}
+                    onChange={(e) => setCurrentProduct({ ...currentProduct, deliveryEmailNote: e.target.value })}
+                    className="w-full rounded-xl border border-cyan-100 bg-white px-4 py-2.5 outline-none transition-all focus:ring-2 focus:ring-cyan-400"
+                    placeholder="เช่น แนะนำให้ดาวน์โหลดเก็บไว้ภายใน 7 วัน"
+                  />
+                </div>
+              </div>
+            </div>
+
             <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="rounded-2xl border border-orange-100 bg-orange-50/70 p-4">
                 <label className="flex cursor-pointer items-center justify-between gap-4">
@@ -643,6 +725,7 @@ const AdminShop: React.FC<AdminShopProps> = ({ onPreviewShop, onShopButtonVisibi
                       {item.isNew && <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-black text-emerald-700">NEW RELEASE</span>}
                       {item.isUpcoming && <span className="rounded-full bg-slate-200 px-2 py-0.5 text-[10px] font-black text-slate-700">UPCOMING</span>}
                       {item.isDiscounted && <span className="rounded-full bg-orange-100 px-2 py-0.5 text-[10px] font-black text-orange-700">SALE</span>}
+                      {item.deliveryFileUrl && <span className="rounded-full bg-cyan-100 px-2 py-0.5 text-[10px] font-black text-cyan-700">AUTO DELIVERY</span>}
                       {item.subject && <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-600">{item.subject}</span>}
                     </div>
                   </td>
