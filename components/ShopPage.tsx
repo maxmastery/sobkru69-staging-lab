@@ -188,7 +188,7 @@ const ShopPage: React.FC<ShopPageProps> = ({ onBack }) => {
               )}
             </div>
 
-            <h1 className="text-3xl md:text-5xl font-black leading-tight text-slate-950">{selectedProduct.name}</h1>
+            <h1 className="text-2xl md:text-4xl font-black leading-[1.2] md:leading-[1.26] text-slate-950">{selectedProduct.name}</h1>
             {selectedProduct.subject && <p className="mt-3 text-sm font-black uppercase tracking-[0.18em] text-orange-600">{selectedProduct.subject}</p>}
             <p className="mt-6 text-lg leading-8 text-slate-600">{selectedProduct.description}</p>
 
