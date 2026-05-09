@@ -13,7 +13,7 @@ const ARTICLE_WORD_PATTERN = /[\p{L}\p{N}]+(?:[’'-][\p{L}\p{N}]+)*/gu;
 type HighlightTone = 'sky' | 'orange';
 
 const getActiveWordClass = (tone: HighlightTone) => tone === 'orange'
-  ? 'relative z-10 bg-orange-300 text-orange-950 shadow-[0_0_0_3px_rgba(251,146,60,0.45)]'
+  ? 'relative z-10 bg-orange-500 text-white shadow-[0_0_0_4px_rgba(251,146,60,0.42)]'
   : 'relative z-10 bg-sky-200 text-sky-950 shadow-[0_0_0_3px_rgba(125,211,252,0.45)]';
 
 const stripHtml = (value: string) => {
@@ -233,7 +233,9 @@ const renderArticleWithWordHighlights = (html: string, activeWordIndex: number) 
 
 const renderDialogueWithWordHighlights = (
   lines: ContentDailyEnglishLesson['dialogueLines'],
-  activeWordIndex: number
+  activeDialogueLineId: string,
+  activeDialogueWordIndex: number,
+  dialogueSpeakers: string[]
 ) => {
   if (typeof window === 'undefined' || !('DOMParser' in window)) {
     return lines.map(line => (
@@ -244,10 +246,12 @@ const renderDialogueWithWordHighlights = (
     ));
   }
 
-  const wordCounter = { current: 0 };
   return lines.map((line, index) => {
     const doc = new DOMParser().parseFromString(normalizeArticleHtml(line.content), 'text/html');
-    const activeTone: HighlightTone = index % 2 === 1 ? 'orange' : 'sky';
+    const speakerIndex = dialogueSpeakers.findIndex(speaker => speaker === line.speaker);
+    const activeTone: HighlightTone = (speakerIndex >= 0 ? speakerIndex : index) % 2 === 1 ? 'orange' : 'sky';
+    const localWordCounter = { current: 0 };
+    const localActiveWordIndex = line.id === activeDialogueLineId ? activeDialogueWordIndex : -1;
     return (
       <div key={line.id} className="my-2 grid gap-2 md:grid-cols-[128px_minmax(0,1fr)] md:items-start">
         <div className="inline-flex items-center gap-2 text-sm font-black text-cyan-700">
@@ -256,7 +260,7 @@ const renderDialogueWithWordHighlights = (
         </div>
         <div className="min-w-0 leading-8 text-slate-700">
           {Array.from(doc.body.childNodes).map((node, childIndex) =>
-            renderArticleNode(node, `dialogue-${line.id}-${childIndex}`, wordCounter, activeWordIndex, activeTone)
+            renderArticleNode(node, `dialogue-${line.id}-${childIndex}`, localWordCounter, localActiveWordIndex, activeTone)
           )}
         </div>
       </div>
@@ -338,9 +342,16 @@ const DailyEnglishPage: React.FC<DailyEnglishPageProps> = ({ onBack }) => {
   const [error, setError] = useState('');
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [activeWordIndex, setActiveWordIndex] = useState(-1);
+  const [activeDialogueLineId, setActiveDialogueLineId] = useState('');
+  const [activeDialogueWordIndex, setActiveDialogueWordIndex] = useState(-1);
   const speechRunIdRef = useRef(0);
   const speechTimersRef = useRef<number[]>([]);
   const todayKey = useMemo(() => getTodayKey(), []);
+  const resetActiveSpeechHighlight = () => {
+    setActiveWordIndex(-1);
+    setActiveDialogueLineId('');
+    setActiveDialogueWordIndex(-1);
+  };
   const selectedLesson = useMemo(
     () => lessons.find(item => item.id === selectedLessonId) || null,
     [lessons, selectedLessonId]
@@ -349,46 +360,52 @@ const DailyEnglishPage: React.FC<DailyEnglishPageProps> = ({ onBack }) => {
   const articleText = useMemo(() => articleHtml ? stripHtml(articleHtml) : '', [articleHtml]);
   const speechSegments = useMemo(() => {
     if (!selectedLesson) return [];
-    const source = selectedLesson.lessonType === 'dialogue'
+    const chunkedSource = selectedLesson.lessonType === 'dialogue'
       ? selectedLesson.dialogueLines
           .filter(line => stripHtml(line.content))
-          .map((line) => ({
-            voiceIndex: Math.max(0, selectedLesson.dialogueSpeakers.findIndex(speaker => speaker === line.speaker)),
-            voiceGender: selectedLesson.dialogueSpeakerProfiles.find(speaker => speaker.name === line.speaker)?.gender,
-            text: normalizeSpeechText(stripSpeakerPrefix(stripHtml(line.content), line.speaker)),
-            finalPauseMs: 360,
-          }))
-      : [{
+          .flatMap((line) => {
+            const text = normalizeSpeechText(stripSpeakerPrefix(stripHtml(line.content), line.speaker));
+            const parts = splitNaturalSpeechParts(text);
+            let lineWordOffset = 0;
+            return parts.map((part, index) => {
+              const wordStarts = getWordStarts(part.text);
+              const segment = {
+                lineId: line.id,
+                lineWordOffset,
+                voiceIndex: Math.max(0, selectedLesson.dialogueSpeakers.findIndex(speaker => speaker === line.speaker)),
+                voiceGender: selectedLesson.dialogueSpeakerProfiles.find(speaker => speaker.name === line.speaker)?.gender,
+                text: part.text,
+                pauseMs: index === parts.length - 1 ? Math.max(part.pauseMs, 360) : part.pauseMs,
+                wordStarts,
+              };
+              lineWordOffset += wordStarts.length;
+              return segment;
+            });
+          })
+      : splitNaturalSpeechParts(normalizeSpeechText(articleText)).map((part, index, parts) => ({
+          lineId: '',
+          lineWordOffset: 0,
           voiceIndex: 0,
           voiceGender: undefined,
-          text: normalizeSpeechText(articleText),
-          finalPauseMs: 260,
-        }];
-    const chunkedSource = source.flatMap(segment => {
-      const parts = splitNaturalSpeechParts(segment.text);
-      return parts.map((part, index) => ({
-        voiceIndex: segment.voiceIndex,
-        voiceGender: segment.voiceGender,
-        text: part.text,
-        pauseMs: index === parts.length - 1 ? Math.max(part.pauseMs, segment.finalPauseMs) : part.pauseMs,
-      }));
-    });
+          text: part.text,
+          pauseMs: index === parts.length - 1 ? Math.max(part.pauseMs, 260) : part.pauseMs,
+          wordStarts: getWordStarts(part.text),
+        }));
 
     let wordOffset = 0;
     return chunkedSource
       .filter(segment => segment.text)
       .map(segment => {
-        const wordStarts = getWordStarts(segment.text);
-        const next = { ...segment, wordStarts, wordOffset };
-        wordOffset += wordStarts.length;
+        const next = { ...segment, wordOffset };
+        wordOffset += segment.wordStarts.length;
         return next;
       });
   }, [articleText, selectedLesson]);
   const renderedArticle = useMemo(
     () => selectedLesson?.lessonType === 'dialogue'
-      ? renderDialogueWithWordHighlights(selectedLesson.dialogueLines, activeWordIndex)
+      ? renderDialogueWithWordHighlights(selectedLesson.dialogueLines, activeDialogueLineId, activeDialogueWordIndex, selectedLesson.dialogueSpeakers)
       : renderArticleWithWordHighlights(articleHtml, activeWordIndex),
-    [articleHtml, activeWordIndex, selectedLesson]
+    [activeDialogueLineId, activeDialogueWordIndex, articleHtml, activeWordIndex, selectedLesson]
   );
   const translationParagraphs = useMemo(() => {
     if (!selectedLesson?.translation) return [];
@@ -416,7 +433,7 @@ const DailyEnglishPage: React.FC<DailyEnglishPageProps> = ({ onBack }) => {
     clearSpeechTimers();
     window.speechSynthesis?.cancel();
     setIsSpeaking(false);
-    setActiveWordIndex(-1);
+    resetActiveSpeechHighlight();
 
     try {
       const publishedLessons = (await contentService.getDailyEnglishLessons())
@@ -449,7 +466,7 @@ const DailyEnglishPage: React.FC<DailyEnglishPageProps> = ({ onBack }) => {
     clearSpeechTimers();
     window.speechSynthesis?.cancel();
     setIsSpeaking(false);
-    setActiveWordIndex(-1);
+    resetActiveSpeechHighlight();
     setSelectedLessonId(id);
     setMode('lesson');
     void contentService.recordContentView('daily_english', id);
@@ -460,7 +477,7 @@ const DailyEnglishPage: React.FC<DailyEnglishPageProps> = ({ onBack }) => {
     clearSpeechTimers();
     window.speechSynthesis?.cancel();
     setIsSpeaking(false);
-    setActiveWordIndex(-1);
+    resetActiveSpeechHighlight();
     setMode('list');
   };
 
@@ -474,7 +491,7 @@ const DailyEnglishPage: React.FC<DailyEnglishPageProps> = ({ onBack }) => {
     speechRunIdRef.current = runId;
     clearSpeechTimers();
     window.speechSynthesis.cancel();
-    setActiveWordIndex(-1);
+    resetActiveSpeechHighlight();
     setIsSpeaking(true);
 
     const speakSegment = (index: number) => {
@@ -482,7 +499,7 @@ const DailyEnglishPage: React.FC<DailyEnglishPageProps> = ({ onBack }) => {
       const segment = speechSegments[index];
       if (!segment) {
         setIsSpeaking(false);
-        setActiveWordIndex(-1);
+        resetActiveSpeechHighlight();
         return;
       }
 
@@ -507,7 +524,15 @@ const DailyEnglishPage: React.FC<DailyEnglishPageProps> = ({ onBack }) => {
       if (segment.wordStarts.length > 0) {
         const startedAt = Date.now();
         const estimatedMs = Math.max(800, segment.wordStarts.length * (390 / utterance.rate));
-        setActiveWordIndex(segment.wordOffset);
+        if (segment.lineId) {
+          setActiveDialogueLineId(segment.lineId);
+          setActiveDialogueWordIndex(segment.lineWordOffset);
+          setActiveWordIndex(-1);
+        } else {
+          setActiveDialogueLineId('');
+          setActiveDialogueWordIndex(-1);
+          setActiveWordIndex(segment.wordOffset);
+        }
         fallbackTimer = window.setInterval(() => {
           if (speechRunIdRef.current !== runId) {
             clearFallbackTimer();
@@ -518,7 +543,12 @@ const DailyEnglishPage: React.FC<DailyEnglishPageProps> = ({ onBack }) => {
             segment.wordStarts.length - 1,
             Math.floor(progress * segment.wordStarts.length)
           );
-          setActiveWordIndex(segment.wordOffset + nextWordIndex);
+          if (segment.lineId) {
+            setActiveDialogueLineId(segment.lineId);
+            setActiveDialogueWordIndex(segment.lineWordOffset + nextWordIndex);
+          } else {
+            setActiveWordIndex(segment.wordOffset + nextWordIndex);
+          }
         }, 140);
         speechTimersRef.current.push(fallbackTimer);
       }
@@ -526,7 +556,12 @@ const DailyEnglishPage: React.FC<DailyEnglishPageProps> = ({ onBack }) => {
         if (event.charIndex < 0) return;
         const nextWordIndex = getWordIndexAtChar(segment.wordStarts, event.charIndex);
         if (nextWordIndex >= 0) {
-          setActiveWordIndex(segment.wordOffset + nextWordIndex);
+          if (segment.lineId) {
+            setActiveDialogueLineId(segment.lineId);
+            setActiveDialogueWordIndex(segment.lineWordOffset + nextWordIndex);
+          } else {
+            setActiveWordIndex(segment.wordOffset + nextWordIndex);
+          }
         }
       };
       const continueReading = () => {
@@ -550,7 +585,7 @@ const DailyEnglishPage: React.FC<DailyEnglishPageProps> = ({ onBack }) => {
     clearSpeechTimers();
     window.speechSynthesis?.cancel();
     setIsSpeaking(false);
-    setActiveWordIndex(-1);
+    resetActiveSpeechHighlight();
   };
 
   const renderVocabularyTable = (items: Array<{ vocabulary: ReturnType<typeof splitVocabulary> }>) => (
