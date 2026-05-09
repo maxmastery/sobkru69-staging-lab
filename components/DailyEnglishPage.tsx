@@ -331,6 +331,7 @@ const DailyEnglishPage: React.FC<DailyEnglishPageProps> = ({ onBack }) => {
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [activeWordIndex, setActiveWordIndex] = useState(-1);
   const speechRunIdRef = useRef(0);
+  const speechTimersRef = useRef<number[]>([]);
   const todayKey = useMemo(() => getTodayKey(), []);
   const selectedLesson = useMemo(
     () => lessons.find(item => item.id === selectedLessonId) || null,
@@ -404,6 +405,7 @@ const DailyEnglishPage: React.FC<DailyEnglishPageProps> = ({ onBack }) => {
     setIsLoading(true);
     setError('');
     speechRunIdRef.current += 1;
+    clearSpeechTimers();
     window.speechSynthesis?.cancel();
     setIsSpeaking(false);
     setActiveWordIndex(-1);
@@ -424,12 +426,19 @@ const DailyEnglishPage: React.FC<DailyEnglishPageProps> = ({ onBack }) => {
     void loadLessons();
 
     return () => {
+      clearSpeechTimers();
       window.speechSynthesis?.cancel();
     };
   }, []);
 
+  const clearSpeechTimers = () => {
+    speechTimersRef.current.forEach(timerId => window.clearInterval(timerId));
+    speechTimersRef.current = [];
+  };
+
   const openLesson = (id: string) => {
     speechRunIdRef.current += 1;
+    clearSpeechTimers();
     window.speechSynthesis?.cancel();
     setIsSpeaking(false);
     setActiveWordIndex(-1);
@@ -440,6 +449,7 @@ const DailyEnglishPage: React.FC<DailyEnglishPageProps> = ({ onBack }) => {
 
   const showList = () => {
     speechRunIdRef.current += 1;
+    clearSpeechTimers();
     window.speechSynthesis?.cancel();
     setIsSpeaking(false);
     setActiveWordIndex(-1);
@@ -454,6 +464,7 @@ const DailyEnglishPage: React.FC<DailyEnglishPageProps> = ({ onBack }) => {
 
     const runId = speechRunIdRef.current + 1;
     speechRunIdRef.current = runId;
+    clearSpeechTimers();
     window.speechSynthesis.cancel();
     setActiveWordIndex(-1);
     setIsSpeaking(true);
@@ -478,6 +489,31 @@ const DailyEnglishPage: React.FC<DailyEnglishPageProps> = ({ onBack }) => {
       utterance.rate = 0.78 + (segment.voiceIndex % 3) * 0.025;
       utterance.pitch = (segment.voiceGender === 'male' ? 0.9 : 1.03) + ((segment.voiceIndex % 3) - 1) * 0.035;
       utterance.volume = 1;
+      let fallbackTimer: number | null = null;
+      const clearFallbackTimer = () => {
+        if (fallbackTimer === null) return;
+        window.clearInterval(fallbackTimer);
+        speechTimersRef.current = speechTimersRef.current.filter(timerId => timerId !== fallbackTimer);
+        fallbackTimer = null;
+      };
+      if (segment.wordStarts.length > 0) {
+        const startedAt = Date.now();
+        const estimatedMs = Math.max(800, segment.wordStarts.length * (390 / utterance.rate));
+        setActiveWordIndex(segment.wordOffset);
+        fallbackTimer = window.setInterval(() => {
+          if (speechRunIdRef.current !== runId) {
+            clearFallbackTimer();
+            return;
+          }
+          const progress = Math.min(0.98, (Date.now() - startedAt) / estimatedMs);
+          const nextWordIndex = Math.min(
+            segment.wordStarts.length - 1,
+            Math.floor(progress * segment.wordStarts.length)
+          );
+          setActiveWordIndex(segment.wordOffset + nextWordIndex);
+        }, 140);
+        speechTimersRef.current.push(fallbackTimer);
+      }
       utterance.onboundary = (event) => {
         if (event.charIndex < 0) return;
         const nextWordIndex = getWordIndexAtChar(segment.wordStarts, event.charIndex);
@@ -486,6 +522,7 @@ const DailyEnglishPage: React.FC<DailyEnglishPageProps> = ({ onBack }) => {
         }
       };
       const continueReading = () => {
+        clearFallbackTimer();
         window.setTimeout(() => {
           if (speechRunIdRef.current === runId) {
             speakSegment(index + 1);
@@ -502,6 +539,7 @@ const DailyEnglishPage: React.FC<DailyEnglishPageProps> = ({ onBack }) => {
 
   const stopSpeech = () => {
     speechRunIdRef.current += 1;
+    clearSpeechTimers();
     window.speechSynthesis?.cancel();
     setIsSpeaking(false);
     setActiveWordIndex(-1);

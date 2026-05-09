@@ -1,14 +1,26 @@
 import { json, requireAdminToken, stripeFetch } from './_stripeFulfillment.js';
 import { fulfillCheckoutSession } from './stripe-webhook.js';
 
+const isCronAuthorized = (req) => {
+  const cronSecret = process.env.CRON_SECRET;
+  if (!cronSecret) return false;
+  return req.headers.authorization === `Bearer ${cronSecret}`;
+};
+
 export default async function handler(req, res) {
-  if (req.method !== 'POST') {
+  if (!['GET', 'POST'].includes(req.method)) {
     return json(res, 405, { success: false, message: 'Method not allowed' });
   }
 
-  const token = requireAdminToken(req);
-  if (!token.ok) {
-    return json(res, 401, { success: false, message: token.message });
+  if (req.method === 'GET') {
+    if (!isCronAuthorized(req)) {
+      return json(res, 401, { success: false, message: 'Unauthorized cron request' });
+    }
+  } else {
+    const token = requireAdminToken(req);
+    if (!token.ok) {
+      return json(res, 401, { success: false, message: token.message });
+    }
   }
 
   try {

@@ -17,6 +17,12 @@
       "maxDuration": 30
     }
   },
+  "crons": [
+    {
+      "path": "/api/stripe-sync",
+      "schedule": "* * * * *"
+    }
+  ],
   "headers": [
     {
       "source": "/assets/(.*)",
