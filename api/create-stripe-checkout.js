@@ -1,4 +1,10 @@
-import { json, parseProductMeta, stripeFetch, supabaseRequest } from './_stripeFulfillment.js';
+import {
+  ensureStripeFulfillmentWebhook,
+  json,
+  parseProductMeta,
+  stripeFetch,
+  supabaseRequest,
+} from './_stripeFulfillment.js';
 
 const getOrigin = (req) => {
   const protocol = req.headers['x-forwarded-proto'] || 'https';
@@ -44,6 +50,8 @@ export default async function handler(req, res) {
     }
 
     const origin = getOrigin(req);
+    await ensureStripeFulfillmentWebhook(origin);
+
     const params = new URLSearchParams();
     params.set('mode', 'payment');
     params.set('line_items[0][price]', stripePriceId);

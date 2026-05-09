@@ -31,6 +31,12 @@ export const stripHtml = (value = '') => String(value).replace(/<[^>]*>/g, ' ').
 
 export const normalizeEmail = (value = '') => String(value || '').trim().toLowerCase();
 
+export const STRIPE_FULFILLMENT_EVENTS = [
+  'checkout.session.completed',
+  'checkout.session.async_payment_succeeded',
+  'payment_intent.succeeded',
+];
+
 export const getSupabaseServerConfig = () => {
   const url = env('SUPABASE_URL') || env('VITE_SUPABASE_URL');
   const serviceKey = env('SUPABASE_SERVICE_ROLE_KEY');
@@ -244,4 +250,55 @@ export const stripeFetch = async (path, options = {}) => {
     throw new Error(data?.error?.message || `Stripe request failed with ${response.status}`);
   }
   return data;
+};
+
+export const ensureStripeFulfillmentWebhook = async (origin) => {
+  const baseUrl = String(origin || '').replace(/\/+$/, '');
+  if (!baseUrl) throw new Error('ไม่พบโดเมนเว็บไซต์สำหรับตั้งค่า Stripe webhook');
+
+  const webhookUrl = `${baseUrl}/api/stripe-webhook`;
+  const endpointsResponse = await stripeFetch('/v1/webhook_endpoints?limit=100');
+  const endpoints = Array.isArray(endpointsResponse.data) ? endpointsResponse.data : [];
+  const existing = endpoints.find((endpoint) => endpoint.url === webhookUrl);
+
+  if (existing) {
+    const enabledEvents = Array.isArray(existing.enabled_events) ? existing.enabled_events : [];
+    const acceptsAll = enabledEvents.includes('*');
+    const missingEvents = acceptsAll
+      ? []
+      : STRIPE_FULFILLMENT_EVENTS.filter((eventName) => !enabledEvents.includes(eventName));
+
+    if (existing.status !== 'enabled' || missingEvents.length > 0) {
+      const params = new URLSearchParams();
+      params.set('disabled', 'false');
+      params.set('description', 'SobKru69 automatic digital delivery');
+
+      const mergedEvents = acceptsAll
+        ? ['*']
+        : Array.from(new Set([...enabledEvents, ...STRIPE_FULFILLMENT_EVENTS]));
+      mergedEvents.forEach((eventName) => params.append('enabled_events[]', eventName));
+
+      await stripeFetch(`/v1/webhook_endpoints/${encodeURIComponent(existing.id)}`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/x-www-form-urlencoded' },
+        body: params.toString(),
+      });
+    }
+
+    return { id: existing.id, url: webhookUrl, created: false };
+  }
+
+  const params = new URLSearchParams();
+  params.set('url', webhookUrl);
+  params.set('description', 'SobKru69 automatic digital delivery');
+  params.set('metadata[purpose]', 'sobkru69_fulfillment');
+  STRIPE_FULFILLMENT_EVENTS.forEach((eventName) => params.append('enabled_events[]', eventName));
+
+  const endpoint = await stripeFetch('/v1/webhook_endpoints', {
+    method: 'POST',
+    headers: { 'content-type': 'application/x-www-form-urlencoded' },
+    body: params.toString(),
+  });
+
+  return { id: endpoint.id, url: webhookUrl, created: true };
 };
