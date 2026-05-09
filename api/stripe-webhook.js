@@ -125,7 +125,7 @@ const logDelivery = async ({ order, items, status, message, providerMessageId = 
   });
 };
 
-const fulfillCheckoutSession = async ({ session, event }) => {
+export const fulfillCheckoutSession = async ({ session, event }) => {
   if (session.payment_status !== 'paid') {
     return { skipped: true, message: 'checkout session ยังไม่ได้ชำระเงินสำเร็จ' };
   }
@@ -182,11 +182,24 @@ export default async function handler(req, res) {
     const rawBody = await getRawBody(req);
     const signature = req.headers['stripe-signature'];
     const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+    let event = JSON.parse(rawBody);
+
     if (!verifyStripeSignature({ rawBody, signatureHeader: signature, secret: webhookSecret })) {
-      return json(res, 400, { success: false, message: 'Stripe signature ไม่ถูกต้อง' });
+      if (!event?.id) {
+        return json(res, 400, { success: false, message: 'Stripe signature ไม่ถูกต้อง' });
+      }
+
+      // Some serverless runtimes parse the body before this handler sees it,
+      // which makes raw signature verification impossible. When that happens,
+      // fetch the event back from Stripe with our secret key and only process
+      // the event that exists in this Stripe account.
+      const verifiedEvent = await stripeFetch(`/v1/events/${encodeURIComponent(event.id)}`);
+      if (!verifiedEvent?.id || verifiedEvent.id !== event.id) {
+        return json(res, 400, { success: false, message: 'Stripe event ตรวจสอบไม่สำเร็จ' });
+      }
+      event = verifiedEvent;
     }
 
-    const event = JSON.parse(rawBody);
     if (!['checkout.session.completed', 'checkout.session.async_payment_succeeded'].includes(event.type)) {
       return json(res, 200, { received: true, ignored: true });
     }

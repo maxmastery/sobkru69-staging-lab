@@ -114,4 +114,19 @@ export const stripeSalesService = {
     }
     return data.message || 'ส่งไฟล์ซ้ำสำเร็จ';
   },
+
+  async syncRecentStripeSessions(adminToken: string): Promise<string> {
+    const response = await fetch('/api/stripe-sync', {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        'x-stripe-admin-token': adminToken,
+      },
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok || !data.success) {
+      throw new Error(data.message || 'ซิงก์ Stripe ไม่สำเร็จ');
+    }
+    return data.message || 'ซิงก์ Stripe สำเร็จ';
+  },
 };

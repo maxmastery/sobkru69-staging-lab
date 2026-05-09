@@ -34,6 +34,7 @@ const AdminSales: React.FC = () => {
   const [adminToken, setAdminToken] = useState('');
   const [sales, setSales] = useState<StripeSalesResponse | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
   const [message, setMessage] = useState('');
   const [resendingOrderId, setResendingOrderId] = useState<string | null>(null);
 
@@ -79,6 +80,21 @@ const AdminSales: React.FC = () => {
     }
   };
 
+  const handleSyncStripe = async () => {
+    setIsSyncing(true);
+    setMessage('');
+    try {
+      stripeSalesService.setStoredToken(adminToken);
+      const nextMessage = await stripeSalesService.syncRecentStripeSessions(adminToken);
+      setMessage(nextMessage);
+      await loadSales(adminToken);
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'ซิงก์ Stripe ไม่สำเร็จ');
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
   const summary = sales?.summary;
 
   return (
@@ -93,14 +109,24 @@ const AdminSales: React.FC = () => {
             <p className="mt-1 text-sm font-semibold text-slate-500">ดูคำสั่งซื้อ สินค้าที่ขายได้ และสถานะส่งไฟล์อัตโนมัติ</p>
           </div>
         </div>
-        <button
-          onClick={() => loadSales()}
-          disabled={isLoading || !adminToken}
-          className="inline-flex items-center justify-center gap-2 rounded-2xl border border-orange-200 bg-white px-5 py-3 text-sm font-black text-orange-600 shadow-sm transition hover:bg-orange-50 disabled:opacity-50"
-        >
-          {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
-          รีเฟรชข้อมูล
-        </button>
+        <div className="flex flex-col gap-3 sm:flex-row">
+          <button
+            onClick={handleSyncStripe}
+            disabled={isSyncing || isLoading || !adminToken}
+            className="inline-flex items-center justify-center gap-2 rounded-2xl bg-orange-600 px-5 py-3 text-sm font-black text-white shadow-lg shadow-orange-500/15 transition hover:bg-orange-700 disabled:opacity-50"
+          >
+            {isSyncing ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+            ซิงก์ Stripe ล่าสุด
+          </button>
+          <button
+            onClick={() => loadSales()}
+            disabled={isLoading || !adminToken}
+            className="inline-flex items-center justify-center gap-2 rounded-2xl border border-orange-200 bg-white px-5 py-3 text-sm font-black text-orange-600 shadow-sm transition hover:bg-orange-50 disabled:opacity-50"
+          >
+            {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+            รีเฟรชข้อมูล
+          </button>
+        </div>
       </div>
 
       <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
