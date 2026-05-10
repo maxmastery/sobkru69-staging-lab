@@ -28,7 +28,7 @@
   },
   "crons": [
     {
-      "path": "/api/stripe-sync",
+      "path": "/api/stripe-auto-sync",
       "schedule": "* * * * *"
     }
   ],
