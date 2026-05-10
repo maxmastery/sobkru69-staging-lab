@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { AlertTriangle, ArrowDownToLine, CheckCircle2, CreditCard, Loader2, MailCheck, PackageCheck, RefreshCw, ReceiptText, Send, TrendingUp } from 'lucide-react';
 import { stripeSalesService, StripeOrder, StripeOrderItem, StripeSalesResponse } from '../../services/stripeSalesService';
 
@@ -30,13 +30,22 @@ const metricIconClasses: Record<string, string> = {
   rose: 'bg-rose-100 text-rose-600',
 };
 
+const AUTO_SYNC_INTERVAL_MS = 5000;
+
 const AdminSales: React.FC = () => {
   const [adminToken, setAdminToken] = useState('');
   const [sales, setSales] = useState<StripeSalesResponse | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const [message, setMessage] = useState('');
+  const [autoSyncMessage, setAutoSyncMessage] = useState('');
   const [resendingOrderId, setResendingOrderId] = useState<string | null>(null);
+  const autoSyncRunningRef = useRef(false);
+  const adminTokenRef = useRef('');
+
+  useEffect(() => {
+    adminTokenRef.current = adminToken;
+  }, [adminToken]);
 
   useEffect(() => {
     const stored = stripeSalesService.getStoredToken();
@@ -95,6 +104,44 @@ const AdminSales: React.FC = () => {
     }
   };
 
+  useEffect(() => {
+    if (!adminToken) return;
+
+    let isMounted = true;
+    const runAutoSync = async () => {
+      if (autoSyncRunningRef.current || document.visibilityState !== 'visible') return;
+
+      autoSyncRunningRef.current = true;
+      try {
+        const token = adminTokenRef.current;
+        if (!token) return;
+
+        const nextMessage = await stripeSalesService.syncRecentStripeSessions(token);
+        const data = await stripeSalesService.getSales(token);
+        if (!isMounted) return;
+
+        setSales(data);
+        setAutoSyncMessage(`Auto sync: ${nextMessage}`);
+      } catch (error) {
+        if (isMounted) {
+          setAutoSyncMessage(error instanceof Error ? `Auto sync ล้มเหลว: ${error.message}` : 'Auto sync ล้มเหลว');
+        }
+      } finally {
+        autoSyncRunningRef.current = false;
+      }
+    };
+
+    void runAutoSync();
+    const interval = window.setInterval(() => {
+      void runAutoSync();
+    }, AUTO_SYNC_INTERVAL_MS);
+
+    return () => {
+      isMounted = false;
+      window.clearInterval(interval);
+    };
+  }, [adminToken]);
+
   const summary = sales?.summary;
 
   return (
@@ -151,6 +198,11 @@ const AdminSales: React.FC = () => {
         {message && (
           <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-bold text-amber-800">
             {message}
+          </div>
+        )}
+        {autoSyncMessage && (
+          <div className="mt-3 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-xs font-bold text-emerald-800">
+            {autoSyncMessage} · ตรวจอัตโนมัติทุก 5 วินาทีเมื่อเปิดหน้านี้
           </div>
         )}
       </div>

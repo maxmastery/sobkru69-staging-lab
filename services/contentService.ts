@@ -647,7 +647,7 @@ export const contentService = {
     const viewCounts = await this.getDailyEnglishViewCounts(items.map(item => item.id));
     return items.map(item => ({
       ...item,
-      viewCount: viewCounts[item.id] ? viewCounts[item.id].size : item.viewCount,
+      viewCount: Math.max(Number(item.viewCount || 0), viewCounts[item.id]?.size || 0),
     }));
   },
 
@@ -736,8 +736,44 @@ export const contentService = {
   },
 
   async getDailyEnglishViewCount(contentId: string): Promise<number> {
-    const counts = await this.getDailyEnglishViewCounts([contentId]);
-    return counts[contentId]?.size || 0;
+    const [lessons, counts] = await Promise.all([
+      this.getDailyEnglishLessons(),
+      this.getDailyEnglishViewCounts([contentId]),
+    ]);
+    const storedCount = lessons.find(item => item.id === contentId)?.viewCount || 0;
+    return Math.max(Number(storedCount || 0), counts[contentId]?.size || 0);
+  },
+
+  async incrementDailyEnglishStoredViewCount(contentId: string): Promise<number> {
+    ensureSupabase();
+    const rows = await supabaseRest.select<AppSettingRow[]>('app_settings', `select=*&key=eq.${encodeValue(DAILY_ENGLISH_SETTINGS_KEY)}&limit=1`);
+    const currentValue = rows?.[0]?.value || {};
+    const lessons = Array.isArray(currentValue.lessons) ? currentValue.lessons : [];
+    let nextCount = 1;
+    const nextLessons = lessons.map((lesson: Record<string, any>) => {
+      if (lesson.id !== contentId) return lesson;
+      nextCount = Number(lesson.viewCount || 0) + 1;
+      return {
+        ...lesson,
+        viewCount: nextCount,
+      };
+    });
+
+    if (!lessons.some((lesson: Record<string, any>) => lesson.id === contentId)) {
+      return 0;
+    }
+
+    await supabaseRest.upsert<AppSettingRow[]>('app_settings', {
+      key: DAILY_ENGLISH_SETTINGS_KEY,
+      value: {
+        ...currentValue,
+        lessons: nextLessons,
+        updatedAt: new Date().toISOString(),
+      },
+      updated_at: new Date().toISOString(),
+    }, 'key');
+
+    return nextCount;
   },
 
   async recordDailyEnglishView(contentId: string): Promise<number> {
@@ -757,16 +793,22 @@ export const contentService = {
       await supabaseRest.upsert<ContentViewRow[]>('content_views', directPayload, 'id');
     } catch (error) {
       const fallbackContentId = getDailyEnglishFallbackViewId(contentId);
-      await supabaseRest.upsert<ContentViewRow[]>('content_views', {
-        id: getContentViewRowId(DAILY_ENGLISH_VIEW_FALLBACK_TYPE, fallbackContentId, viewerKey),
-        content_type: DAILY_ENGLISH_VIEW_FALLBACK_TYPE,
-        content_id: fallbackContentId,
-        viewer_key: viewerKey,
-        viewed_at: viewedAt,
-      }, 'id');
+      try {
+        await supabaseRest.upsert<ContentViewRow[]>('content_views', {
+          id: getContentViewRowId(DAILY_ENGLISH_VIEW_FALLBACK_TYPE, fallbackContentId, viewerKey),
+          content_type: DAILY_ENGLISH_VIEW_FALLBACK_TYPE,
+          content_id: fallbackContentId,
+          viewer_key: viewerKey,
+          viewed_at: viewedAt,
+        }, 'id');
+      } catch (fallbackError) {
+        console.warn('Failed to record Daily English view in content_views fallback', fallbackError);
+      }
     }
 
-    return this.getDailyEnglishViewCount(contentId);
+    const storedCount = await this.incrementDailyEnglishStoredViewCount(contentId);
+    const trackedCount = await this.getDailyEnglishViewCount(contentId);
+    return Math.max(storedCount, trackedCount);
   },
 
   async getViewCounts(contentType: ContentViewRow['content_type'], contentIds: string[]): Promise<Record<string, Set<string>>> {
