@@ -1,25 +1,14 @@
-import {
-  ensureStripeFulfillmentWebhook,
-  json,
-  parseProductMeta,
-  stripeFetch,
-  supabaseRequest,
-} from './_stripeFulfillment.js';
+import { json, loadLocalProducts, readJsonBody, stripeRequest } from './_stripe-utils.js';
 
 const getOrigin = (req) => {
+  const configured = process.env.PUBLIC_SITE_URL || process.env.VITE_PUBLIC_SITE_URL || process.env.SITE_URL;
+  if (configured) return configured.replace(/\/+$/, '');
+
   const protocol = req.headers['x-forwarded-proto'] || 'https';
   const host = req.headers['x-forwarded-host'] || req.headers.host;
   if (host) return `${protocol}://${host}`;
 
-  const configured = process.env.PUBLIC_SITE_URL || process.env.VITE_PUBLIC_SITE_URL || process.env.SITE_URL;
-  if (configured) return configured.replace(/\/+$/, '');
   throw new Error('ไม่สามารถระบุ URL เว็บไซต์สำหรับกลับหลังชำระเงินได้');
-};
-
-const readBody = (req) => {
-  if (!req.body) return {};
-  if (typeof req.body === 'string') return JSON.parse(req.body || '{}');
-  return req.body;
 };
 
 export default async function handler(req, res) {
@@ -28,47 +17,39 @@ export default async function handler(req, res) {
   }
 
   try {
-    const body = readBody(req);
+    const body = await readJsonBody(req);
     const productId = String(body.productId || '').trim();
     if (!productId) {
       return json(res, 400, { success: false, message: 'ไม่พบรหัสสินค้า' });
     }
 
-    const products = await supabaseRequest(`/rest/v1/products?id=eq.${encodeURIComponent(productId)}&select=*&limit=1`);
-    const product = Array.isArray(products) && products.length > 0 ? products[0] : null;
+    const products = await loadLocalProducts();
+    const product = products.find((item) => String(item.id) === productId);
     if (!product) {
       return json(res, 404, { success: false, message: 'ไม่พบสินค้า' });
     }
-    if (product.status !== 'in_stock') {
+    if (product.status && product.status !== 'in_stock') {
       return json(res, 400, { success: false, message: 'สินค้านี้ยังไม่พร้อมขาย' });
     }
 
-    const meta = parseProductMeta(product.features);
-    const stripePriceId = String(meta.stripePriceId || '').trim();
+    const stripePriceId = String(product.stripePriceId || '').trim();
     if (!stripePriceId) {
       return json(res, 400, { success: false, message: 'สินค้านี้ยังไม่ได้ตั้งค่า Stripe Price ID' });
     }
 
     const origin = getOrigin(req);
-    await ensureStripeFulfillmentWebhook(origin);
-
-    const params = new URLSearchParams();
-    params.set('mode', 'payment');
-    params.set('line_items[0][price]', stripePriceId);
-    params.set('line_items[0][quantity]', '1');
-    params.set('success_url', `${origin}/api/stripe-checkout-return?session_id={CHECKOUT_SESSION_ID}`);
-    params.set('cancel_url', `${origin}/`);
-    params.set('allow_promotion_codes', 'true');
-    params.set('metadata[product_id]', product.id);
-    params.set('metadata[local_product_name]', product.name || '');
-    params.set('payment_intent_data[metadata][product_id]', product.id);
-    params.set('payment_intent_data[metadata][local_product_name]', product.name || '');
-
-    const session = await stripeFetch('/v1/checkout/sessions', {
-      method: 'POST',
-      headers: { 'content-type': 'application/x-www-form-urlencoded' },
-      body: params.toString(),
-    });
+    const session = await stripeRequest('/checkout/sessions', {
+      mode: 'payment',
+      'line_items[0][price]': stripePriceId,
+      'line_items[0][quantity]': '1',
+      success_url: `${origin}/api/stripe-checkout-return?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${origin}/`,
+      allow_promotion_codes: 'true',
+      'metadata[product_id]': product.id,
+      'metadata[local_product_name]': product.name || '',
+      'payment_intent_data[metadata][product_id]': product.id,
+      'payment_intent_data[metadata][local_product_name]': product.name || '',
+    }, 'POST');
 
     return json(res, 200, { success: true, url: session.url, sessionId: session.id });
   } catch (error) {

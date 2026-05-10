@@ -1,5 +1,11 @@
-import { escapeHtml, stripeFetch } from './_stripeFulfillment.js';
-import { fulfillCheckoutSession } from './stripe-webhook.js';
+import { syncCheckoutSession } from './_stripe-utils.js';
+
+const escapeHtml = (value) => String(value ?? '')
+  .replace(/&/g, '&amp;')
+  .replace(/</g, '&lt;')
+  .replace(/>/g, '&gt;')
+  .replace(/"/g, '&quot;')
+  .replace(/'/g, '&#039;');
 
 const html = ({ title, message, tone = 'success' }) => {
   const color = tone === 'success' ? '#16a34a' : '#ea580c';
@@ -45,30 +51,22 @@ export default async function handler(req, res) {
   }
 
   try {
-    const session = await stripeFetch(`/v1/checkout/sessions/${encodeURIComponent(sessionId)}`);
-    const result = await fulfillCheckoutSession({
-      session,
-      event: {
-        id: `checkout_return_${session.id}`,
-        type: 'checkout.session.return',
-        data: { object: session },
-      },
-    });
+    const result = await syncCheckoutSession(sessionId, { sendDelivery: true });
 
     res.statusCode = 200;
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
     res.end(html({
-      title: result.skipped ? 'ระบบรับคำสั่งซื้อแล้ว' : 'ส่งไฟล์ให้แล้ว',
+      title: result.delivered ? 'ส่งไฟล์ให้แล้ว' : 'ระบบรับคำสั่งซื้อแล้ว',
       message: result.message || 'กรุณาตรวจสอบอีเมลที่ใช้ชำระเงิน หากไม่พบให้ดูในกล่องจดหมายขยะ',
       tone: 'success',
     }));
   } catch (error) {
     console.error('Stripe checkout return failed', error);
-    res.statusCode = 500;
+    res.statusCode = 200;
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
     res.end(html({
       title: 'กำลังตรวจสอบคำสั่งซื้อ',
-      message: 'ระบบยังส่งไฟล์ไม่ได้ทันที แต่จะซิงก์ซ้ำอัตโนมัติ หากยังไม่ได้รับอีเมลกรุณาติดต่อผู้ดูแลระบบ',
+      message: 'ระบบยังส่งไฟล์ไม่ได้ทันที แต่ cron จะซิงก์ซ้ำอัตโนมัติ หากยังไม่ได้รับอีเมลกรุณาติดต่อผู้ดูแลระบบ',
       tone: 'error',
     }));
   }

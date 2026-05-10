@@ -29,7 +29,7 @@
   "crons": [
     {
       "path": "/api/stripe-auto-sync",
-      "schedule": "* * * * *"
+      "schedule": "*/10 * * * *"
     }
   ],
   "headers": [
@@ -62,6 +62,10 @@
     }
   ],
   "rewrites": [
+    {
+      "source": "/api/(.*)",
+      "destination": "/api/$1"
+    },
     {
       "source": "/(.*)",
       "destination": "/index.html"

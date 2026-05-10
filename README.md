@@ -58,6 +58,17 @@ Follow these steps to set up the project in your IDE and run it locally:
    VITE_SUPABASE_FILES_BUCKET=sobkru-files
    ```
 
+   For Stripe PDF delivery, add the server-only variables in Vercel:
+
+   ```bash
+   STRIPE_SECRET_KEY=sk_live_or_test_key
+   STRIPE_WEBHOOK_SECRET=whsec_...
+   STRIPE_ADMIN_TOKEN=change-this-to-a-long-random-secret
+   CRON_SECRET=change-this-to-a-long-random-secret
+   ```
+
+   In Stripe Dashboard, add a webhook endpoint pointing to `https://your-domain.com/api/stripe-webhook` and enable `checkout.session.completed` plus `checkout.session.async_payment_succeeded`. The GitHub Actions fallback cron also needs repository secrets `VERCEL_APP_URL` and `CRON_SECRET`.
+
 3. **Run the development server**.  Start the app locally using Vite:
 
    ```bash

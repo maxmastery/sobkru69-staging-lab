@@ -63,6 +63,23 @@ VITE_SUPABASE_FILES_BUCKET=sobkru-files
 npm run dev
 ```
 
+## Stripe และระบบส่งไฟล์หลังชำระเงิน
+
+ตั้งค่า Environment Variables ฝั่ง Vercel เพิ่มเติม:
+
+```env
+STRIPE_SECRET_KEY=sk_live_or_test_key
+STRIPE_WEBHOOK_SECRET=whsec_...
+STRIPE_ADMIN_TOKEN=change-this-to-a-long-random-secret
+CRON_SECRET=change-this-to-a-long-random-secret
+SUPABASE_URL=https://your-project-ref.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=your-supabase-service-role-secret-key
+```
+
+ใน Stripe Dashboard ให้เพิ่ม webhook endpoint เป็น `https://your-domain.com/api/stripe-webhook` และเลือก event `checkout.session.completed` กับ `checkout.session.async_payment_succeeded`
+
+หากใช้ GitHub Actions fallback cron ให้ตั้ง repository secrets `VERCEL_APP_URL` และ `CRON_SECRET` ด้วยค่าเดียวกับ production
+
 ## 3. ทดสอบการเชื่อมต่อ
 
 1. เปิดหน้าเว็บ
