@@ -778,6 +778,24 @@ export const contentService = {
 
   async recordDailyEnglishView(contentId: string): Promise<number> {
     ensureSupabase();
+
+    try {
+      const response = await fetch('/api/daily-english-view', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ lessonId: contentId }),
+      });
+      const result = await response.json().catch(() => null);
+
+      if (response.ok && result?.success) {
+        return Number(result.viewCount || 0);
+      }
+
+      console.warn('Daily English server view counter failed', result?.message || response.statusText);
+    } catch (error) {
+      console.warn('Daily English server view counter unavailable', error);
+    }
+
     const viewerKey = getViewerKey();
     const viewedAt = new Date().toISOString();
 
