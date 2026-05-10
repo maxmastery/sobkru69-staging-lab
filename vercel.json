@@ -19,6 +19,9 @@
     "api/stripe-sync.js": {
       "maxDuration": 60
     },
+    "api/stripe-auto-sync.js": {
+      "maxDuration": 60
+    },
     "api/email-inbox.js": {
       "maxDuration": 30
     }

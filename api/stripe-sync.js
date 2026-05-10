@@ -1,5 +1,5 @@
-import { json, requireAdminToken, stripeFetch } from './_stripeFulfillment.js';
-import { fulfillCheckoutSession } from './stripe-webhook.js';
+import { json, requireAdminToken } from './_stripeFulfillment.js';
+import { syncRecentStripeSessions } from './_stripeSync.js';
 
 const isCronAuthorized = (req) => {
   const cronSecret = process.env.CRON_SECRET;
@@ -26,35 +26,12 @@ export default async function handler(req, res) {
   }
 
   try {
-    const sessionsResponse = await stripeFetch('/v1/checkout/sessions?limit=50');
-    const sessions = Array.isArray(sessionsResponse.data) ? sessionsResponse.data : [];
-    const paidSessions = sessions.filter((session) => session.payment_status === 'paid');
-    const results = [];
-
-    for (const session of paidSessions) {
-      try {
-        const result = await fulfillCheckoutSession({
-          session,
-          event: {
-            id: `manual_sync_${session.id}`,
-            type: 'manual.checkout.session.sync',
-            data: { object: session },
-          },
-        });
-        results.push({ sessionId: session.id, ok: true, ...result });
-      } catch (error) {
-        results.push({ sessionId: session.id, ok: false, message: error.message || 'sync failed' });
-      }
-    }
-
-    const synced = results.filter((item) => item.ok && !item.skipped).length;
-    const skipped = results.filter((item) => item.ok && item.skipped).length;
-    const failed = results.filter((item) => !item.ok).length;
+    const result = await syncRecentStripeSessions({ limit: 50, eventIdPrefix: req.method === 'GET' ? 'cron_sync' : 'manual_sync' });
 
     return json(res, 200, {
       success: true,
-      message: `ซิงก์สำเร็จ ${synced} รายการ, ข้าม ${skipped} รายการ, ไม่สำเร็จ ${failed} รายการ`,
-      results,
+      message: `ซิงก์สำเร็จ ${result.synced} รายการ, ข้าม ${result.skipped} รายการ, ไม่สำเร็จ ${result.failed} รายการ`,
+      results: result.results,
     });
   } catch (error) {
     console.error('Stripe sync failed', error);

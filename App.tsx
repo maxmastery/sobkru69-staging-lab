@@ -22,6 +22,7 @@ import { ExamPart, SubTopic } from './types';
 import { authService, User, BellNotification, UserUiState, MaintenanceModeState } from './services/authService';
 import { userActivityService } from './services/userActivityService';
 import { contentService } from './services/contentService';
+import { stripeAutoSyncService } from './services/stripeAutoSyncService';
 import { LogOut, AlertTriangle, Bell, X, Settings, User as UserIcon, BarChart3, Megaphone, MessageSquare, Loader2, Lock } from 'lucide-react';
 
 type PageState = 'dashboard' | 'news' | 'discussion' | 'shop' | 'mock-exam' | 'daily-english' | 'contact-support' | 'leaderboard' | 'user-stats';
@@ -225,6 +226,8 @@ const App: React.FC = () => {
       isMounted = false;
     };
   }, []);
+
+  useEffect(() => stripeAutoSyncService.start(), []);
 
   useEffect(() => {
     void loadMaintenanceMode();
