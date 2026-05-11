@@ -20,6 +20,7 @@
 - `discussion_threads`, `discussion_replies` สำหรับกระดานสนทนา
 - `reports`, `banned_users` สำหรับรายงาน/ระงับผู้ใช้
 - `products` สำหรับสินค้า/ไฟล์สรุป
+- `content_views` สำหรับยอดอ่าน รวมถึง Daily English
 - `donations` สำหรับประวัติเลี้ยงกาแฟและสลิป
 - `lesson_progress`, `study_time`, `quiz_attempts`, `mock_exam_attempts` สำหรับรองรับการเก็บความก้าวหน้าและผลสอบในอนาคต
 - Buckets: `sobkru-images`, `sobkru-slips`, `sobkru-files`
@@ -55,6 +56,12 @@ VITE_SUPABASE_ANON_KEY=your-supabase-anon-public-key
 VITE_SUPABASE_IMAGES_BUCKET=sobkru-images
 VITE_SUPABASE_SLIPS_BUCKET=sobkru-slips
 VITE_SUPABASE_FILES_BUCKET=sobkru-files
+SUPABASE_URL=https://your-project-ref.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+STRIPE_SECRET_KEY=sk_test_or_live_...
+STRIPE_WEBHOOK_SECRET=whsec_...
+STRIPE_ADMIN_TOKEN=change-this-to-a-long-random-secret
+CRON_SECRET=change-this-to-a-long-random-secret
 ```
 
 หลังแก้ `.env.local` ให้ restart dev server
@@ -89,7 +96,18 @@ SUPABASE_SERVICE_ROLE_KEY=your-supabase-service-role-secret-key
 5. ลองบันทึก Popup Notification หรือข้อความวิ่ง
 6. ลองอัปโหลดรูปจากหน้า Admin Notification หรือ News
 
-## 4. หมายเหตุด้านความปลอดภัย
+สำหรับโปรเจกต์ที่เคยรัน SQL เดิมไปแล้ว ให้รัน `supabase/daily_english_stripe_patch.sql` เพิ่มอีกครั้ง เพื่อให้ `content_views` รองรับ `daily_english`
+
+## 4. ตั้งค่า Stripe ส่งไฟล์อัตโนมัติ
+
+1. ใส่ `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_ADMIN_TOKEN`, `CRON_SECRET`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` ใน Environment Variables ของ Vercel
+2. ใน Stripe Dashboard เพิ่ม webhook endpoint เป็น `https://your-domain.com/api/stripe-webhook`
+3. เลือก event `checkout.session.completed` และ `checkout.session.async_payment_succeeded`
+4. ใส่ลิงก์ไฟล์ใน Stripe metadata ของ Product, Price, Payment Link หรือ Checkout Session โดยใช้ key เช่น `delivery_file_url`, `download_url`, `file_url`, `pdf_url`
+5. หากใช้ไฟล์ใน Supabase private bucket ให้ใส่ path เช่น `folder/file.pdf` หรือ `storage://sobkru-files/folder/file.pdf`
+6. หากใช้ GitHub Actions fallback cron ให้ตั้ง repository secrets `VERCEL_APP_URL` และ `CRON_SECRET`
+
+## 5. หมายเหตุด้านความปลอดภัย
 
 โปรเจกต์นี้เป็น Frontend-only app จึงใช้ `anon public key` จากฝั่ง browser เพื่อให้เชื่อมต่อได้ทันทีตามโครงสร้างเดิมของระบบ Google Apps Script
 

@@ -25,7 +25,7 @@ import { KnowledgeNode } from './lib/knowledge-graph/types';
 import { ExamPart, SubTopic } from './types';
 import { authService, User, BellNotification, UserUiState, MaintenanceModeState } from './services/authService';
 import { userActivityService } from './services/userActivityService';
-import { contentService } from './services/contentService';
+import { contentService, DEFAULT_KNOWLEDGE_GRAPH_SETTINGS, type KnowledgeGraphSettings } from './services/contentService';
 import { LogOut, AlertTriangle, Bell, X, Settings, User as UserIcon, BarChart3, Megaphone, MessageSquare, Loader2, Lock } from 'lucide-react';
 
 type PageState = 'dashboard' | 'news' | 'discussion' | 'shop' | 'mock-exam' | 'daily-english' | 'knowledge-graph' | 'contact-support' | 'leaderboard' | 'user-stats';
@@ -132,6 +132,7 @@ const App: React.FC = () => {
   const [maintenanceMode, setMaintenanceMode] = useState<MaintenanceModeState>(DEFAULT_MAINTENANCE_MODE);
   const [showMaintenanceAdminLogin, setShowMaintenanceAdminLogin] = useState(false);
   const [showShopButton, setShowShopButton] = useState(false);
+  const [knowledgeGraphSettings, setKnowledgeGraphSettings] = useState<KnowledgeGraphSettings>(DEFAULT_KNOWLEDGE_GRAPH_SETTINGS);
   const menuRef = useRef<HTMLDivElement>(null);
 
   // Bell Notifications
@@ -181,6 +182,16 @@ const App: React.FC = () => {
     }
   };
 
+  const loadKnowledgeGraphSettings = async () => {
+    try {
+      const settings = await contentService.getKnowledgeGraphSettings();
+      setKnowledgeGraphSettings(settings);
+    } catch (error) {
+      console.error('Failed to fetch knowledge graph settings', error);
+      setKnowledgeGraphSettings(DEFAULT_KNOWLEDGE_GRAPH_SETTINGS);
+    }
+  };
+
   useEffect(() => {
     let isMounted = true;
 
@@ -191,6 +202,7 @@ const App: React.FC = () => {
         await Promise.all([
           loadMaintenanceMode(),
           loadShopButtonSettings(),
+          loadKnowledgeGraphSettings(),
         ]);
         const restored = await authService.restoreSession();
         if (!isMounted) return;
@@ -636,7 +648,18 @@ const App: React.FC = () => {
           setCurrentTopic(null);
           setShowLearningStats(false);
         }}
+        onPreviewKnowledgeGraph={() => {
+          setShowAdminPanel(false);
+          setCurrentPage('knowledge-graph');
+          setCurrentPart(null);
+          setCurrentTopic(null);
+          setShowLearningStats(false);
+          if (typeof window !== 'undefined') {
+            window.history.pushState({}, '', '/knowledge-graph');
+          }
+        }}
         onShopButtonVisibilityChange={setShowShopButton}
+        onKnowledgeGraphSettingsChange={setKnowledgeGraphSettings}
       />
     );
   }
@@ -703,6 +726,8 @@ const App: React.FC = () => {
           }}
           onNavigateToLeaderboard={() => setCurrentPage('user-stats')}
           showShopButton={showShopButton}
+          showKnowledgeGraph={knowledgeGraphSettings.isVisible}
+          knowledgeGraphSettings={knowledgeGraphSettings}
         />
       );
     }

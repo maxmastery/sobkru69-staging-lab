@@ -66,6 +66,7 @@ const sessionLabel = (page: string) => {
   if (page === 'news') return 'กำลังอ่านข่าว';
   if (page === 'discussion') return 'กำลังใช้กระดานสนทนา';
   if (page === 'shop') return 'กำลังดูสินค้า';
+  if (page === 'knowledge-graph') return 'กำลังดูแผนที่เครือข่ายความรู้';
   if (page.startsWith('admin')) return 'อยู่ในระบบหลังบ้าน';
   return 'กำลังใช้งานหน้าแดชบอร์ด';
 };

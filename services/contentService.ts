@@ -200,6 +200,29 @@ export interface ShopButtonSettings {
   isVisible: boolean;
 }
 
+export interface KnowledgeGraphSettings {
+  isVisible: boolean;
+  title: string;
+  subtitle: string;
+  buttonLabel: string;
+  updatedAt?: string;
+}
+
+export interface ShopHourlyBucket {
+  hour: number;
+  label: string;
+  count: number;
+}
+
+export interface ShopPageAnalytics {
+  totalUniqueViewers: number;
+  todayUniqueViewers: number;
+  last24HoursUniqueViewers: number;
+  peakHourLabel: string;
+  hourlyBuckets: ShopHourlyBucket[];
+  latestViews: { viewerKey: string; viewedAt: string }[];
+}
+
 export interface DailyEnglishVocabularyItem {
   id: string;
   word: string;
@@ -239,9 +262,20 @@ export interface ContentDailyEnglishLesson {
 }
 
 const SUPABASE_NOT_CONFIGURED_MESSAGE = 'ยังไม่ได้ตั้งค่า Supabase';
+const SHOP_BUTTON_SETTINGS_KEY = 'shop_button_visibility';
+const KNOWLEDGE_GRAPH_SETTINGS_KEY = 'knowledge_graph_settings';
+const SHOP_PAGE_CONTENT_ID = 'shop-page';
+const SHOP_ANALYTICS_TIME_ZONE = 'Asia/Bangkok';
 const DAILY_ENGLISH_SETTINGS_KEY = 'daily_english_lessons';
 const DAILY_ENGLISH_VIEW_FALLBACK_TYPE: ContentViewRow['content_type'] = 'news';
 const DAILY_ENGLISH_VIEW_FALLBACK_PREFIX = 'daily_english:';
+
+export const DEFAULT_KNOWLEDGE_GRAPH_SETTINGS: KnowledgeGraphSettings = {
+  isVisible: true,
+  title: 'แผนที่เครือข่ายความรู้',
+  subtitle: 'ดูบทเรียนทั้งหมดเป็นจุดและเส้นเชื่อมโยง เพื่อเห็นว่าหัวข้อไหนควรเรียนก่อนและเนื้อหาใดเกี่ยวข้องกัน',
+  buttonLabel: 'เปิด Graph View',
+};
 
 const ensureSupabase = () => {
   if (!isSupabaseConfigured()) {
@@ -264,6 +298,21 @@ const getContentViewRowId = (contentType: ContentViewRow['content_type'], conten
   `${contentType}_${contentId}_${viewerKey}`.replace(/[^a-zA-Z0-9._-]+/g, '-').slice(0, 260);
 
 const getDailyEnglishFallbackViewId = (contentId: string) => `${DAILY_ENGLISH_VIEW_FALLBACK_PREFIX}${contentId}`;
+
+const getBangkokDateKey = (date: Date) => new Intl.DateTimeFormat('en-CA', {
+  timeZone: SHOP_ANALYTICS_TIME_ZONE,
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+}).format(date);
+
+const getBangkokHour = (date: Date) => Number(new Intl.DateTimeFormat('en-US', {
+  timeZone: SHOP_ANALYTICS_TIME_ZONE,
+  hour: '2-digit',
+  hourCycle: 'h23',
+}).format(date));
+
+const toHourLabel = (hour: number) => `${String(hour).padStart(2, '0')}:00`;
 
 const toNewsItem = (row: NewsRow): ContentNewsItem => ({
   id: row.id,
@@ -615,7 +664,7 @@ export const contentService = {
   async getShopButtonSettings(): Promise<ShopButtonSettings> {
     ensureSupabase();
     try {
-      const rows = await supabaseRest.select<AppSettingRow[]>('app_settings', `select=*&key=eq.${encodeValue('shop_button_visibility')}&limit=1`);
+      const rows = await supabaseRest.select<AppSettingRow[]>('app_settings', `select=*&key=eq.${encodeValue(SHOP_BUTTON_SETTINGS_KEY)}&limit=1`);
       const value = rows?.[0]?.value || {};
       return {
         isVisible: value.isVisible === true,
@@ -629,7 +678,7 @@ export const contentService = {
   async setShopButtonSettings(settings: ShopButtonSettings): Promise<ShopButtonSettings> {
     ensureSupabase();
     await supabaseRest.upsert<AppSettingRow[]>('app_settings', {
-      key: 'shop_button_visibility',
+      key: SHOP_BUTTON_SETTINGS_KEY,
       value: {
         isVisible: settings.isVisible,
         updatedAt: new Date().toISOString(),
@@ -637,6 +686,45 @@ export const contentService = {
       updated_at: new Date().toISOString(),
     }, 'key');
     return settings;
+  },
+
+  async getKnowledgeGraphSettings(): Promise<KnowledgeGraphSettings> {
+    ensureSupabase();
+    try {
+      const rows = await supabaseRest.select<AppSettingRow[]>('app_settings', `select=*&key=eq.${encodeValue(KNOWLEDGE_GRAPH_SETTINGS_KEY)}&limit=1`);
+      const value = rows?.[0]?.value || {};
+      return {
+        ...DEFAULT_KNOWLEDGE_GRAPH_SETTINGS,
+        isVisible: value.isVisible !== false,
+        title: typeof value.title === 'string' && value.title.trim() ? value.title : DEFAULT_KNOWLEDGE_GRAPH_SETTINGS.title,
+        subtitle: typeof value.subtitle === 'string' && value.subtitle.trim() ? value.subtitle : DEFAULT_KNOWLEDGE_GRAPH_SETTINGS.subtitle,
+        buttonLabel: typeof value.buttonLabel === 'string' && value.buttonLabel.trim() ? value.buttonLabel : DEFAULT_KNOWLEDGE_GRAPH_SETTINGS.buttonLabel,
+        updatedAt: typeof value.updatedAt === 'string' ? value.updatedAt : rows?.[0]?.updated_at,
+      };
+    } catch (error) {
+      console.warn('Failed to load knowledge graph settings', error);
+      return DEFAULT_KNOWLEDGE_GRAPH_SETTINGS;
+    }
+  },
+
+  async setKnowledgeGraphSettings(settings: KnowledgeGraphSettings): Promise<KnowledgeGraphSettings> {
+    ensureSupabase();
+    const now = new Date().toISOString();
+    const payload: KnowledgeGraphSettings = {
+      isVisible: settings.isVisible,
+      title: settings.title.trim() || DEFAULT_KNOWLEDGE_GRAPH_SETTINGS.title,
+      subtitle: settings.subtitle.trim() || DEFAULT_KNOWLEDGE_GRAPH_SETTINGS.subtitle,
+      buttonLabel: settings.buttonLabel.trim() || DEFAULT_KNOWLEDGE_GRAPH_SETTINGS.buttonLabel,
+      updatedAt: now,
+    };
+
+    await supabaseRest.upsert<AppSettingRow[]>('app_settings', {
+      key: KNOWLEDGE_GRAPH_SETTINGS_KEY,
+      value: payload,
+      updated_at: now,
+    }, 'key');
+
+    return payload;
   },
 
   async getDailyEnglishLessons(): Promise<ContentDailyEnglishLesson[]> {
@@ -868,6 +956,79 @@ export const contentService = {
       }, 'id');
     } catch (error) {
       console.warn(`Failed to record ${contentType} view`, error);
+    }
+  },
+
+  async recordShopPageView() {
+    await this.recordContentView('product', SHOP_PAGE_CONTENT_ID);
+  },
+
+  async getShopPageAnalytics(days = 7): Promise<ShopPageAnalytics> {
+    ensureSupabase();
+
+    const emptyBuckets = Array.from({ length: 24 }, (_, hour) => ({
+      hour,
+      label: toHourLabel(hour),
+      count: 0,
+    }));
+
+    try {
+      const query = [
+        'select=viewer_key,viewed_at',
+        'content_type=eq.product',
+        `content_id=eq.${encodeValue(SHOP_PAGE_CONTENT_ID)}`,
+        'order=viewed_at.desc',
+        'limit=5000',
+      ].join('&');
+      const rows = await supabaseRest.select<Pick<ContentViewRow, 'viewer_key' | 'viewed_at'>[]>('content_views', query);
+
+      const now = new Date();
+      const todayKey = getBangkokDateKey(now);
+      const last24Hours = now.getTime() - (24 * 60 * 60 * 1000);
+      const chartStart = now.getTime() - (Math.max(days, 1) * 24 * 60 * 60 * 1000);
+      const hourlyBuckets = emptyBuckets.map(bucket => ({ ...bucket }));
+      const seenToday = new Set<string>();
+      const seenLast24Hours = new Set<string>();
+
+      rows.forEach((row) => {
+        const viewedAt = new Date(row.viewed_at);
+        const viewedAtTime = viewedAt.getTime();
+        if (Number.isNaN(viewedAtTime)) return;
+
+        if (getBangkokDateKey(viewedAt) === todayKey) {
+          seenToday.add(row.viewer_key);
+        }
+        if (viewedAtTime >= last24Hours) {
+          seenLast24Hours.add(row.viewer_key);
+        }
+        if (viewedAtTime >= chartStart) {
+          hourlyBuckets[getBangkokHour(viewedAt)].count += 1;
+        }
+      });
+
+      const peakBucket = hourlyBuckets.reduce((peak, bucket) => bucket.count > peak.count ? bucket : peak, hourlyBuckets[0]);
+
+      return {
+        totalUniqueViewers: rows.length,
+        todayUniqueViewers: seenToday.size,
+        last24HoursUniqueViewers: seenLast24Hours.size,
+        peakHourLabel: peakBucket.count > 0 ? peakBucket.label : '-',
+        hourlyBuckets,
+        latestViews: rows.slice(0, 10).map(row => ({
+          viewerKey: row.viewer_key,
+          viewedAt: row.viewed_at,
+        })),
+      };
+    } catch (error) {
+      console.warn('Failed to load shop page analytics', error);
+      return {
+        totalUniqueViewers: 0,
+        todayUniqueViewers: 0,
+        last24HoursUniqueViewers: 0,
+        peakHourLabel: '-',
+        hourlyBuckets: emptyBuckets,
+        latestViews: [],
+      };
     }
   },
 

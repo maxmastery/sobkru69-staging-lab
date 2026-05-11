@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Edit2, Trash2, Image as ImageIcon, Search, DollarSign, Package, X, Save, CheckCircle2, ShoppingCart, Eye, EyeOff, Store, Link as LinkIcon, Sparkles, Percent, Tag, UploadCloud, Loader2, FileDown, Fingerprint } from 'lucide-react';
-import { contentService } from '../../services/contentService';
+import { Plus, Edit2, Trash2, Image as ImageIcon, Search, DollarSign, Package, X, Save, CheckCircle2, ShoppingCart, Eye, EyeOff, Store, Link as LinkIcon, Sparkles, Percent, Tag, UploadCloud, Loader2, FileDown, Fingerprint, BarChart3, Clock3, MousePointerClick, RefreshCw, TrendingUp } from 'lucide-react';
+import { contentService, type ShopPageAnalytics } from '../../services/contentService';
 
 export interface ProductItem {
   id: string;
@@ -44,10 +44,13 @@ const AdminShop: React.FC<AdminShopProps> = ({ onPreviewShop, onShopButtonVisibi
   const [isShopButtonVisible, setIsShopButtonVisible] = useState(false);
   const [isSavingVisibility, setIsSavingVisibility] = useState(false);
   const [uploadingImageKey, setUploadingImageKey] = useState<string | null>(null);
+  const [analytics, setAnalytics] = useState<ShopPageAnalytics | null>(null);
+  const [isAnalyticsLoading, setIsAnalyticsLoading] = useState(false);
 
   useEffect(() => {
     loadProducts();
     loadShopButtonSettings();
+    loadAnalytics();
   }, []);
 
   const loadShopButtonSettings = async () => {
@@ -71,6 +74,19 @@ const AdminShop: React.FC<AdminShopProps> = ({ onPreviewShop, onShopButtonVisibi
       setProducts([]);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const loadAnalytics = async () => {
+    setIsAnalyticsLoading(true);
+    try {
+      const nextAnalytics = await contentService.getShopPageAnalytics(7);
+      setAnalytics(nextAnalytics);
+    } catch (error) {
+      console.error('Failed to load shop analytics', error);
+      setAnalytics(null);
+    } finally {
+      setIsAnalyticsLoading(false);
     }
   };
 
@@ -225,6 +241,18 @@ const AdminShop: React.FC<AdminShopProps> = ({ onPreviewShop, onShopButtonVisibi
   };
 
   const filteredProducts = products.filter(p => p.name.toLowerCase().includes(searchTerm.toLowerCase()));
+  const hourlyBuckets = analytics?.hourlyBuckets || Array.from({ length: 24 }, (_, hour) => ({
+    hour,
+    label: `${String(hour).padStart(2, '0')}:00`,
+    count: 0,
+  }));
+  const maxHourlyCount = Math.max(...hourlyBuckets.map(bucket => bucket.count), 1);
+  const latestViewFormatter = new Intl.DateTimeFormat('th-TH', {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+    timeZone: 'Asia/Bangkok',
+  });
+  const maskViewerKey = (value: string) => value.length > 14 ? `${value.slice(0, 6)}...${value.slice(-4)}` : value;
 
   const renderImageUploader = (label: string, imageUrl: string, imageKey: string, onUpload: (file: File) => void, accent = 'amber') => {
     const isUploading = uploadingImageKey === imageKey;
@@ -619,6 +647,112 @@ const AdminShop: React.FC<AdminShopProps> = ({ onPreviewShop, onShopButtonVisibi
           {saveMessage}
         </div>
       )}
+
+      <section className="overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-sm">
+        <div className="flex flex-col gap-4 border-b border-slate-100 p-5 md:flex-row md:items-center md:justify-between">
+          <div>
+            <div className="flex items-center gap-2 text-xs font-black uppercase tracking-[0.18em] text-amber-600">
+              <BarChart3 className="h-4 w-4" />
+              E-book Analytics
+            </div>
+            <h4 className="mt-1 text-xl font-black text-slate-950">แดชบอร์ดคนเข้าหน้า E-book</h4>
+          </div>
+          <button
+            type="button"
+            onClick={() => void loadAnalytics()}
+            disabled={isAnalyticsLoading}
+            className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm font-black text-slate-600 transition-all hover:border-amber-300 hover:bg-amber-50 disabled:opacity-60"
+          >
+            <RefreshCw className={`h-4 w-4 ${isAnalyticsLoading ? 'animate-spin' : ''}`} />
+            โหลดข้อมูลใหม่
+          </button>
+        </div>
+
+        <div className="grid grid-cols-1 gap-4 p-5 md:grid-cols-4">
+          <div className="rounded-2xl border border-amber-100 bg-amber-50/70 p-4">
+            <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-amber-500 text-white">
+              <MousePointerClick className="h-5 w-5" />
+            </div>
+            <p className="text-xs font-black uppercase tracking-[0.14em] text-amber-700">ทั้งหมด</p>
+            <div className="mt-1 text-3xl font-black text-slate-950">{analytics?.totalUniqueViewers ?? 0}</div>
+            <p className="mt-1 text-xs font-semibold text-slate-500">คนที่เข้าหน้า E-book</p>
+          </div>
+          <div className="rounded-2xl border border-emerald-100 bg-emerald-50/70 p-4">
+            <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500 text-white">
+              <TrendingUp className="h-5 w-5" />
+            </div>
+            <p className="text-xs font-black uppercase tracking-[0.14em] text-emerald-700">วันนี้</p>
+            <div className="mt-1 text-3xl font-black text-slate-950">{analytics?.todayUniqueViewers ?? 0}</div>
+            <p className="mt-1 text-xs font-semibold text-slate-500">คนตามเวลาไทย</p>
+          </div>
+          <div className="rounded-2xl border border-cyan-100 bg-cyan-50/70 p-4">
+            <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-cyan-600 text-white">
+              <Clock3 className="h-5 w-5" />
+            </div>
+            <p className="text-xs font-black uppercase tracking-[0.14em] text-cyan-700">24 ชม.</p>
+            <div className="mt-1 text-3xl font-black text-slate-950">{analytics?.last24HoursUniqueViewers ?? 0}</div>
+            <p className="mt-1 text-xs font-semibold text-slate-500">คนล่าสุดใน 24 ชั่วโมง</p>
+          </div>
+          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+            <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-slate-900 text-white">
+              <BarChart3 className="h-5 w-5" />
+            </div>
+            <p className="text-xs font-black uppercase tracking-[0.14em] text-slate-500">ช่วงพีค</p>
+            <div className="mt-1 text-3xl font-black text-slate-950">{analytics?.peakHourLabel ?? '-'}</div>
+            <p className="mt-1 text-xs font-semibold text-slate-500">จากข้อมูล 7 วันล่าสุด</p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 gap-5 border-t border-slate-100 p-5 lg:grid-cols-[1fr_280px]">
+          <div>
+            <div className="mb-4 flex items-center justify-between gap-3">
+              <h5 className="text-sm font-black text-slate-900">กราฟจำนวนคนเข้าตามช่วงเวลา</h5>
+              <span className="text-xs font-bold text-slate-400">Asia/Bangkok</span>
+            </div>
+            <div className="flex h-56 items-end gap-1.5 rounded-2xl border border-slate-100 bg-slate-50 px-3 py-4">
+              {hourlyBuckets.map((bucket) => {
+                const height = Math.max(8, (bucket.count / maxHourlyCount) * 100);
+                return (
+                  <div key={bucket.hour} className="group flex h-full min-w-0 flex-1 flex-col items-center justify-end gap-2">
+                    <div className="relative flex h-full w-full items-end justify-center">
+                      <div
+                        className="w-full max-w-5 rounded-t-lg bg-gradient-to-t from-amber-500 to-orange-400 transition-all group-hover:from-cyan-500 group-hover:to-cyan-300"
+                        style={{ height: `${height}%` }}
+                      ></div>
+                      <div className="pointer-events-none absolute -top-9 hidden whitespace-nowrap rounded-lg bg-slate-900 px-2 py-1 text-[11px] font-bold text-white shadow-lg group-hover:block">
+                        {bucket.label} · {bucket.count} คน
+                      </div>
+                    </div>
+                    <span className="hidden text-[10px] font-bold text-slate-400 sm:block">
+                      {bucket.hour % 3 === 0 ? bucket.label.slice(0, 2) : ''}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
+            <h5 className="mb-3 text-sm font-black text-slate-900">เข้าชมล่าสุด</h5>
+            <div className="space-y-2">
+              {(analytics?.latestViews || []).length > 0 ? (
+                analytics!.latestViews.map((item) => (
+                  <div key={`${item.viewerKey}-${item.viewedAt}`} className="rounded-xl bg-white px-3 py-2 shadow-sm">
+                    <div className="font-mono text-xs font-bold text-slate-700">{maskViewerKey(item.viewerKey)}</div>
+                    <div className="mt-0.5 text-[11px] font-semibold text-slate-400">
+                      {latestViewFormatter.format(new Date(item.viewedAt))}
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="rounded-xl bg-white px-3 py-6 text-center text-sm font-semibold text-slate-400">
+                  ยังไม่มีข้อมูลเข้าชม
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </section>
 
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-4 rounded-2xl border border-slate-200">
         <div className="relative w-full sm:w-96">

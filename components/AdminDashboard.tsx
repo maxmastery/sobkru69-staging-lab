@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Settings, Users, Bell, Save, Trash2, Edit2, Loader2, Plus, X, ArrowLeft, CheckCircle2, Megaphone, Newspaper, MessageSquare, ShoppingCart, Search, BarChart3, Eye, Image as ImageIcon, ShieldAlert, Coffee, UserCheck, RadioTower, Mail, Inbox, Languages, CreditCard } from 'lucide-react';
+import { Settings, Users, Bell, Save, Trash2, Edit2, Loader2, Plus, X, ArrowLeft, CheckCircle2, Megaphone, Newspaper, MessageSquare, ShoppingCart, Search, BarChart3, Eye, Image as ImageIcon, ShieldAlert, Coffee, UserCheck, RadioTower, Mail, Inbox, Languages, CreditCard, Network } from 'lucide-react';
 import { authService, MaintenanceModeState, User } from '../services/authService';
 import AdminNews from './admin/AdminNews';
 import AdminDailyEnglish from './admin/AdminDailyEnglish';
+import AdminKnowledgeGraph from './admin/AdminKnowledgeGraph';
 import AdminDiscussion from './admin/AdminDiscussion';
 import AdminShop from './admin/AdminShop';
 import AdminStripeSales from './admin/AdminStripeSales';
@@ -15,19 +16,21 @@ import AdminUserActive from './admin/AdminUserActive';
 import AdminDonations from './admin/AdminDonations';
 import AdminEmailCampaigns from './admin/AdminEmailCampaigns';
 import AdminEmailInbox from './admin/AdminEmailInbox';
-import { contentService } from '../services/contentService';
+import { contentService, type KnowledgeGraphSettings } from '../services/contentService';
 import { emailInboxService } from '../services/emailInboxService';
 import { getStoredUser, userActivityService } from '../services/userActivityService';
 
 interface AdminDashboardProps {
   onClose: () => void;
   onPreviewShop?: () => void;
+  onPreviewKnowledgeGraph?: () => void;
   onShopButtonVisibilityChange?: (isVisible: boolean) => void;
+  onKnowledgeGraphSettingsChange?: (settings: KnowledgeGraphSettings) => void;
 }
 
-const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, onPreviewShop, onShopButtonVisibilityChange }) => {
+const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, onPreviewShop, onPreviewKnowledgeGraph, onShopButtonVisibilityChange, onKnowledgeGraphSettingsChange }) => {
   const viteEnv = (import.meta as any).env || {};
-  const [activeTab, setActiveTab] = useState<'settings' | 'users' | 'notification' | 'bell' | 'messages' | 'marquee' | 'email-campaigns' | 'email-inbox' | 'news' | 'daily-english' | 'discussion' | 'shop' | 'stripe-sales' | 'statistics' | 'reports' | 'user-insights' | 'user-active' | 'donations'>('settings');
+  const [activeTab, setActiveTab] = useState<'settings' | 'users' | 'notification' | 'bell' | 'messages' | 'marquee' | 'email-campaigns' | 'email-inbox' | 'news' | 'daily-english' | 'knowledge-graph' | 'discussion' | 'shop' | 'stripe-sales' | 'statistics' | 'reports' | 'user-insights' | 'user-active' | 'donations'>('settings');
   const normalizeSupabaseUrl = (rawValue: string) => {
     const value = rawValue.trim();
     const markdownMatch = value.match(/\((https?:\/\/[^)\s]+)\)/i);
@@ -187,7 +190,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, onPreviewShop,
   }, [activeTab]);
 
   useEffect(() => {
-    const shouldTrackLiveUsers = ['news', 'daily-english', 'discussion', 'shop', 'user-insights', 'user-active'].includes(activeTab);
+    const shouldTrackLiveUsers = ['news', 'daily-english', 'knowledge-graph', 'discussion', 'shop', 'user-insights', 'user-active'].includes(activeTab);
     if (!shouldTrackLiveUsers) {
       return;
     }
@@ -631,6 +634,15 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, onPreviewShop,
           >
             <Languages className="w-5 h-5" />
             Daily English
+          </button>
+          <button
+            onClick={() => setActiveTab('knowledge-graph')}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-colors ${
+              activeTab === 'knowledge-graph' ? 'bg-cyan-700 text-white' : 'text-slate-600 hover:bg-slate-100'
+            }`}
+          >
+            <Network className="w-5 h-5" />
+            แผนที่เครือข่ายความรู้
           </button>
           <button
             onClick={() => setActiveTab('discussion')}
@@ -1156,6 +1168,22 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onClose, onPreviewShop,
               {liveStatusPill}
             </h3>
             <AdminDailyEnglish />
+          </div>
+        )}
+
+        {activeTab === 'knowledge-graph' && (
+          <div className="w-full max-w-6xl">
+            <h3 className="text-2xl font-bold text-slate-800 mb-6 flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-cyan-100 flex items-center justify-center">
+                <Network className="w-6 h-6 text-cyan-700" />
+              </div>
+              แผนที่เครือข่ายความรู้
+              {liveStatusPill}
+            </h3>
+            <AdminKnowledgeGraph
+              onPreviewKnowledgeGraph={onPreviewKnowledgeGraph}
+              onSettingsChange={onKnowledgeGraphSettingsChange}
+            />
           </div>
         )}
 

@@ -33,6 +33,7 @@ const sessionLabel = (page: string) => {
   if (page === 'news') return 'กำลังอ่านข่าว';
   if (page === 'discussion') return 'กำลังใช้กระดานสนทนา';
   if (page === 'shop') return 'กำลังดูไฟล์ E-book';
+  if (page === 'knowledge-graph') return 'กำลังดูแผนที่เครือข่ายความรู้';
   return 'กำลังใช้งานหน้าแดชบอร์ด';
 };
 

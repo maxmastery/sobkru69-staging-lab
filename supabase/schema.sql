@@ -1123,6 +1123,11 @@ create table if not exists public.content_views (
   unique(content_type, content_id, viewer_key)
 );
 
+alter table public.content_views drop constraint if exists content_views_content_type_check;
+alter table public.content_views
+  add constraint content_views_content_type_check
+  check (content_type in ('news', 'discussion', 'product', 'daily_english'));
+
 alter table public.content_views enable row level security;
 
 create policy "content_views_anon_all" on public.content_views

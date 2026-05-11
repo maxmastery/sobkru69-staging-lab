@@ -75,6 +75,7 @@ const ShopPage: React.FC<ShopPageProps> = ({ onBack }) => {
       }
     };
 
+    contentService.recordShopPageView().catch(error => console.error('Failed to record shop page view', error));
     loadProducts();
   }, []);
 
