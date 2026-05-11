@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import Dashboard from './components/Dashboard';
 import TopicList from './components/TopicList';
 import LessonView from './components/LessonView';
@@ -14,17 +14,21 @@ import DiscussionBoard from './components/DiscussionBoard';
 import ShopPage from './components/ShopPage';
 import MockExamDemo from './components/MockExamDemo';
 import DailyEnglishPage from './components/DailyEnglishPage';
+import KnowledgeGraphView from './components/knowledge-graph/KnowledgeGraphView';
 import ContactSupport from './components/ContactSupport';
 import BellNotificationsPanel from './components/BellNotificationsPanel';
 import Leaderboard from './components/Leaderboard';
 import UserStatistics from './components/UserStatistics';
+import { EXAM_CURRICULUM } from './constants';
+import { convertLessonsToKnowledgeGraph } from './lib/knowledge-graph/adapters';
+import { KnowledgeNode } from './lib/knowledge-graph/types';
 import { ExamPart, SubTopic } from './types';
 import { authService, User, BellNotification, UserUiState, MaintenanceModeState } from './services/authService';
 import { userActivityService } from './services/userActivityService';
 import { contentService } from './services/contentService';
 import { LogOut, AlertTriangle, Bell, X, Settings, User as UserIcon, BarChart3, Megaphone, MessageSquare, Loader2, Lock } from 'lucide-react';
 
-type PageState = 'dashboard' | 'news' | 'discussion' | 'shop' | 'mock-exam' | 'daily-english' | 'contact-support' | 'leaderboard' | 'user-stats';
+type PageState = 'dashboard' | 'news' | 'discussion' | 'shop' | 'mock-exam' | 'daily-english' | 'knowledge-graph' | 'contact-support' | 'leaderboard' | 'user-stats';
 const SHOW_DONATION_HISTORY_SHORTCUT = false;
 const FOOTER_LOGO_URL = 'https://cribfrwvdpshvdpxgnuc.supabase.co/storage/v1/object/public/sobkru-images/cc1.png';
 
@@ -57,6 +61,13 @@ const DEFAULT_MAINTENANCE_MODE: MaintenanceModeState = {
   message: 'ระบบอยู่ระหว่างอัปเดตและปรับปรุงประสิทธิภาพ ขออภัยในความไม่สะดวก',
   startAt: '',
   endAt: '',
+};
+
+const getInitialPage = (): PageState => {
+  if (typeof window !== 'undefined' && window.location.pathname === '/knowledge-graph') {
+    return 'knowledge-graph';
+  }
+  return 'dashboard';
 };
 
 const getLocalDateKey = (date = new Date()) => {
@@ -109,7 +120,7 @@ const App: React.FC = () => {
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [notificationModal, setNotificationModal] = useState<{ title: string; message: string; imageUrl?: string } | null>(null);
   const [showAdminPanel, setShowAdminPanel] = useState(false);
-  
+
   // New states for profile menu and views
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [showLearningStats, setShowLearningStats] = useState(false);
@@ -117,7 +128,7 @@ const App: React.FC = () => {
   const [showDonation, setShowDonation] = useState(false);
   const [donationInitialView, setDonationInitialView] = useState<'intro' | 'history'>('intro');
   const [marquee, setMarquee] = useState<{ text: string; isActive: boolean } | null>(null);
-  const [currentPage, setCurrentPage] = useState<PageState>('dashboard');
+  const [currentPage, setCurrentPage] = useState<PageState>(getInitialPage);
   const [maintenanceMode, setMaintenanceMode] = useState<MaintenanceModeState>(DEFAULT_MAINTENANCE_MODE);
   const [showMaintenanceAdminLogin, setShowMaintenanceAdminLogin] = useState(false);
   const [showShopButton, setShowShopButton] = useState(false);
@@ -361,12 +372,12 @@ const App: React.FC = () => {
     try {
       const res = await authService.getSupportMessages();
       if (res.success) {
-        const count = res.messages.filter(m => 
-          m.userId === userId && 
-          m.status === 'replied' && 
+        const count = res.messages.filter(m =>
+          m.userId === userId &&
+          m.status === 'replied' &&
           !readSupportMessageIds.includes(m.id)
         ).length;
-        
+
         setUnreadSupportCount(count);
       }
     } catch (error) {
@@ -478,6 +489,9 @@ const App: React.FC = () => {
     setCurrentPart(null);
     setCurrentTopic(null);
     setCurrentPage('dashboard');
+    if (typeof window !== 'undefined' && window.location.pathname === '/knowledge-graph') {
+      window.history.pushState({}, '', '/');
+    }
   };
 
   const handleBackToPart = () => {
@@ -504,6 +518,25 @@ const App: React.FC = () => {
   const isAdminUser = user?.email === 'Krumax';
   const isTestUser = user?.authProvider === 'local-test';
   const canBypassMaintenance = isAdminUser || isTestUser;
+  const knowledgeGraphData = useMemo(() => convertLessonsToKnowledgeGraph(EXAM_CURRICULUM), []);
+
+  const handleOpenKnowledgeNode = (node: KnowledgeNode) => {
+    const lessonId = node.lessonSlug || node.url || '';
+    for (const part of EXAM_CURRICULUM) {
+      for (const section of part.sections) {
+        const topic = section.subTopics.find((item) => item.id === lessonId);
+        if (topic) {
+          setCurrentPart(part);
+          setCurrentTopic(topic);
+          setCurrentPage('dashboard');
+          if (typeof window !== 'undefined' && window.location.pathname === '/knowledge-graph') {
+            window.history.pushState({}, '', '/');
+          }
+          return;
+        }
+      }
+    }
+  };
 
   const MaintenanceScreen = ({ allowAdminEntry = false, showLogout = false }: { allowAdminEntry?: boolean; showLogout?: boolean }) => (
     <div className="min-h-screen bg-[radial-gradient(circle_at_top,_#dcfce7,_#f8fafc_42%,_#e2e8f0)] flex items-center justify-center px-6">
@@ -612,7 +645,7 @@ const App: React.FC = () => {
     if (showLearningStats) {
       return <LearningStats onClose={() => setShowLearningStats(false)} user={user} />;
     }
-    
+
     if (currentPage === 'news') {
       return <NewsPage onBack={handleBackToDashboard} />;
     }
@@ -627,6 +660,15 @@ const App: React.FC = () => {
     }
     if (currentPage === 'daily-english') {
       return <DailyEnglishPage onBack={handleBackToDashboard} />;
+    }
+    if (currentPage === 'knowledge-graph') {
+      return (
+        <KnowledgeGraphView
+          data={knowledgeGraphData}
+          onBack={handleBackToDashboard}
+          onOpenLesson={handleOpenKnowledgeNode}
+        />
+      );
     }
     if (currentPage === 'contact-support') {
       return (
@@ -644,13 +686,21 @@ const App: React.FC = () => {
 
     if (!currentPart) {
       return (
-        <Dashboard 
-          onSelectPart={handleSelectPart} 
+        <Dashboard
+          onSelectPart={handleSelectPart}
           onNavigateToNews={() => setCurrentPage('news')}
           onNavigateToDiscussion={() => setCurrentPage('discussion')}
           onNavigateToShop={() => setCurrentPage('shop')}
           onNavigateToMockExam={() => setCurrentPage('mock-exam')}
           onNavigateToDailyEnglish={() => setCurrentPage('daily-english')}
+          onNavigateToKnowledgeGraph={() => {
+            setCurrentPart(null);
+            setCurrentTopic(null);
+            setCurrentPage('knowledge-graph');
+            if (typeof window !== 'undefined') {
+              window.history.pushState({}, '', '/knowledge-graph');
+            }
+          }}
           onNavigateToLeaderboard={() => setCurrentPage('user-stats')}
           showShopButton={showShopButton}
         />
@@ -659,8 +709,8 @@ const App: React.FC = () => {
 
     if (!currentTopic) {
       return (
-        <TopicList 
-          part={currentPart} 
+        <TopicList
+          part={currentPart}
           onBack={handleBackToDashboard}
           onSelectTopic={handleSelectTopic}
         />
@@ -668,7 +718,7 @@ const App: React.FC = () => {
     }
 
     return (
-      <LessonView 
+      <LessonView
         topic={currentTopic}
         onBack={handleBackToPart}
       />
@@ -700,7 +750,7 @@ const App: React.FC = () => {
 
         <div className="flex items-center gap-3 sm:gap-4 shrink-0">
           {/* Notification Bell */}
-          <button 
+          <button
             className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full transition-colors relative"
             onClick={() => setShowBellPanel(true)}
           >
@@ -715,7 +765,7 @@ const App: React.FC = () => {
 
           {/* User Profile Dropdown */}
           <div className="relative" ref={menuRef}>
-            <button 
+            <button
               onClick={() => setShowProfileMenu(!showProfileMenu)}
               className="flex items-center gap-3 hover:opacity-80 transition-opacity relative"
             >
@@ -736,14 +786,14 @@ const App: React.FC = () => {
             {/* Dropdown Menu */}
             {showProfileMenu && (
               <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl border border-slate-100 py-2 z-50">
-                <button 
+                <button
                   onClick={() => { setShowEditProfile(true); setShowProfileMenu(false); }}
                   className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2"
                 >
                   <Settings className="w-4 h-4 text-slate-400" />
                   แก้ไขโปรไฟล์
                 </button>
-                <button 
+                <button
                   onClick={() => { setShowLearningStats(true); setShowProfileMenu(false); }}
                   className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2"
                 >
@@ -751,7 +801,7 @@ const App: React.FC = () => {
                   สถิติการเรียน
                 </button>
                 {user.email !== 'Krumax' && (
-                  <button 
+                  <button
                     onClick={() => { setCurrentPage('contact-support'); setShowProfileMenu(false); }}
                     className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 flex items-center justify-between"
                   >
@@ -767,7 +817,7 @@ const App: React.FC = () => {
                   </button>
                 )}
                 {user.email === 'Krumax' && (
-                  <button 
+                  <button
                     onClick={() => { setShowAdminPanel(true); setShowProfileMenu(false); }}
                     className="w-full text-left px-4 py-2 text-sm text-indigo-600 hover:bg-indigo-50 flex items-center gap-2 font-medium border-t border-slate-100 mt-1 pt-2"
                   >
@@ -776,7 +826,7 @@ const App: React.FC = () => {
                   </button>
                 )}
                 <div className="h-px bg-slate-100 my-1"></div>
-                <button 
+                <button
                   onClick={() => { setShowLogoutConfirm(true); setShowProfileMenu(false); }}
                   className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
                 >
@@ -795,28 +845,30 @@ const App: React.FC = () => {
       </main>
 
       {/* Footer */}
-      <footer className="py-8 mt-auto pb-12">
-        <div className="max-w-[1200px] mx-auto px-6 flex flex-col items-center justify-center">
-          <img 
-            src={FOOTER_LOGO_URL} 
-            alt="Cool Com Logo" 
-            className="h-5 object-contain mb-3 opacity-80 hover:opacity-100 transition-opacity"
-            loading="lazy"
-            referrerPolicy="no-referrer"
-          />
-          <p className="text-sm text-slate-500 text-center">
-            &copy; 2026 SobKru69 All Rights Reserved.<br/>
-            Developed by Cool Com | <a href="https://www.coolcom.click" target="_blank" rel="noopener noreferrer" className="hover:text-indigo-600 transition-colors">www.coolcom.click</a>
-          </p>
-        </div>
-      </footer>
+      {currentPage !== 'knowledge-graph' && (
+        <footer className="py-8 mt-auto pb-12">
+          <div className="max-w-[1200px] mx-auto px-6 flex flex-col items-center justify-center">
+            <img
+              src={FOOTER_LOGO_URL}
+              alt="Cool Com Logo"
+              className="h-5 object-contain mb-3 opacity-80 hover:opacity-100 transition-opacity"
+              loading="lazy"
+              referrerPolicy="no-referrer"
+            />
+            <p className="text-sm text-slate-500 text-center">
+              &copy; 2026 SobKru69 All Rights Reserved.<br/>
+              Developed by Cool Com | <a href="https://www.coolcom.click" target="_blank" rel="noopener noreferrer" className="hover:text-indigo-600 transition-colors">www.coolcom.click</a>
+            </p>
+          </div>
+        </footer>
+      )}
 
       {/* Edit Profile Modal */}
       {showEditProfile && (
-        <EditProfile 
-          user={user} 
-          onClose={() => setShowEditProfile(false)} 
-          onUpdate={handleUpdateProfile} 
+        <EditProfile
+          user={user}
+          onClose={() => setShowEditProfile(false)}
+          onUpdate={handleUpdateProfile}
         />
       )}
 
@@ -843,7 +895,7 @@ const App: React.FC = () => {
             <div className="text-slate-600 whitespace-pre-wrap mb-6">
               {notificationModal.message}
             </div>
-            <button 
+            <button
               onClick={() => setNotificationModal(null)}
               className="w-full px-4 py-2.5 rounded-xl bg-slate-900 text-white font-medium hover:bg-slate-800 transition-colors"
             >
@@ -855,9 +907,9 @@ const App: React.FC = () => {
 
       {/* Bell Notifications Panel */}
       {showBellPanel && (
-        <BellNotificationsPanel 
-          notifications={bellNotifications.map(n => ({ ...n, isRead: readNotifIds.includes(n.id) }))} 
-          onClose={() => setShowBellPanel(false)} 
+        <BellNotificationsPanel
+          notifications={bellNotifications.map(n => ({ ...n, isRead: readNotifIds.includes(n.id) }))}
+          onClose={() => setShowBellPanel(false)}
           onMarkAsRead={handleMarkNotifAsRead}
         />
       )}
@@ -874,13 +926,13 @@ const App: React.FC = () => {
               คุณแน่ใจหรือไม่ว่าต้องการออกจากระบบ?
             </p>
             <div className="flex gap-3">
-              <button 
+              <button
                 onClick={() => setShowLogoutConfirm(false)}
                 className="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 text-slate-700 font-medium hover:bg-slate-50 transition-colors"
               >
                 ยกเลิก
               </button>
-              <button 
+              <button
                 onClick={handleLogout}
                 className="flex-1 px-4 py-2.5 rounded-xl bg-red-600 text-white font-medium hover:bg-red-700 transition-colors"
               >
@@ -892,7 +944,7 @@ const App: React.FC = () => {
       )}
 
       {/* Floating Donation Button - Hidden when in lesson view */}
-      {!currentTopic && currentPage !== 'shop' && currentPage !== 'daily-english' && (
+      {!currentTopic && currentPage !== 'shop' && currentPage !== 'daily-english' && currentPage !== 'knowledge-graph' && (
         <div className="fixed bottom-6 right-6 z-40 flex flex-col items-end gap-2 sobkru-donate-container">
           <style>{`
             @media (max-width: 640px) {
@@ -1034,7 +1086,7 @@ const App: React.FC = () => {
             </span>
           </button>
           {SHOW_DONATION_HISTORY_SHORTCUT && (
-            <button 
+            <button
               onClick={() => { setDonationInitialView('history'); setShowDonation(true); }}
               className="text-[10px] text-slate-400 hover:text-amber-600 transition-colors bg-white/50 backdrop-blur-sm px-2 py-0.5 rounded-full border border-slate-200/50 mr-2"
             >
@@ -1046,9 +1098,9 @@ const App: React.FC = () => {
 
       {/* Donation Modal */}
       {showDonation && (
-        <DonationModal 
-          onClose={() => setShowDonation(false)} 
-          initialView={donationInitialView === 'history' ? 'history' : 'intro'} 
+        <DonationModal
+          onClose={() => setShowDonation(false)}
+          initialView={donationInitialView === 'history' ? 'history' : 'intro'}
         />
       )}
 

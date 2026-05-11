@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { BookOpen, GraduationCap, Users, Newspaper, MessageSquare, ShoppingCart, FileText, BarChart3, Languages } from 'lucide-react';
+import { BookOpen, GraduationCap, Users, Newspaper, MessageSquare, ShoppingCart, FileText, BarChart3, Languages, Network } from 'lucide-react';
 import { EXAM_CURRICULUM } from '../constants';
 import { ExamPart, PartId } from '../types';
 
@@ -11,11 +11,12 @@ interface DashboardProps {
   onNavigateToShop: () => void;
   onNavigateToMockExam: () => void;
   onNavigateToDailyEnglish: () => void;
+  onNavigateToKnowledgeGraph: () => void;
   onNavigateToLeaderboard?: () => void;
   showShopButton?: boolean;
 }
 
-const Dashboard: React.FC<DashboardProps> = ({ onSelectPart, onNavigateToNews, onNavigateToDiscussion, onNavigateToShop, onNavigateToMockExam, onNavigateToDailyEnglish, onNavigateToLeaderboard, showShopButton = false }) => {
+const Dashboard: React.FC<DashboardProps> = ({ onSelectPart, onNavigateToNews, onNavigateToDiscussion, onNavigateToShop, onNavigateToMockExam, onNavigateToDailyEnglish, onNavigateToKnowledgeGraph, onNavigateToLeaderboard, showShopButton = false }) => {
   const getIcon = (id: PartId) => {
     switch (id) {
       case PartId.PART_A: return <BookOpen className="w-12 h-12 text-white mb-4" />;
@@ -79,6 +80,38 @@ const Dashboard: React.FC<DashboardProps> = ({ onSelectPart, onNavigateToNews, o
       </div>
 
       <div className="flex flex-col gap-6 mt-10 max-w-6xl mx-auto">
+        <button
+          onClick={onNavigateToKnowledgeGraph}
+          className="group relative w-full overflow-hidden rounded-3xl border border-slate-800 bg-[#15191d] p-6 text-left shadow-2xl shadow-slate-950/10 transition-all duration-300 hover:-translate-y-1 hover:border-cyan-300/40 hover:shadow-cyan-900/15 md:p-7"
+        >
+          <div className="absolute inset-0 opacity-80 [background-image:radial-gradient(circle_at_22%_32%,rgba(34,211,238,.24),transparent_26%),radial-gradient(circle_at_76%_50%,rgba(245,158,11,.20),transparent_22%),linear-gradient(120deg,rgba(255,255,255,.08),transparent_38%)]"></div>
+          <div className="absolute right-6 top-1/2 hidden h-32 w-[46%] -translate-y-1/2 opacity-70 md:block">
+            <div className="absolute left-[12%] top-[44%] h-4 w-4 rounded-full bg-amber-300 shadow-[0_0_24px_rgba(252,211,77,.65)]"></div>
+            <div className="absolute left-[34%] top-[28%] h-3 w-3 rounded-full bg-cyan-300 shadow-[0_0_20px_rgba(103,232,249,.6)]"></div>
+            <div className="absolute left-[52%] top-[58%] h-2.5 w-2.5 rounded-full bg-slate-200"></div>
+            <div className="absolute left-[72%] top-[36%] h-5 w-5 rounded-full bg-violet-300 shadow-[0_0_22px_rgba(196,181,253,.55)]"></div>
+            <div className="absolute left-[14%] top-[50%] h-px w-[58%] rotate-[-10deg] bg-white/25"></div>
+            <div className="absolute left-[34%] top-[35%] h-px w-[38%] rotate-[18deg] bg-white/20"></div>
+            <div className="absolute left-[54%] top-[58%] h-px w-[20%] rotate-[-32deg] bg-white/18"></div>
+          </div>
+          <div className="relative z-10 flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
+            <div className="flex items-center gap-5">
+              <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl border border-cyan-200/20 bg-cyan-200/10 text-cyan-100 transition-transform duration-300 group-hover:scale-105 group-hover:rotate-3">
+                <Network className="h-8 w-8" />
+              </div>
+              <div>
+                <div className="mb-2 inline-flex rounded-full border border-amber-200/25 bg-amber-200/10 px-3 py-1 text-[11px] font-black uppercase tracking-[0.18em] text-amber-100">
+                  Knowledge Graph
+                </div>
+                <h4 className="text-2xl font-black tracking-tight text-white md:text-3xl">แผนที่เครือข่ายความรู้</h4>
+                <p className="mt-1 max-w-2xl text-sm font-medium leading-6 text-slate-300">ดูบทเรียนทั้งหมดเป็นจุดและเส้นเชื่อมโยง เพื่อเห็นว่าหัวข้อไหนควรเรียนก่อนและเนื้อหาใดเกี่ยวข้องกัน</p>
+              </div>
+            </div>
+            <span className="inline-flex w-fit items-center justify-center rounded-full bg-cyan-300 px-5 py-3 text-sm font-black text-slate-950 transition group-hover:bg-amber-300">
+              เปิด Graph View
+            </span>
+          </div>
+        </button>
         
         {/* Top Row: Mock Exam + Daily English */}
         <div className="grid grid-cols-1 gap-4 p-1 lg:grid-cols-2">
