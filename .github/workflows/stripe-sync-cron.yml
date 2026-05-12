@@ -1,0 +1,19 @@
+name: Stripe Sync Cron
+
+on:
+  schedule:
+    - cron: '*/15 * * * *'
+  workflow_dispatch:
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Stripe Auto Sync
+        run: |
+          code="$(curl -s -o /tmp/stripe-sync-response.txt -w "%{http_code}" \
+            -X POST \
+            -H "x-vercel-cron: 1" \
+            "https://course.coolcom.click/api/stripe-auto-sync")"
+          cat /tmp/stripe-sync-response.txt
+          test "$code" -ge 200 -a "$code" -lt 300
