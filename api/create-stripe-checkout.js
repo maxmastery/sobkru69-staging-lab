@@ -44,7 +44,6 @@ export default async function handler(req, res) {
       'line_items[0][quantity]': '1',
       success_url: `${origin}/api/stripe-checkout-return?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${origin}/`,
-      allow_promotion_codes: 'true',
       'metadata[product_id]': product.id,
       'metadata[local_product_name]': product.name || '',
       'payment_intent_data[metadata][product_id]': product.id,
