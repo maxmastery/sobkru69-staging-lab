@@ -746,28 +746,7 @@ const resolveEmailFromIdentifier = async (identifier: string) => {
   if (trimmed.includes('@')) {
     return trimmed.toLowerCase();
   }
-
-  try {
-    const profiles = await supabaseRest.rpc<UserProfileRow[]>('list_user_profiles', {});
-    const matched = profiles.find(item => item.name.trim().toLowerCase() === trimmed.toLowerCase());
-    if (matched?.email) {
-      return matched.email.toLowerCase();
-    }
-  } catch {
-    // ignore and fall back
-  }
-
-  try {
-    const legacyUsers = await supabaseRest.rpc<LegacyUserRow[]>('list_app_users', {});
-    const matched = legacyUsers.find(item => item.name.trim().toLowerCase() === trimmed.toLowerCase());
-    if (matched?.email) {
-      return matched.email.toLowerCase();
-    }
-  } catch {
-    // ignore
-  }
-
-  return trimmed.toLowerCase();
+  throw new Error('กรุณาเข้าสู่ระบบด้วยอีเมล');
 };
 
 const migrateLegacyUserIfNeeded = async (email: string, password: string): Promise<User | null> => {

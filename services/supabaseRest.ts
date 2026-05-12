@@ -32,10 +32,7 @@ const getCacheTtl = (resource: string) => {
   return DEFAULT_READ_CACHE_TTL_MS;
 };
 
-const CACHEABLE_RPC_FUNCTIONS = new Set([
-  'list_user_profiles',
-  'list_app_users',
-]);
+const CACHEABLE_RPC_FUNCTIONS = new Set<string>();
 
 const getCachedRead = <T>(key: string): T | null => {
   const entry = readCache.get(key);

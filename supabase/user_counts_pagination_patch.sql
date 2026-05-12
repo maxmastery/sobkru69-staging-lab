@@ -156,5 +156,5 @@ as $$
   from totals;
 $$;
 
-grant execute on function public.list_user_profiles_page(text, integer, integer) to anon, authenticated;
-grant execute on function public.get_user_statistics_summary() to anon, authenticated;
+revoke execute on function public.list_user_profiles_page(text, integer, integer) from anon, authenticated, public;
+revoke execute on function public.get_user_statistics_summary() from anon, authenticated, public;

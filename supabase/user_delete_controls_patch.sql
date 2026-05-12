@@ -82,5 +82,5 @@ begin
 end;
 $$;
 
-grant execute on function public.set_user_profile_active(uuid, boolean) to anon, authenticated;
-grant execute on function public.delete_user_profile_full(uuid) to anon, authenticated;
+revoke execute on function public.set_user_profile_active(uuid, boolean) from anon, authenticated, public;
+revoke execute on function public.delete_user_profile_full(uuid) from anon, authenticated, public;
