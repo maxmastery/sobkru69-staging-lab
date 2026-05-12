@@ -573,7 +573,7 @@ const buildDeliveryHtml = ({ order, items, files }) => {
     .map((item) => `<li>${escapeHtml(item.local_product_name || item.stripe_product_name || 'สินค้า')} x${Number(item.quantity || 1)}</li>`)
     .join('');
   const fileButtons = files
-    .map((file) => `<p style="margin:14px 0;"><a href="${escapeHtml(file.url)}" style="display:inline-block;background:${brandColor};color:#ffffff;text-decoration:none;font-size:16px;font-weight:800;border-radius:999px;padding:13px 22px;">ดาวน์โหลด ${escapeHtml(file.label || 'ไฟล์สินค้า')}</a></p>`)
+    .map((file) => `<p style="margin:14px 0;"><a href="${escapeHtml(file.url)}" style="display:inline-block;background:${brandColor};color:#ffffff;text-decoration:none;font-size:16px;font-weight:800;border-radius:999px;padding:13px 22px;">ดาวโหลดไฟล์</a></p>`)
     .join('');
   const notes = items
     .map((item) => item.delivery_email_note)
