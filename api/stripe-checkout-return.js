@@ -69,13 +69,13 @@ export default async function handler(req, res) {
   }
 
   try {
-    const result = await syncCheckoutSession(sessionId, { sendDelivery: true });
+    const result = await syncCheckoutSession(sessionId, { sendDelivery: true, forceDelivery: true });
 
     res.statusCode = 200;
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
     res.end(html({
       title: 'ขอบคุณที่สั่งซื้อสินค้าของเรา',
-      message: 'เราได้จัดส่งไฟล์ไปที่อีเมลที่ได้ท่านได้ระบุไว้แล้ว',
+      message: 'เราได้จัดส่งไฟล์ไปที่อีเมลที่ได้ท่านได้ระบุไว้แล้ว หรือตรวจดูในกล่องจดหมายขยะ กรณีหากไม่พบอีเมลส่งไฟล์ให้',
       footer: 'CoolCom Sheet | Sobkru',
       tone: 'success',
       returnTarget,
