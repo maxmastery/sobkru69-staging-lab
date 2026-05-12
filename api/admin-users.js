@@ -8,9 +8,25 @@ const toInt = (value, fallback, min, max) => {
 
 const normalizeSearch = (value) => String(value || '').trim().toLowerCase();
 
+const USER_SELECT = 'id,name,email,age,gender,major,province,exam_count,role,auth_provider,is_active,created_at';
+const USER_BATCH_SIZE = 1000;
+const MAX_USER_BATCHES = 200;
+
 const selectUsers = async () => {
-  const rows = await supabaseRequest('/rest/v1/user_profiles?select=id,name,email,age,gender,major,province,exam_count,role,auth_provider,is_active,created_at&order=created_at.asc&limit=5000');
-  return Array.isArray(rows) ? rows : [];
+  const allRows = [];
+
+  for (let batch = 0; batch < MAX_USER_BATCHES; batch += 1) {
+    const offset = batch * USER_BATCH_SIZE;
+    const rows = await supabaseRequest(`/rest/v1/user_profiles?select=${USER_SELECT}&order=created_at.asc&limit=${USER_BATCH_SIZE}&offset=${offset}`);
+    const pageRows = Array.isArray(rows) ? rows : [];
+    allRows.push(...pageRows);
+
+    if (pageRows.length < USER_BATCH_SIZE) {
+      break;
+    }
+  }
+
+  return allRows;
 };
 
 const makeSkId = (index) => `SK${String(index + 1).padStart(5, '0')}`;

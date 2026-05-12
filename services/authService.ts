@@ -1168,10 +1168,31 @@ export const authService = {
 
   async getUsers(): Promise<{ success: boolean; users: User[]; message?: string }> {
     try {
-      const payload = await adminUsersRequest<{ success: boolean; users: UserProfileRow[] }>('?page=1&pageSize=500');
+      const pageSize = 500;
+      let page = 1;
+      let total = 0;
+      const rows: UserProfileRow[] = [];
+
+      do {
+        const query = new URLSearchParams({
+          page: String(page),
+          pageSize: String(pageSize),
+        });
+        const payload = await adminUsersRequest<{ success: boolean; users: UserProfileRow[]; total: number }>(`?${query.toString()}`);
+        const pageRows = payload.users || [];
+        rows.push(...pageRows);
+        total = Number(payload.total || rows.length);
+
+        if (pageRows.length === 0 || rows.length >= total) {
+          break;
+        }
+
+        page += 1;
+      } while (page <= 200);
+
       return {
         success: true,
-        users: (payload.users || []).map(mapProfileRowToUser),
+        users: rows.map(mapProfileRowToUser),
       };
     } catch (error: any) {
       return {
