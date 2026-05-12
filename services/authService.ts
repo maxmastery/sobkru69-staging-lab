@@ -312,10 +312,12 @@ const getTestUser = (identifier: string, password: string): User | null => {
 
 const storeAdminSession = () => {
   safeStorage.setSession(ADMIN_SESSION_STORAGE_KEY, JSON.stringify(createAdminUser()));
+  safeStorage.setLocal(ADMIN_SESSION_STORAGE_KEY, JSON.stringify(createAdminUser()));
 };
 
 const clearAdminSession = () => {
   safeStorage.removeSession(ADMIN_SESSION_STORAGE_KEY);
+  safeStorage.removeLocal(ADMIN_SESSION_STORAGE_KEY);
 };
 
 const storeTestSession = (user: User) => {
@@ -338,7 +340,7 @@ const getStoredTestSession = (): User | null => {
 };
 
 const getStoredAdminSession = (): User | null => {
-  const raw = safeStorage.getSession(ADMIN_SESSION_STORAGE_KEY);
+  const raw = safeStorage.getSession(ADMIN_SESSION_STORAGE_KEY) || safeStorage.getLocal(ADMIN_SESSION_STORAGE_KEY);
   if (!raw) return null;
   try {
     return JSON.parse(raw) as User;
@@ -1112,9 +1114,6 @@ export const authService = {
             return;
           }
 
-          clearCurrentUser();
-          clearStoredSession();
-          clearGoogleLoginPending();
           callback({ event, user: null });
           return;
         }
