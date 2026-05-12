@@ -376,8 +376,8 @@ const getPaymentLink = async (session, cache) => {
 };
 
 const listCheckoutSessions = async () => {
-  const lookbackDays = Math.max(1, toNumber(env('STRIPE_SYNC_LOOKBACK_DAYS'), 45));
-  const maxSessions = Math.max(1, toNumber(env('STRIPE_SYNC_MAX_SESSIONS'), 100));
+  const lookbackDays = Math.max(1, toNumber(env('STRIPE_SYNC_LOOKBACK_DAYS'), 90));
+  const maxSessions = Math.max(1, toNumber(env('STRIPE_SYNC_MAX_SESSIONS'), 500));
   const sessions = [];
   let startingAfter = '';
 
