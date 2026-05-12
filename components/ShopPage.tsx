@@ -36,8 +36,6 @@ const ProductRibbon = ({ label, tone = 'new' }: { label: string; tone?: 'new' | 
     >
       {label}
     </div>
-    <div className={`absolute left-[92px] top-0 h-4 w-4 shadow-sm ${tone === 'upcoming' ? 'bg-slate-800/80' : 'bg-orange-800/80'}`} />
-    <div className={`absolute left-0 top-[92px] h-4 w-4 shadow-sm ${tone === 'upcoming' ? 'bg-slate-800/80' : 'bg-orange-800/80'}`} />
   </div>
 );
 
