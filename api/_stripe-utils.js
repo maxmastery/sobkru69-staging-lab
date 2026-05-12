@@ -384,7 +384,6 @@ const listCheckoutSessions = async () => {
   while (sessions.length < maxSessions) {
     const page = await stripeRequest('/checkout/sessions', {
       limit: Math.min(100, maxSessions - sessions.length),
-      payment_status: 'paid',
       'created[gte]': Math.floor(Date.now() / 1000) - lookbackDays * 24 * 60 * 60,
       ...(startingAfter ? { starting_after: startingAfter } : {}),
     });

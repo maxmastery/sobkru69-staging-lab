@@ -164,13 +164,17 @@ const AdminStripeSales: React.FC = () => {
       try {
         const currentToken = latestTokenRef.current;
         if (!currentToken) return;
-        await fetch('/api/stripe-sync', {
+        const syncResponse = await fetch('/api/stripe-sync', {
           method: 'POST',
           headers: {
             'content-type': 'application/json',
             'x-stripe-admin-token': currentToken,
           },
         });
+        const syncPayload = await syncResponse.json().catch(() => ({}));
+        if (!syncResponse.ok || !syncPayload.success) {
+          throw new Error(syncPayload.message || 'Stripe auto sync ไม่สำเร็จ');
+        }
         const response = await fetch('/api/stripe-sales', {
           headers: { 'x-stripe-admin-token': currentToken },
         });
