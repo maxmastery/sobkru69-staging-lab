@@ -398,6 +398,30 @@ const listCheckoutSessions = async () => {
 
 const retrieveCheckoutSession = async (sessionId) => stripeRequest(`/checkout/sessions/${encodeURIComponent(sessionId)}`);
 
+const retrievePaymentIntent = async (paymentIntentId) => {
+  if (!paymentIntentId) return null;
+  try {
+    return await stripeRequest(`/payment_intents/${encodeURIComponent(paymentIntentId)}`, {
+      'expand[]': 'latest_charge',
+    });
+  } catch (error) {
+    console.warn('Failed to load Stripe payment intent timestamp', error);
+    return null;
+  }
+};
+
+const getPaidAt = async (session) => {
+  const paymentIntentId = typeof session.payment_intent === 'string'
+    ? session.payment_intent
+    : session.payment_intent?.id || '';
+  const paymentIntent = await retrievePaymentIntent(paymentIntentId);
+  const latestCharge = paymentIntent?.latest_charge;
+  const chargeCreated = typeof latestCharge === 'object' ? latestCharge?.created : null;
+  const paymentIntentCreated = paymentIntent?.created;
+  const paidUnix = chargeCreated || paymentIntentCreated || session.created;
+  return paidUnix ? new Date(paidUnix * 1000).toISOString() : new Date().toISOString();
+};
+
 const getLineItems = async (sessionId) => {
   const items = [];
   let startingAfter = '';
@@ -420,6 +444,7 @@ const buildOrderFromSession = async (session, context) => {
   const localProducts = context.localProducts || [];
   const paymentLink = await getPaymentLink(session, context.paymentLinkCache);
   const lineItems = await getLineItems(session.id);
+  const paidAt = await getPaidAt(session);
   const customerDetails = session.customer_details || {};
   const customerEmail = normalizeEmail(customerDetails.email || session.customer_email || '');
   const order = {
@@ -435,7 +460,9 @@ const buildOrderFromSession = async (session, context) => {
     delivery_error: '',
     delivery_sent_at: '',
     delivery_retry_count: 0,
-    created_at: session.created ? new Date(session.created * 1000).toISOString() : new Date().toISOString(),
+    checkout_created_at: session.created ? new Date(session.created * 1000).toISOString() : '',
+    paid_at: paidAt,
+    created_at: paidAt,
     updated_at: new Date().toISOString(),
     delivery_files: [],
   };
@@ -503,6 +530,8 @@ const mergeSyncedOrder = (store, nextOrder, nextItems) => {
     delivery_error: existingOrder?.delivery_error || '',
     delivery_sent_at: existingOrder?.delivery_sent_at || '',
     delivery_retry_count: Number(existingOrder?.delivery_retry_count || nextOrder.delivery_retry_count || 0),
+    checkout_created_at: nextOrder.checkout_created_at || existingOrder?.checkout_created_at || '',
+    paid_at: nextOrder.paid_at || existingOrder?.paid_at || nextOrder.created_at,
   };
 
   store.orders = [
@@ -533,6 +562,7 @@ const createTransport = () => {
     port,
     secure,
     pool: false,
+    name: env('SMTP_HELO_NAME') || env('EMAIL_MESSAGE_ID_DOMAIN') || 'course.coolcom.click',
     auth: { user, pass },
   });
 };
@@ -560,9 +590,9 @@ const buildDeliveryHtml = ({ order, items, files }) => {
       <tr><td align="center">
         <table width="100%" cellpadding="0" cellspacing="0" style="max-width:640px;background:#ffffff;border:1px solid #e2e8f0;border-radius:26px;overflow:hidden;">
           <tr><td style="padding:30px 32px 12px;">
-            <div style="font-size:13px;font-weight:900;letter-spacing:.08em;color:${brandColor};text-transform:uppercase;">SobKru69</div>
-            <h1 style="margin:12px 0 10px;font-size:28px;line-height:1.3;color:#0f172a;">ชำระเงินสำเร็จ รับไฟล์ของคุณได้เลย</h1>
-            <p style="margin:0;color:#475569;font-size:16px;line-height:1.8;">ขอบคุณสำหรับคำสั่งซื้อ ระบบแนบลิงก์ดาวน์โหลดไว้ด้านล่างแล้ว</p>
+            <div style="font-size:13px;font-weight:900;letter-spacing:.08em;color:${brandColor};text-transform:uppercase;">CoolCom Sheet | SobKru69</div>
+            <h1 style="margin:12px 0 10px;font-size:28px;line-height:1.3;color:#0f172a;">ขอบคุณสำหรับคำสั่งซื้อ</h1>
+            <p style="margin:0;color:#475569;font-size:16px;line-height:1.8;">ระบบจัดส่งลิงก์ดาวน์โหลดสินค้าให้เรียบร้อยแล้ว กรุณากดปุ่มด้านล่างเพื่อรับไฟล์</p>
           </td></tr>
           <tr><td style="padding:10px 32px 6px;">
             <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:18px;padding:16px 18px;">
@@ -573,6 +603,7 @@ const buildDeliveryHtml = ({ order, items, files }) => {
           <tr><td style="padding:18px 32px 8px;">${fileButtons}${notes}</td></tr>
           <tr><td style="padding:20px 32px;background:#fff7ed;border-top:1px solid #ffedd5;color:#64748b;font-size:13px;line-height:1.7;">
             หมายเลขคำสั่งซื้อ: ${escapeHtml(order.stripe_checkout_session_id || order.id)}<br />
+            อีเมลฉบับนี้เป็นอีเมลอัตโนมัติหลังการสั่งซื้อจากเว็บไซต์ course.coolcom.click<br />
             หากเปิดลิงก์ไม่ได้ กรุณาติดต่อผู้ดูแลระบบพร้อมแนบอีเมลที่ใช้ชำระเงิน
           </td></tr>
         </table>
@@ -584,7 +615,8 @@ const buildDeliveryHtml = ({ order, items, files }) => {
 
 const buildDeliveryText = ({ order, items, files }) => {
   const lines = [
-    'SobKru69 - ชำระเงินสำเร็จ รับไฟล์ของคุณได้เลย',
+    'CoolCom Sheet | SobKru69',
+    'ขอบคุณสำหรับคำสั่งซื้อ ระบบจัดส่งลิงก์ดาวน์โหลดสินค้าให้เรียบร้อยแล้ว',
     '',
     'รายการสินค้า:',
     ...items.map((item) => `- ${stripHtml(item.local_product_name || item.stripe_product_name || 'สินค้า')} x${Number(item.quantity || 1)}`),
@@ -607,21 +639,28 @@ const sendDeliveryEmail = async ({ order, items, files }) => {
 
   const transporter = createTransport();
   const fromEmail = env('EMAIL_FROM') || env('SMTP_FROM') || env('SMTP_USER') || env('HOSTINGER_SMTP_USER');
-  const fromName = env('EMAIL_FROM_NAME', 'SobKru69');
+  const fromName = env('EMAIL_FROM_NAME', 'CoolCom Sheet | SobKru69');
   const replyTo = env('EMAIL_REPLY_TO') || fromEmail;
   const messageIdDomain = env('EMAIL_MESSAGE_ID_DOMAIN') || (fromEmail.split('@')[1] || 'coolcom.click');
+  const subject = env('STRIPE_DELIVERY_EMAIL_SUBJECT', 'ลิงก์ดาวน์โหลด E-book จาก CoolCom Sheet | SobKru69');
 
   try {
     await transporter.sendMail({
       from: `"${fromName}" <${fromEmail}>`,
       to: order.customer_email,
       replyTo,
-      subject: env('STRIPE_DELIVERY_EMAIL_SUBJECT', 'ไฟล์สินค้าที่สั่งซื้อจาก SobKru69'),
+      subject,
       html: buildDeliveryHtml({ order, items, files }),
       text: buildDeliveryText({ order, items, files }),
       messageId: `<sobkru69-stripe-${Date.now()}-${randomUUID()}@${messageIdDomain}>`,
+      envelope: {
+        from: fromEmail,
+        to: order.customer_email,
+      },
       headers: {
         'X-Entity-Ref-ID': `sobkru69-stripe-${order.id}-${Date.now()}`,
+        'X-Transactional-Email': 'true',
+        'Auto-Submitted': 'auto-generated',
       },
     });
   } finally {

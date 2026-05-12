@@ -6,7 +6,8 @@ const getOrigin = (req) => {
 
   const protocol = req.headers['x-forwarded-proto'] || 'https';
   const host = req.headers['x-forwarded-host'] || req.headers.host;
-  if (host) return `${protocol}://${host}`;
+  if (host && !String(host).includes('.vercel.app')) return `${protocol}://${host}`;
+  if (process.env.VERCEL === '1') return 'https://course.coolcom.click';
 
   throw new Error('ไม่สามารถระบุ URL เว็บไซต์สำหรับกลับหลังชำระเงินได้');
 };

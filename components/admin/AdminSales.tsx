@@ -13,6 +13,7 @@ const formatDate = (value: string) => {
   return new Intl.DateTimeFormat('th-TH', {
     dateStyle: 'medium',
     timeStyle: 'short',
+    timeZone: 'Asia/Bangkok',
   }).format(new Date(value));
 };
 
@@ -295,7 +296,12 @@ const AdminSales: React.FC = () => {
                         {delivery.text}
                       </span>
                     </td>
-                    <td className="px-6 py-5 text-sm font-semibold text-slate-500">{formatDate(order.created_at)}</td>
+                    <td className="px-6 py-5 text-sm font-semibold text-slate-500">
+                      <div>ชำระ: {formatDate(order.paid_at || order.created_at)}</div>
+                      {order.delivery_sent_at && (
+                        <div className="mt-1 text-xs text-emerald-600">ส่งไฟล์: {formatDate(order.delivery_sent_at)}</div>
+                      )}
+                    </td>
                     <td className="px-6 py-5 text-right">
                       <button
                         onClick={() => handleResend(order)}

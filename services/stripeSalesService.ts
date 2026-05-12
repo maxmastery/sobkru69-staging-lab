@@ -11,6 +11,9 @@ export interface StripeOrder {
   status: string;
   delivery_status: string;
   created_at: string;
+  paid_at?: string;
+  checkout_created_at?: string;
+  delivery_sent_at?: string;
   updated_at: string;
 }
 

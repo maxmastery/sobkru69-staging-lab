@@ -13,6 +13,9 @@ type StripeOrder = {
   payment_status: string;
   delivery_status: DeliveryStatus;
   created_at: string;
+  paid_at?: string;
+  checkout_created_at?: string;
+  delivery_sent_at?: string;
 };
 
 type StripeOrderItem = {
@@ -44,7 +47,11 @@ const formatMoney = (amount: number, currency = 'thb') =>
 
 const formatDate = (value: string) => {
   if (!value) return '-';
-  return new Intl.DateTimeFormat('th-TH', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value));
+  return new Intl.DateTimeFormat('th-TH', {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+    timeZone: 'Asia/Bangkok',
+  }).format(new Date(value));
 };
 
 const deliveryBadge = (status: DeliveryStatus) => {
@@ -346,7 +353,12 @@ const AdminStripeSales: React.FC = () => {
                     <td className="px-6 py-5">
                       <span className={`inline-flex rounded-full px-3 py-1 text-xs font-black ${badge.className}`}>{badge.text}</span>
                     </td>
-                    <td className="px-6 py-5 text-sm font-semibold text-slate-500">{formatDate(order.created_at)}</td>
+                    <td className="px-6 py-5 text-sm font-semibold text-slate-500">
+                      <div>ชำระ: {formatDate(order.paid_at || order.created_at)}</div>
+                      {order.delivery_sent_at && (
+                        <div className="mt-1 text-xs text-emerald-600">ส่งไฟล์: {formatDate(order.delivery_sent_at)}</div>
+                      )}
+                    </td>
                     <td className="px-6 py-5 text-right">
                       <button
                         onClick={() => void resendDelivery(order.id)}

@@ -18,9 +18,9 @@ export default async function handler(req, res) {
     event = JSON.parse(rawBody);
   } catch (error) {
     console.error('Stripe webhook verification failed', error);
-    return json(res, 200, {
+    return json(res, 400, {
       received: false,
-      ignored: true,
+      ignored: false,
       message: 'Webhook verification failed',
     });
   }

@@ -69,7 +69,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    const result = await syncCheckoutSession(sessionId, { sendDelivery: true, forceDelivery: true });
+    const result = await syncCheckoutSession(sessionId, { sendDelivery: true });
 
     res.statusCode = 200;
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
