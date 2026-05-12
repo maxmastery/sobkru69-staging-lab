@@ -91,7 +91,7 @@ const supabaseHeaders = (config, extra = {}) => ({
   ...extra,
 });
 
-const supabaseRequest = async (path, options = {}) => {
+export const supabaseRequest = async (path, options = {}) => {
   const config = getSupabaseServerConfig();
   if (!config) {
     throw new Error('ยังไม่ได้ตั้งค่า SUPABASE_URL และ SUPABASE_SERVICE_ROLE_KEY บน Server');

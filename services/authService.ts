@@ -9,6 +9,7 @@ const LOCAL_UI_STATE_STORAGE_PREFIX = 'sobkru69_local_ui_state:';
 const GOOGLE_PKCE_VERIFIER_KEY = 'sobkru69_google_pkce_verifier';
 const GOOGLE_OAUTH_STATE_KEY = 'sobkru69_google_oauth_state';
 const GOOGLE_LOGIN_PENDING_KEY = 'sobkru69_google_login_pending';
+const ADMIN_API_TOKEN_STORAGE_KEYS = ['sobkru69_admin_api_token', 'sobkru69_stripe_admin_token'];
 
 const ADMIN_EMAIL = 'Krumax';
 const ADMIN_PASSWORD = '@max123456';
@@ -84,10 +85,6 @@ type UserProfileRow = {
   is_active: boolean | null;
   created_at: string | null;
   updated_at?: string | null;
-};
-
-type UserProfilePageRow = UserProfileRow & {
-  total_count: number | string | null;
 };
 
 type LegacyUserRow = {
@@ -536,6 +533,35 @@ const mapLegacyUserToUser = (row: LegacyUserRow): User => ({
   authProvider: 'legacy',
   isActive: true,
 });
+
+const getStoredAdminApiToken = () => {
+  for (const key of ADMIN_API_TOKEN_STORAGE_KEYS) {
+    const token = safeStorage.getLocal(key);
+    if (token?.trim()) return token.trim();
+  }
+  return '';
+};
+
+const adminUsersRequest = async <T>(path = '', options: RequestInit = {}): Promise<T> => {
+  const token = getStoredAdminApiToken();
+  if (!token) {
+    throw new Error('กรุณาใส่ Admin Token ในเมนูยอดขาย Stripe ก่อนใช้งานเมนูผู้ใช้');
+  }
+
+  const response = await fetch(`/api/admin-users${path}`, {
+    ...options,
+    headers: {
+      'content-type': 'application/json',
+      'x-stripe-admin-token': token,
+      ...(options.headers || {}),
+    },
+  });
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok || payload.success === false) {
+    throw new Error(payload.message || 'เรียกข้อมูลผู้ใช้หลังบ้านไม่สำเร็จ');
+  }
+  return payload as T;
+};
 
 const mapSupportReply = (reply: SupportReplyRow): SupportReply => ({
   id: reply.id,
@@ -1142,104 +1168,52 @@ export const authService = {
 
   async getUsers(): Promise<{ success: boolean; users: User[]; message?: string }> {
     try {
-      const pageSize = 500;
-      const firstPage = await supabaseRest.rpc<UserProfilePageRow[]>('list_user_profiles_page', {
-        p_search: null,
-        p_limit: pageSize,
-        p_offset: 0,
-      });
-      const total = firstPage?.[0]?.total_count != null ? Number(firstPage[0].total_count) : firstPage.length;
-      const allRows = [...(firstPage || [])];
-
-      for (let offset = pageSize; offset < total; offset += pageSize) {
-        const rows = await supabaseRest.rpc<UserProfilePageRow[]>('list_user_profiles_page', {
-          p_search: null,
-          p_limit: pageSize,
-          p_offset: offset,
-        });
-        allRows.push(...(rows || []));
-      }
-
+      const payload = await adminUsersRequest<{ success: boolean; users: UserProfileRow[] }>('?page=1&pageSize=500');
       return {
         success: true,
-        users: allRows.map(mapProfileRowToUser),
+        users: (payload.users || []).map(mapProfileRowToUser),
       };
-    } catch {
-      try {
-        const rows = await supabaseRest.rpc<UserProfileRow[]>('list_user_profiles', {});
-        return {
-          success: true,
-          users: (rows || []).map(mapProfileRowToUser),
-        };
-      } catch (error: any) {
-        try {
-          const legacyRows = await supabaseRest.rpc<LegacyUserRow[]>('list_app_users', {});
-          return {
-            success: true,
-            users: (legacyRows || []).map(mapLegacyUserToUser),
-          };
-        } catch {
-          return {
-            success: false,
-            users: [],
-            message: error?.message || 'ไม่สามารถโหลดรายชื่อผู้ใช้งานได้',
-          };
-        }
-      }
+    } catch (error: any) {
+      return {
+        success: false,
+        users: [],
+        message: error?.message || 'ไม่สามารถโหลดรายชื่อผู้ใช้งานได้',
+      };
     }
   },
 
   async getUsersPage(page = 1, pageSize = 100, search = ''): Promise<UsersPageResult> {
     const safePage = Math.max(1, Math.floor(page || 1));
     const safePageSize = Math.min(500, Math.max(1, Math.floor(pageSize || 100)));
-    const offset = (safePage - 1) * safePageSize;
 
     try {
-      const rows = await supabaseRest.rpc<UserProfilePageRow[]>('list_user_profiles_page', {
-        p_search: search.trim() || null,
-        p_limit: safePageSize,
-        p_offset: offset,
+      const query = new URLSearchParams({
+        page: String(safePage),
+        pageSize: String(safePageSize),
+        search: search.trim(),
       });
-      const total = rows?.[0]?.total_count != null ? Number(rows[0].total_count) : 0;
+      const payload = await adminUsersRequest<{ success: boolean; users: UserProfileRow[]; total: number }>(`?${query.toString()}`);
       return {
         success: true,
-        users: (rows || []).map(mapProfileRowToUser),
-        total,
+        users: (payload.users || []).map(mapProfileRowToUser),
+        total: Number(payload.total || 0),
       };
     } catch (error: any) {
-      const fallback = await this.getUsers();
-      const normalizedSearch = search.trim().toLowerCase();
-      const filtered = normalizedSearch
-        ? fallback.users.filter((user, index) => {
-            const skId = `SK${String(index + 1).padStart(5, '0')}`.toLowerCase();
-            return user.name.toLowerCase().includes(normalizedSearch) || user.email.toLowerCase().includes(normalizedSearch) || skId.includes(normalizedSearch);
-          })
-        : fallback.users;
       return {
-        success: fallback.success,
-        users: filtered.slice(offset, offset + safePageSize),
-        total: filtered.length,
-        message: fallback.success ? 'ยังไม่ได้รัน SQL pagination patch จึงใช้ข้อมูล fallback ชั่วคราว' : error?.message,
+        success: false,
+        users: [],
+        total: 0,
+        message: error?.message || 'ไม่สามารถโหลดรายชื่อผู้ใช้งานได้',
       };
     }
   },
 
   async getUserStatisticsSummary(): Promise<{ success: boolean; stats?: UserStatisticsSummary; message?: string }> {
     try {
-      const rows = await supabaseRest.rpc<any[]>('get_user_statistics_summary', {});
-      const row = rows?.[0] || {};
+      const payload = await adminUsersRequest<{ success: boolean; stats: UserStatisticsSummary }>('?stats=1');
       return {
         success: true,
-        stats: {
-          totalUsers: Number(row.total_users || 0),
-          provinceCount: Number(row.province_count || 0),
-          majorCount: Number(row.major_count || 0),
-          firstTimeCount: Number(row.first_time_count || 0),
-          byProvince: Array.isArray(row.by_province) ? row.by_province : [],
-          byMajor: Array.isArray(row.by_major) ? row.by_major : [],
-          byGender: Array.isArray(row.by_gender) ? row.by_gender : [],
-          byExamCount: Array.isArray(row.by_exam_count) ? row.by_exam_count : [],
-        },
+        stats: payload.stats,
       };
     } catch (error: any) {
       return {
@@ -1313,81 +1287,47 @@ export const authService = {
     }
 
     try {
-      const rows = await supabaseRest.rpc<UserProfileRow[]>('admin_update_user_profile', {
-        p_user_id: userId,
-        p_name: name,
-        p_email: email,
-        p_age: extraData?.age ?? null,
-        p_gender: extraData?.gender ?? null,
-        p_major: extraData?.major ?? null,
-        p_province: extraData?.province ?? null,
-        p_exam_count: extraData?.examCount ?? null,
+      const payload = await adminUsersRequest<{ success: boolean; user?: UserProfileRow }>('', {
+        method: 'PATCH',
+        body: JSON.stringify({
+          userId,
+          name,
+          email,
+          age: extraData?.age ?? null,
+          gender: extraData?.gender ?? null,
+          major: extraData?.major ?? null,
+          province: extraData?.province ?? null,
+          examCount: extraData?.examCount ?? null,
+        }),
       });
 
       return {
         success: true,
-        user: rows?.[0] ? mapProfileRowToUser(rows[0]) : undefined,
+        user: payload.user ? mapProfileRowToUser(payload.user) : undefined,
         message: password.trim() ? 'อัปเดตข้อมูลสำเร็จ (รหัสผ่านของผู้ใช้อื่นต้องให้เจ้าของบัญชีเปลี่ยนเอง)' : 'อัปเดตข้อมูลสำเร็จ',
       };
     } catch (error: any) {
-      try {
-        const passwordHash = password.trim() ? await sha256Hex(password.trim()) : '';
-        const rows = await supabaseRest.rpc<LegacyUserRow[]>('update_app_user', {
-          p_user_id: userId,
-          p_name: name,
-          p_email: email,
-          p_password_hash: passwordHash || null,
-          p_age: extraData?.age ?? null,
-          p_gender: extraData?.gender ?? null,
-          p_major: extraData?.major ?? null,
-          p_province: extraData?.province ?? null,
-          p_exam_count: extraData?.examCount ?? null,
-        });
-
-        return {
-          success: true,
-          user: rows?.[0] ? mapLegacyUserToUser(rows[0]) : undefined,
-        };
-      } catch {
-        return {
-          success: false,
-          message: error?.message || 'ไม่สามารถอัปเดตข้อมูลผู้ใช้ได้',
-        };
-      }
+      return {
+        success: false,
+        message: error?.message || 'ไม่สามารถอัปเดตข้อมูลผู้ใช้ได้',
+      };
     }
   },
 
   async setUserActive(userId: string, isActive: boolean): Promise<{ success: boolean; user?: User; message?: string }> {
     try {
-      const rows = await supabaseRest.rpc<UserProfileRow[]>('set_user_profile_active', {
-        p_user_id: userId,
-        p_is_active: isActive,
+      const payload = await adminUsersRequest<{ success: boolean; user?: UserProfileRow }>('', {
+        method: 'PATCH',
+        body: JSON.stringify({ userId, isActive }),
       });
       return {
         success: true,
-        user: rows?.[0] ? mapProfileRowToUser(rows[0]) : undefined,
+        user: payload.user ? mapProfileRowToUser(payload.user) : undefined,
       };
     } catch (error: any) {
-      if (!isActive) {
-        try {
-          const result = await supabaseRest.rpc<boolean>('deactivate_user_profile', {
-            p_user_id: userId,
-          });
-          return {
-            success: Boolean(result),
-            message: result ? undefined : 'ไม่พบบัญชีผู้ใช้ที่ต้องการปิดใช้งาน',
-          };
-        } catch {
-          return {
-            success: false,
-            message: error?.message || 'ไม่สามารถปิดการใช้งานผู้ใช้ได้',
-          };
-        }
-      }
-
       return {
         success: false,
-        message: error?.message || 'ไม่สามารถเปิดใช้งานผู้ใช้ได้ กรุณารัน SQL patch ล่าสุดใน Supabase ก่อน',
+        message: error?.message || 'ไม่สามารถเปลี่ยนสถานะผู้ใช้ได้',
       };
     }
   },
@@ -1402,25 +1342,19 @@ export const authService = {
 
   async deleteUserPermanently(userId: string): Promise<{ success: boolean; message?: string }> {
     try {
-      const result = await supabaseRest.rpc<boolean>('delete_user_profile_full', {
-        p_user_id: userId,
+      const payload = await adminUsersRequest<{ success: boolean; message?: string }>('', {
+        method: 'DELETE',
+        body: JSON.stringify({ userId }),
       });
       return {
-        success: Boolean(result),
-        message: result ? undefined : 'ไม่พบบัญชีผู้ใช้ที่ต้องการลบ',
+        success: Boolean(payload.success),
+        message: payload.success ? undefined : payload.message || 'ไม่พบบัญชีผู้ใช้ที่ต้องการลบ',
       };
     } catch (error: any) {
-      try {
-        const result = await supabaseRest.rpc<boolean>('delete_app_user', {
-          p_user_id: userId,
-        });
-        return { success: Boolean(result) };
-      } catch {
-        return {
-          success: false,
-          message: error?.message || 'ไม่สามารถลบผู้ใช้ออกจากฐานข้อมูลได้ กรุณารัน SQL patch ล่าสุดใน Supabase ก่อน',
-        };
-      }
+      return {
+        success: false,
+        message: error?.message || 'ไม่สามารถลบผู้ใช้ออกจากฐานข้อมูลได้',
+      };
     }
   },
 
