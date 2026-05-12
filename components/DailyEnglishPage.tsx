@@ -38,7 +38,7 @@ const styleStringToObject = (value: string): CSSProperties => {
       const [rawKey, ...rawValue] = rule.split(':');
       const key = rawKey?.trim();
       const styleValue = rawValue.join(':').trim();
-      if (!key || !styleValue || /^(white-space|word-break|overflow-wrap)$/i.test(key)) {
+      if (!key || !styleValue || /^(white-space|word-break|overflow-wrap|background|background-color)$/i.test(key)) {
         return styles;
       }
 
@@ -488,7 +488,10 @@ const DailyEnglishPage: React.FC<DailyEnglishPageProps> = ({ onBack }) => {
   }, []);
 
   const clearSpeechTimers = () => {
-    speechTimersRef.current.forEach(timerId => window.clearInterval(timerId));
+    speechTimersRef.current.forEach(timerId => {
+      window.clearInterval(timerId);
+      window.clearTimeout(timerId);
+    });
     speechTimersRef.current = [];
   };
 
@@ -554,63 +557,41 @@ const DailyEnglishPage: React.FC<DailyEnglishPageProps> = ({ onBack }) => {
       utterance.rate = 0.78 + (segment.voiceIndex % 3) * 0.025;
       utterance.pitch = (segment.voiceGender === 'male' ? 0.9 : 1.03) + ((segment.voiceIndex % 3) - 1) * 0.035;
       utterance.volume = 1;
-      let fallbackTimer: number | null = null;
-      const clearFallbackTimer = () => {
-        if (fallbackTimer === null) return;
-        window.clearInterval(fallbackTimer);
-        speechTimersRef.current = speechTimersRef.current.filter(timerId => timerId !== fallbackTimer);
-        fallbackTimer = null;
-      };
-      if (segment.wordStarts.length > 0) {
-        const startedAt = Date.now();
-        const estimatedMs = Math.max(800, segment.wordStarts.length * (390 / utterance.rate));
+      let lastSpokenWordIndex = -1;
+      let segmentFinished = false;
+      const activateSegmentWord = (wordIndex: number) => {
+        if (segment.wordStarts.length === 0) return;
+        const nextWordIndex = Math.min(Math.max(wordIndex, 0), segment.wordStarts.length - 1);
+        if (nextWordIndex < lastSpokenWordIndex) return;
+        lastSpokenWordIndex = nextWordIndex;
         if (segment.lineId) {
           setActiveDialogueLineId(segment.lineId);
-          setActiveDialogueWordIndex(segment.lineWordOffset);
+          setActiveDialogueWordIndex(segment.lineWordOffset + nextWordIndex);
           setActiveWordIndex(-1);
         } else {
           setActiveDialogueLineId('');
           setActiveDialogueWordIndex(-1);
-          setActiveWordIndex(segment.wordOffset);
+          setActiveWordIndex(segment.wordOffset + nextWordIndex);
         }
-        fallbackTimer = window.setInterval(() => {
-          if (speechRunIdRef.current !== runId) {
-            clearFallbackTimer();
-            return;
-          }
-          const progress = Math.min(0.98, (Date.now() - startedAt) / estimatedMs);
-          const nextWordIndex = Math.min(
-            segment.wordStarts.length - 1,
-            Math.floor(progress * segment.wordStarts.length)
-          );
-          if (segment.lineId) {
-            setActiveDialogueLineId(segment.lineId);
-            setActiveDialogueWordIndex(segment.lineWordOffset + nextWordIndex);
-          } else {
-            setActiveWordIndex(segment.wordOffset + nextWordIndex);
-          }
-        }, 140);
-        speechTimersRef.current.push(fallbackTimer);
-      }
+      };
+      activateSegmentWord(0);
       utterance.onboundary = (event) => {
         if (event.charIndex < 0) return;
         const nextWordIndex = getWordIndexAtChar(segment.wordStarts, event.charIndex);
         if (nextWordIndex >= 0) {
-          if (segment.lineId) {
-            setActiveDialogueLineId(segment.lineId);
-            setActiveDialogueWordIndex(segment.lineWordOffset + nextWordIndex);
-          } else {
-            setActiveWordIndex(segment.wordOffset + nextWordIndex);
-          }
+          activateSegmentWord(nextWordIndex);
         }
       };
       const continueReading = () => {
-        clearFallbackTimer();
-        window.setTimeout(() => {
+        if (segmentFinished) return;
+        segmentFinished = true;
+        const nextSegmentTimer = window.setTimeout(() => {
+          speechTimersRef.current = speechTimersRef.current.filter(timerId => timerId !== nextSegmentTimer);
           if (speechRunIdRef.current === runId) {
             speakSegment(index + 1);
           }
         }, segment.pauseMs);
+        speechTimersRef.current.push(nextSegmentTimer);
       };
       utterance.onend = continueReading;
       utterance.onerror = continueReading;
