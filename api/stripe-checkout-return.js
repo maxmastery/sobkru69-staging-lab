@@ -1,4 +1,4 @@
-import { syncCheckoutSession } from './_stripe-utils.js';
+import { supabaseRequest, syncCheckoutSession } from './_stripe-utils.js';
 
 const escapeHtml = (value) => String(value ?? '')
   .replace(/&/g, '&amp;')
@@ -7,7 +7,20 @@ const escapeHtml = (value) => String(value ?? '')
   .replace(/"/g, '&quot;')
   .replace(/'/g, '&#039;');
 
-const html = ({ title, message, tone = 'success' }) => {
+const getReturnTarget = async () => {
+  try {
+    const rows = await supabaseRequest('/rest/v1/app_settings?select=value&key=eq.shop_button_visibility&limit=1');
+    const isShopVisible = rows?.[0]?.value?.isVisible === true;
+    return {
+      href: isShopVisible ? '/?page=shop' : '/',
+      label: isShopVisible ? 'กลับหน้าร้านค้า' : 'กลับหน้าหลัก',
+    };
+  } catch {
+    return { href: '/', label: 'กลับหน้าหลัก' };
+  }
+};
+
+const html = ({ title, message, footer = '', tone = 'success', returnTarget = { href: '/', label: 'กลับหน้าหลัก' } }) => {
   const color = tone === 'success' ? '#16a34a' : '#ea580c';
   return `<!doctype html>
 <html lang="th">
@@ -17,11 +30,13 @@ const html = ({ title, message, tone = 'success' }) => {
     <title>${escapeHtml(title)}</title>
     <style>
       body{margin:0;min-height:100vh;display:grid;place-items:center;background:#f8fafc;font-family:Arial,'Noto Sans Thai',Tahoma,sans-serif;color:#0f172a}
-      .card{width:min(92vw,560px);background:#fff;border:1px solid #e2e8f0;border-radius:28px;padding:32px;box-shadow:0 24px 70px rgba(15,23,42,.10);text-align:center}
+      .card{width:min(92vw,560px);min-height:320px;background:#fff;border:1px solid #e2e8f0;border-radius:28px;padding:40px 32px;box-shadow:0 24px 70px rgba(15,23,42,.10);text-align:center;display:flex;flex-direction:column;align-items:center;justify-content:center}
       .badge{display:inline-grid;place-items:center;width:64px;height:64px;border-radius:22px;background:${color}1a;color:${color};font-size:32px;font-weight:900}
-      h1{font-size:30px;line-height:1.25;margin:18px 0 10px}
-      p{font-size:16px;line-height:1.8;color:#64748b;margin:0}
-      a{display:inline-block;margin-top:24px;background:#0f172a;color:white;text-decoration:none;border-radius:999px;padding:13px 22px;font-weight:800}
+      h1{font-size:30px;line-height:1.25;margin:22px 0 8px}
+      p{font-size:16px;line-height:1.8;color:#475569;margin:0}
+      .footer{margin-top:8px;font-size:13px;line-height:1.6;color:#94a3b8}
+      .spacer{flex:1;min-height:34px}
+      a{display:inline-block;background:#0f172a;color:white;text-decoration:none;border-radius:999px;padding:13px 22px;font-weight:800}
     </style>
   </head>
   <body>
@@ -29,7 +44,9 @@ const html = ({ title, message, tone = 'success' }) => {
       <div class="badge">${tone === 'success' ? '✓' : '!'}</div>
       <h1>${escapeHtml(title)}</h1>
       <p>${escapeHtml(message)}</p>
-      <a href="/">กลับหน้าหลัก</a>
+      ${footer ? `<div class="footer">${escapeHtml(footer)}</div>` : ''}
+      <div class="spacer"></div>
+      <a href="${escapeHtml(returnTarget.href)}">${escapeHtml(returnTarget.label)}</a>
     </main>
   </body>
 </html>`;
@@ -43,10 +60,11 @@ export default async function handler(req, res) {
   }
 
   const sessionId = String(req.query?.session_id || '').trim();
+  const returnTarget = await getReturnTarget();
   if (!sessionId) {
     res.statusCode = 400;
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
-    res.end(html({ title: 'ไม่พบคำสั่งซื้อ', message: 'ระบบไม่พบเลขอ้างอิงจาก Stripe', tone: 'error' }));
+    res.end(html({ title: 'ไม่พบคำสั่งซื้อ', message: 'ระบบไม่พบเลขอ้างอิงจาก Stripe', tone: 'error', returnTarget }));
     return;
   }
 
@@ -56,9 +74,11 @@ export default async function handler(req, res) {
     res.statusCode = 200;
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
     res.end(html({
-      title: result.delivered ? 'ส่งไฟล์ให้แล้ว' : 'ระบบรับคำสั่งซื้อแล้ว',
-      message: result.message || 'กรุณาตรวจสอบอีเมลที่ใช้ชำระเงิน หากไม่พบให้ดูในกล่องจดหมายขยะ',
+      title: 'ขอบคุณที่สั่งซื้อสินค้าของเรา',
+      message: 'เราได้จัดส่งไฟล์ไปที่อีเมลที่ได้ท่านได้ระบุไว้แล้ว',
+      footer: 'CoolCom Sheet | Sobkru',
       tone: 'success',
+      returnTarget,
     }));
   } catch (error) {
     console.error('Stripe checkout return failed', error);
@@ -68,6 +88,7 @@ export default async function handler(req, res) {
       title: 'กำลังตรวจสอบคำสั่งซื้อ',
       message: 'ระบบยังส่งไฟล์ไม่ได้ทันที แต่ cron จะซิงก์ซ้ำอัตโนมัติ หากยังไม่ได้รับอีเมลกรุณาติดต่อผู้ดูแลระบบ',
       tone: 'error',
+      returnTarget,
     }));
   }
 }

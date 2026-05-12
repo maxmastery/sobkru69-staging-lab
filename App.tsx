@@ -64,7 +64,16 @@ const DEFAULT_MAINTENANCE_MODE: MaintenanceModeState = {
 };
 
 const getInitialPage = (): PageState => {
-  if (typeof window !== 'undefined' && window.location.pathname === '/knowledge-graph') {
+  if (typeof window === 'undefined') {
+    return 'dashboard';
+  }
+
+  const pageParam = new URLSearchParams(window.location.search).get('page');
+  if (pageParam === 'shop') {
+    return 'shop';
+  }
+
+  if (window.location.pathname === '/knowledge-graph') {
     return 'knowledge-graph';
   }
   return 'dashboard';
