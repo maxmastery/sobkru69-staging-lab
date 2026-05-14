@@ -12,8 +12,16 @@ create table if not exists public.user_sessions (
   user_id text primary key,
   user_name text not null default '',
   current_page text not null default 'dashboard',
-  last_active_at timestamptz not null default now()
+  last_active_at timestamptz not null default now(),
+  device_type text not null default 'unknown',
+  device_label text not null default 'ไม่ทราบอุปกรณ์'
 );
+
+alter table public.user_sessions
+  add column if not exists device_type text not null default 'unknown';
+
+alter table public.user_sessions
+  add column if not exists device_label text not null default 'ไม่ทราบอุปกรณ์';
 
 alter table public.user_sessions enable row level security;
 

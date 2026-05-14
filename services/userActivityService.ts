@@ -33,6 +33,8 @@ type UserSessionRow = {
   user_name: string;
   current_page: string;
   last_active_at: string;
+  device_type?: string | null;
+  device_label?: string | null;
 };
 
 const encodeValue = (value: string) => encodeURIComponent(value);
@@ -48,6 +50,28 @@ const createId = () => {
     return crypto.randomUUID();
   }
   return `${Date.now()}-${Math.random().toString(36).slice(2, 12)}`;
+};
+
+const getClientDeviceInfo = () => {
+  if (typeof navigator === 'undefined') {
+    return { device_type: 'unknown', device_label: 'ไม่ทราบอุปกรณ์' };
+  }
+
+  const ua = navigator.userAgent || '';
+  const platform = navigator.platform || '';
+  const maxTouchPoints = navigator.maxTouchPoints || 0;
+  const isIPadOS = /Macintosh/i.test(ua) && maxTouchPoints > 1;
+
+  if (/iPad|Tablet|PlayBook|Silk/i.test(ua) || isIPadOS || (/Android/i.test(ua) && !/Mobile/i.test(ua))) {
+    return { device_type: 'tablet', device_label: 'iPad / Tablet' };
+  }
+  if (/Mobi|Android|iPhone|iPod|Windows Phone/i.test(ua)) {
+    return { device_type: 'mobile', device_label: 'มือถือ' };
+  }
+  if (/Win|Mac|Linux|CrOS/i.test(platform) || /Windows NT|Macintosh|X11|CrOS/i.test(ua)) {
+    return { device_type: 'desktop', device_label: 'คอมพิวเตอร์' };
+  }
+  return { device_type: 'unknown', device_label: 'ไม่ทราบอุปกรณ์' };
 };
 
 export const getStoredUser = (): User | null => {
@@ -66,17 +90,37 @@ export const getStoredUser = (): User | null => {
 export const userActivityService = {
   async upsertSession(userId: string, userName: string, currentPage: string) {
     ensureSupabase();
-    await supabaseRest.upsert<UserSessionRow[]>('user_sessions', {
+    const payload = {
       user_id: userId,
       user_name: userName || '',
       current_page: currentPage || 'dashboard',
       last_active_at: new Date().toISOString(),
-    }, 'user_id');
+      ...getClientDeviceInfo(),
+    };
+
+    try {
+      await supabaseRest.upsert<UserSessionRow[]>('user_sessions', payload, 'user_id');
+    } catch (error) {
+      const message = error instanceof Error ? error.message.toLowerCase() : '';
+      if (!message.includes('device_type') && !message.includes('device_label')) {
+        throw error;
+      }
+      const { device_type, device_label, ...legacyPayload } = payload;
+      await supabaseRest.upsert<UserSessionRow[]>('user_sessions', legacyPayload, 'user_id');
+    }
   },
 
   async getOnlineSessions(): Promise<UserSessionRow[]> {
     ensureSupabase();
-    return supabaseRest.select<UserSessionRow[]>('user_sessions', 'select=user_id,user_name,current_page,last_active_at&order=last_active_at.desc&limit=500');
+    try {
+      return await supabaseRest.select<UserSessionRow[]>('user_sessions', 'select=user_id,user_name,current_page,last_active_at,device_type,device_label&order=last_active_at.desc&limit=500');
+    } catch (error) {
+      const message = error instanceof Error ? error.message.toLowerCase() : '';
+      if (!message.includes('device_type') && !message.includes('device_label')) {
+        throw error;
+      }
+      return supabaseRest.select<UserSessionRow[]>('user_sessions', 'select=user_id,user_name,current_page,last_active_at&order=last_active_at.desc&limit=500');
+    }
   },
 
   async getCompletedChapterIds(userId: string, topicId: string): Promise<string[]> {

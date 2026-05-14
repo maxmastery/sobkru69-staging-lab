@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Activity, BookOpen, Clock, Loader2, TrendingUp, UserPlus, UserX, Users, Wifi } from 'lucide-react';
+import { Activity, BookOpen, Clock, HelpCircle, Loader2, Monitor, Smartphone, Tablet, TrendingUp, UserPlus, UserX, Users, Wifi } from 'lucide-react';
 import { User } from '../../services/authService';
 import { getStoredUser, userActivityService } from '../../services/userActivityService';
 
@@ -12,6 +12,8 @@ interface SessionRow {
   user_name: string;
   current_page: string;
   last_active_at: string;
+  device_type?: string | null;
+  device_label?: string | null;
 }
 
 interface LoginLogRow {
@@ -30,6 +32,13 @@ interface LessonProgressSummaryRow {
 type SignupRange = 'daily' | 'weekly' | 'monthly';
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
+
+const deviceBuckets = [
+  { type: 'desktop', label: 'คอมพิวเตอร์', icon: Monitor, color: 'bg-blue-600' },
+  { type: 'mobile', label: 'มือถือ', icon: Smartphone, color: 'bg-emerald-500' },
+  { type: 'tablet', label: 'iPad / Tablet', icon: Tablet, color: 'bg-amber-400' },
+  { type: 'unknown', label: 'ไม่ทราบ', icon: HelpCircle, color: 'bg-slate-400' },
+];
 
 const startOfDay = (value: Date) => new Date(value.getFullYear(), value.getMonth(), value.getDate());
 const isoDay = (value: Date) => startOfDay(value).toISOString().split('T')[0];
@@ -148,6 +157,8 @@ const AdminUserInsights: React.FC<AdminUserInsightsProps> = ({ users }) => {
         user_name: currentUser.name,
         current_page: 'admin:user-insights',
         last_active_at: now.toISOString(),
+        device_type: 'unknown',
+        device_label: 'ไม่ทราบอุปกรณ์',
       });
     }
     const learningUsers = onlineUsers.filter(entry => entry.current_page.startsWith('lesson') || entry.current_page.startsWith('topic'));
@@ -277,6 +288,15 @@ const AdminUserInsights: React.FC<AdminUserInsightsProps> = ({ users }) => {
       });
     }
 
+    const deviceStats = deviceBuckets.map((bucket) => {
+      const count = sessions.filter(entry => (entry.device_type || 'unknown') === bucket.type).length;
+      return {
+        ...bucket,
+        count,
+        percentage: sessions.length > 0 ? Math.round((count / sessions.length) * 100) : 0,
+      };
+    });
+
     return {
       totalUsers,
       onlineUsers,
@@ -298,6 +318,9 @@ const AdminUserInsights: React.FC<AdminUserInsightsProps> = ({ users }) => {
       signupSeries,
       maxSignupValue,
       dailyLogins,
+      deviceStats,
+      maxDeviceCount: Math.max(...deviceStats.map(entry => entry.count), 1),
+      deviceTrackedCount: sessions.filter(entry => entry.device_type && entry.device_type !== 'unknown').length,
     };
   }, [lessonProgressRows, loginLogs, sessions, signupRange, studyTimeMap, users]);
 
@@ -608,6 +631,50 @@ const AdminUserInsights: React.FC<AdminUserInsightsProps> = ({ users }) => {
               ยังไม่มีผู้ใช้งานออนไลน์ในขณะนี้
             </div>
           )}
+        </div>
+      </div>
+
+      <div className="rounded-[28px] border border-slate-200 bg-white p-6">
+        <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between mb-6">
+          <div>
+            <div className="flex items-center gap-2 text-slate-900 font-bold text-lg">
+              <Monitor className="w-5 h-5 text-blue-500" />
+              แดชบอร์ดอุปกรณ์ผู้ใช้งาน
+            </div>
+            <div className="text-sm text-slate-500 mt-1">แยกจาก heartbeat ล่าสุดของผู้ใช้งานแต่ละบัญชีในระบบหลังบ้าน</div>
+          </div>
+          <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm">
+            <div className="text-xs font-bold text-slate-500">มีข้อมูลอุปกรณ์</div>
+            <div className="text-xl font-black text-slate-900">
+              {insights.deviceTrackedCount} <span className="text-sm font-semibold text-slate-500">/ {sessions.length} session</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-4 gap-4 items-end h-64">
+          {insights.deviceStats.map((entry) => {
+            const fillPercent = entry.count > 0 ? Math.max((entry.count / insights.maxDeviceCount) * 100, 8) : 0;
+            const Icon = entry.icon;
+            return (
+              <div key={entry.type} className="flex min-w-0 flex-col items-center gap-2">
+                <div className="text-xs font-bold text-slate-600">{entry.count}</div>
+                <div
+                  className="w-full h-44 rounded-2xl border border-slate-200 bg-slate-100/80 p-1 flex items-end overflow-hidden"
+                  title={`${entry.label}: ${entry.count} คน (${entry.percentage}%)`}
+                >
+                  <div
+                    className={`w-full rounded-xl ${entry.color} transition-[height] duration-300`}
+                    style={{ height: `${fillPercent}%` }}
+                  />
+                </div>
+                <div className="flex min-w-0 items-center gap-1 text-center">
+                  <Icon className="h-3.5 w-3.5 shrink-0 text-slate-500" />
+                  <span className="truncate text-[11px] font-bold text-slate-700">{entry.label}</span>
+                </div>
+                <div className="text-[10px] text-slate-400">{entry.percentage}%</div>
+              </div>
+            );
+          })}
         </div>
       </div>
 

@@ -1,10 +1,56 @@
 import React, { useMemo } from 'react';
 import { User } from '../../services/authService';
-import { BarChart3, Users, MapPin, GraduationCap, Calendar } from 'lucide-react';
+import { BarChart3, Users, MapPin, GraduationCap, Calendar, Cake } from 'lucide-react';
 
 interface AdminStatisticsProps {
   users: User[];
 }
+
+const thaiDigitMap: Record<string, string> = {
+  '๐': '0',
+  '๑': '1',
+  '๒': '2',
+  '๓': '3',
+  '๔': '4',
+  '๕': '5',
+  '๖': '6',
+  '๗': '7',
+  '๘': '8',
+  '๙': '9',
+};
+
+const ageRanges = [
+  { label: '< 20', description: 'ต่ำกว่า 20 ปี', min: 0, max: 19 },
+  { label: '20-24', description: '20-24 ปี', min: 20, max: 24 },
+  { label: '25-29', description: '25-29 ปี', min: 25, max: 29 },
+  { label: '30-34', description: '30-34 ปี', min: 30, max: 34 },
+  { label: '35-39', description: '35-39 ปี', min: 35, max: 39 },
+  { label: '40-44', description: '40-44 ปี', min: 40, max: 44 },
+  { label: '45-49', description: '45-49 ปี', min: 45, max: 49 },
+  { label: '50+', description: '50 ปีขึ้นไป', min: 50, max: Infinity },
+];
+
+const ageBarColors = [
+  'bg-rose-500',
+  'bg-orange-500',
+  'bg-amber-400',
+  'bg-yellow-400',
+  'bg-lime-500',
+  'bg-emerald-500',
+  'bg-sky-500',
+  'bg-blue-600',
+];
+
+const parseUserAge = (value?: string) => {
+  const normalized = `${value || ''}`
+    .replace(/[๐-๙]/g, digit => thaiDigitMap[digit] || digit)
+    .trim();
+  const match = normalized.match(/\d{1,3}/);
+  if (!match) return null;
+  const age = Number(match[0]);
+  if (!Number.isFinite(age) || age < 1 || age > 120) return null;
+  return age;
+};
 
 const AdminStatistics: React.FC<AdminStatisticsProps> = ({ users }) => {
   const stats = useMemo(() => {
@@ -19,6 +65,9 @@ const AdminStatistics: React.FC<AdminStatisticsProps> = ({ users }) => {
     const majorCount: Record<string, number> = {};
     // Calculate Exam Count Stats
     const examCountStats: Record<string, number> = {};
+    const ageRangeCount = ageRanges.map(range => ({ ...range, count: 0 }));
+    let usersWithAge = 0;
+    let usersWithoutAge = 0;
 
     users.forEach(user => {
       if (user.gender) {
@@ -33,6 +82,16 @@ const AdminStatistics: React.FC<AdminStatisticsProps> = ({ users }) => {
       if (user.examCount) {
         examCountStats[user.examCount] = (examCountStats[user.examCount] || 0) + 1;
       }
+      const age = parseUserAge(user.age);
+      if (age === null) {
+        usersWithoutAge += 1;
+      } else {
+        usersWithAge += 1;
+        const bucket = ageRangeCount.find(range => age >= range.min && age <= range.max);
+        if (bucket) {
+          bucket.count += 1;
+        }
+      }
     });
 
     // Sort provinces by count
@@ -45,7 +104,16 @@ const AdminStatistics: React.FC<AdminStatisticsProps> = ({ users }) => {
       genderCount,
       sortedProvinces,
       majorCount,
-      examCountStats
+      examCountStats,
+      ageRangeCount: ageRangeCount.map(range => ({
+        label: range.label,
+        description: range.description,
+        count: range.count,
+        percentage: totalUsers > 0 ? Math.round((range.count / totalUsers) * 100) : 0,
+      })),
+      usersWithAge,
+      usersWithoutAge,
+      maxAgeRangeCount: Math.max(...ageRangeCount.map(range => range.count), 1),
     };
   }, [users]);
 
@@ -111,6 +179,54 @@ const AdminStatistics: React.FC<AdminStatisticsProps> = ({ users }) => {
                 {stats.examCountStats['1'] || 0} <span className="text-sm font-normal text-slate-500">คน</span>
               </h4>
             </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="bg-white rounded-2xl border border-slate-200 p-6">
+        <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4 mb-6">
+          <div>
+            <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+              <Cake className="w-5 h-5 text-rose-500" />
+              แดชบอร์ดอายุผู้ใช้งาน
+            </h3>
+            <p className="mt-1 text-sm text-slate-500">แบ่งช่วงอายุจากข้อมูลโปรไฟล์สมาชิกหลังบ้านเท่านั้น</p>
+          </div>
+          <div className="grid grid-cols-2 gap-2 text-sm">
+            <div className="rounded-xl bg-rose-50 px-4 py-3">
+              <div className="text-xs font-bold text-rose-600">มีข้อมูลอายุ</div>
+              <div className="text-xl font-black text-slate-900">{stats.usersWithAge}</div>
+            </div>
+            <div className="rounded-xl bg-slate-50 px-4 py-3">
+              <div className="text-xs font-bold text-slate-500">ยังไม่กรอก</div>
+              <div className="text-xl font-black text-slate-900">{stats.usersWithoutAge}</div>
+            </div>
+          </div>
+        </div>
+
+        <div className="overflow-x-auto pb-1">
+          <div className="grid min-w-[680px] grid-cols-8 gap-3 items-end h-64">
+            {stats.ageRangeCount.map((range, index) => {
+              const fillPercent = range.count > 0 ? Math.max((range.count / stats.maxAgeRangeCount) * 100, 8) : 0;
+              return (
+                <div key={range.label} className="flex min-w-0 flex-col items-center gap-2">
+                  <div className="text-xs font-bold text-slate-600">{range.count}</div>
+                  <div
+                    className="w-full h-44 rounded-2xl border border-slate-200 bg-slate-100/80 p-1 flex items-end overflow-hidden"
+                    title={`${range.description}: ${range.count} คน (${range.percentage}%)`}
+                  >
+                    <div
+                      className={`w-full rounded-xl ${ageBarColors[index]} transition-[height] duration-300`}
+                      style={{ height: `${fillPercent}%` }}
+                    />
+                  </div>
+                  <div className="text-center">
+                    <div className="text-[11px] font-bold text-slate-700">{range.label}</div>
+                    <div className="text-[10px] text-slate-400">{range.percentage}%</div>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       </div>
