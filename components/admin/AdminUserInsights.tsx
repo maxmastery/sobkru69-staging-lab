@@ -312,6 +312,16 @@ const AdminUserInsights: React.FC<AdminUserInsightsProps> = ({ users }) => {
   const chartValues = insights.signupSeries.map(point => point.count);
   const chartLine = buildLinePath(chartValues, 920, 260, 24);
   const chartArea = buildAreaPath(chartValues, 920, 260, 24);
+  const dailyLoginMax = Math.max(...insights.dailyLogins.map(entry => entry.count), 1);
+  const dailyLoginBarColors = [
+    'bg-rose-500',
+    'bg-orange-500',
+    'bg-amber-400',
+    'bg-yellow-400',
+    'bg-lime-500',
+    'bg-emerald-500',
+    'bg-blue-600',
+  ];
 
   if (isLoading) {
     return (
@@ -543,13 +553,19 @@ const AdminUserInsights: React.FC<AdminUserInsightsProps> = ({ users }) => {
           </div>
           <div className="grid grid-cols-7 gap-3 items-end h-52">
             {insights.dailyLogins.map((item) => {
-              const maxValue = Math.max(...insights.dailyLogins.map(entry => entry.count), 1);
-              const height = Math.max((item.count / maxValue) * 150, 8);
+              const fillPercent = item.count > 0 ? Math.max((item.count / dailyLoginMax) * 100, 8) : 0;
+              const colorIndex = item.count > 0 ? Math.min(6, Math.ceil((item.count / dailyLoginMax) * 7) - 1) : 0;
               return (
                 <div key={item.label} className="flex flex-col items-center gap-2">
-                  <div className="text-xs font-bold text-slate-500">{item.count}</div>
-                  <div className="w-full rounded-2xl bg-slate-100 relative h-40 overflow-hidden">
-                    <div className="absolute inset-x-0 bottom-0 rounded-2xl bg-gradient-to-t from-indigo-600 to-indigo-400" style={{ height }} />
+                  <div className="text-xs font-bold text-slate-600">{item.count}</div>
+                  <div
+                    className="w-full h-40 rounded-2xl border border-indigo-100 bg-slate-100/80 p-1 flex items-end overflow-hidden"
+                    title={`${item.label}: ${item.count} คน`}
+                  >
+                    <div
+                      className={`w-full rounded-xl ${dailyLoginBarColors[colorIndex]} transition-[height] duration-300`}
+                      style={{ height: `${fillPercent}%` }}
+                    />
                   </div>
                   <div className="text-[11px] font-medium text-slate-500">{item.label}</div>
                 </div>

@@ -575,9 +575,64 @@ export const B1_2_CHAPTER5 = `
   <div class="text-3xl font-black text-rose-900 mb-3">วัตสันใช้การทดลองกับเด็กชายอัลเบิร์ตและหนูขาว เพื่ออธิบายว่าความกลัวหรือการตอบสนองบางอย่างสามารถสร้างขึ้นได้</div>
   <ul class="list-disc pl-5 space-y-2 text-slate-700 text-lg m-0">
     <li>วัตสันเป็นบิดาจิตวิทยาพฤติกรรมนิยม</li>
-    <li>ใช้หนูขาวเป็นสิ่งเร้าควบคู่กับสิ่งเร้าที่ทำให้ตกใจ</li>
-    <li>เกิดการแผ่ขยายพฤติกรรม และมีแนวคิดเรื่องการลดภาวะหรือดับสูญ</li>
+    <li>การทดลองนี้มักเรียกว่า <strong>Little Albert Experiment</strong> หรือการวางเงื่อนไขความกลัวในมนุษย์</li>
+    <li>เริ่มแรกเด็กชายอัลเบิร์ตไม่กลัวหนูขาว แต่เมื่อจับคู่หนูขาวกับเสียงดังที่ทำให้ตกใจซ้ำ ๆ เด็กจึงเริ่มร้องไห้หรือแสดงความกลัวเมื่อเห็นหนูขาว</li>
+    <li>ความกลัวแผ่ขยายไปยังสิ่งที่คล้ายกัน เช่น กระต่าย สุนัข หรือวัตถุขนฟู เรียกว่า <strong>generalization</strong></li>
+    <li>ถ้านำสิ่งเร้าเดิมมาให้เห็นโดยไม่มีเสียงดังตามมา ความกลัวอาจค่อย ๆ ลดลง เรียกว่า <strong>extinction</strong></li>
   </ul>
+</div>
+
+<div class="rounded-[2rem] border border-rose-100 bg-white p-5 my-6 shadow-sm">
+  <div class="text-2xl font-black text-rose-950 mb-2">ภาพจำเร็ว: Little Albert = หนูขาว + เสียงดัง → ความกลัวที่ถูกเรียนรู้</div>
+  <div class="text-slate-700 text-lg leading-relaxed mb-4">จุดออกสอบคือ วัตสันและเรย์เนอร์นำหลัก classical conditioning ของ Pavlov มาอธิบายอารมณ์กลัวในมนุษย์ ไม่ใช่การเสริมแรงแบบ Skinner</div>
+  <svg viewBox="0 0 980 420" role="img" aria-label="Little Albert conditioning diagram" class="w-full h-auto rounded-2xl bg-rose-50">
+    <defs>
+      <marker id="littleAlbertArrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+        <path d="M 0 0 L 10 5 L 0 10 z" fill="#be123c"></path>
+      </marker>
+    </defs>
+    <rect x="24" y="24" width="932" height="372" rx="28" fill="#fff7f7" stroke="#fecdd3" stroke-width="3"></rect>
+    <text x="490" y="66" text-anchor="middle" font-size="30" font-weight="900" fill="#881337">Little Albert Experiment</text>
+    <g>
+      <rect x="62" y="112" width="238" height="190" rx="24" fill="#ffffff" stroke="#fda4af" stroke-width="3"></rect>
+      <circle cx="138" cy="186" r="34" fill="#fee2e2" stroke="#fb7185" stroke-width="4"></circle>
+      <circle cx="128" cy="179" r="4" fill="#0f172a"></circle>
+      <circle cx="148" cy="179" r="4" fill="#0f172a"></circle>
+      <path d="M124 202 Q138 192 152 202" fill="none" stroke="#0f172a" stroke-width="4" stroke-linecap="round"></path>
+      <ellipse cx="222" cy="198" rx="42" ry="24" fill="#f8fafc" stroke="#94a3b8" stroke-width="4"></ellipse>
+      <circle cx="188" cy="190" r="12" fill="#f8fafc" stroke="#94a3b8" stroke-width="4"></circle>
+      <circle cx="180" cy="184" r="3" fill="#0f172a"></circle>
+      <path d="M262 198 C286 188 288 222 265 222" fill="none" stroke="#94a3b8" stroke-width="4" stroke-linecap="round"></path>
+      <text x="181" y="270" text-anchor="middle" font-size="20" font-weight="900" fill="#881337">ก่อนทดลอง</text>
+      <text x="181" y="292" text-anchor="middle" font-size="16" font-weight="700" fill="#475569">เด็กยังไม่กลัวหนูขาว</text>
+    </g>
+    <line x1="318" y1="206" x2="390" y2="206" stroke="#be123c" stroke-width="5" marker-end="url(#littleAlbertArrow)"></line>
+    <g>
+      <rect x="410" y="112" width="238" height="190" rx="24" fill="#ffffff" stroke="#fda4af" stroke-width="3"></rect>
+      <ellipse cx="485" cy="198" rx="42" ry="24" fill="#f8fafc" stroke="#94a3b8" stroke-width="4"></ellipse>
+      <circle cx="451" cy="190" r="12" fill="#f8fafc" stroke="#94a3b8" stroke-width="4"></circle>
+      <circle cx="443" cy="184" r="3" fill="#0f172a"></circle>
+      <path d="M525 198 C549 188 551 222 528 222" fill="none" stroke="#94a3b8" stroke-width="4" stroke-linecap="round"></path>
+      <text x="558" y="204" text-anchor="middle" font-size="38" font-weight="900" fill="#be123c">+</text>
+      <path d="M590 176 L622 208 L590 240" fill="none" stroke="#ef4444" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"></path>
+      <path d="M574 188 L594 208 L574 228" fill="none" stroke="#ef4444" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"></path>
+      <text x="529" y="270" text-anchor="middle" font-size="20" font-weight="900" fill="#881337">จับคู่ซ้ำ ๆ</text>
+      <text x="529" y="292" text-anchor="middle" font-size="16" font-weight="700" fill="#475569">หนูขาว + เสียงดัง</text>
+    </g>
+    <line x1="666" y1="206" x2="738" y2="206" stroke="#be123c" stroke-width="5" marker-end="url(#littleAlbertArrow)"></line>
+    <g>
+      <rect x="758" y="112" width="160" height="190" rx="24" fill="#ffffff" stroke="#fda4af" stroke-width="3"></rect>
+      <circle cx="838" cy="176" r="34" fill="#fee2e2" stroke="#fb7185" stroke-width="4"></circle>
+      <circle cx="828" cy="170" r="4" fill="#0f172a"></circle>
+      <circle cx="848" cy="170" r="4" fill="#0f172a"></circle>
+      <path d="M822 204 Q838 218 854 204" fill="none" stroke="#0f172a" stroke-width="4" stroke-linecap="round"></path>
+      <path d="M804 146 C786 132 780 154 796 162" fill="none" stroke="#ef4444" stroke-width="5" stroke-linecap="round"></path>
+      <path d="M872 146 C890 132 896 154 880 162" fill="none" stroke="#ef4444" stroke-width="5" stroke-linecap="round"></path>
+      <text x="838" y="270" text-anchor="middle" font-size="20" font-weight="900" fill="#881337">หลังวางเงื่อนไข</text>
+      <text x="838" y="292" text-anchor="middle" font-size="16" font-weight="700" fill="#475569">เห็นหนูแล้วกลัว</text>
+    </g>
+    <text x="490" y="354" text-anchor="middle" font-size="19" font-weight="900" fill="#0f172a">จำสอบ: Watson + Rayner, Classical Conditioning, ความกลัวเรียนรู้ได้, เกิด generalization</text>
+  </svg>
 </div>
 
 ## <span class="text-4xl font-black text-slate-900">3. Thorndike: การเชื่อมโยงและการลองผิดลองถูก</span>
@@ -823,6 +878,61 @@ export const B1_2_CHAPTER7 = `
   </ul>
 </div>
 
+<div class="rounded-[2rem] border border-sky-100 bg-sky-50 p-6 my-6 shadow-sm">
+  <div class="text-3xl font-black text-sky-950 mb-3">การทดลองเด่นของ Skinner คือ Skinner Box หรือกล่องทดลองการวางเงื่อนไขแบบการกระทำ</div>
+  <div class="grid grid-cols-1 lg:grid-cols-[1.05fr_0.95fr] gap-6 items-center">
+    <div class="text-slate-700 text-lg leading-relaxed space-y-3">
+      <p class="m-0">สกินเนอร์มักทดลองกับหนูหรือนกพิราบในกล่องที่ควบคุมสิ่งเร้าได้ ภายในมีก้านกดหรือแป้นจิก เมื่อสัตว์ทำพฤติกรรมที่ต้องการ เช่น กดคันโยก กล่องจะให้ผลตามมา เช่น เม็ดอาหาร เสียงไฟ หรือบางครั้งหยุดสิ่งรบกวน</p>
+      <p class="m-0">หัวใจสำคัญคือ <strong>ผลที่ตามมาหลังพฤติกรรม</strong> ถ้าผลนั้นทำให้พฤติกรรมเกิดซ้ำมากขึ้น เรียกว่า reinforcement แต่ถ้าทำให้พฤติกรรมลดลง เรียกว่า punishment</p>
+      <p class="m-0">ต่างจาก Pavlov/Watson ที่เน้นสิ่งเร้าก่อนพฤติกรรม Skinner เน้นว่า <strong>พฤติกรรมถูกควบคุมด้วยผลลัพธ์หลังการกระทำ</strong></p>
+    </div>
+    <svg viewBox="0 0 760 520" role="img" aria-label="Skinner box operant conditioning illustration" class="w-full h-auto rounded-2xl bg-white border border-sky-100">
+      <defs>
+        <marker id="skinnerArrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M 0 0 L 10 5 L 0 10 z" fill="#0369a1"></path>
+        </marker>
+      </defs>
+      <rect x="24" y="24" width="712" height="472" rx="28" fill="#f8fafc" stroke="#bae6fd" stroke-width="3"></rect>
+      <text x="380" y="64" text-anchor="middle" font-size="30" font-weight="900" fill="#0c4a6e">Skinner Box</text>
+      <rect x="92" y="116" width="360" height="260" rx="22" fill="#ffffff" stroke="#64748b" stroke-width="5"></rect>
+      <rect x="116" y="140" width="312" height="212" rx="14" fill="#e0f2fe" stroke="#94a3b8" stroke-width="3"></rect>
+      <rect x="358" y="218" width="58" height="20" rx="10" fill="#0ea5e9" stroke="#0369a1" stroke-width="4"></rect>
+      <text x="387" y="205" text-anchor="middle" font-size="16" font-weight="900" fill="#075985">คันโยก</text>
+      <ellipse cx="224" cy="288" rx="72" ry="38" fill="#cbd5e1" stroke="#64748b" stroke-width="4"></ellipse>
+      <circle cx="166" cy="270" r="24" fill="#e2e8f0" stroke="#64748b" stroke-width="4"></circle>
+      <circle cx="156" cy="264" r="4" fill="#0f172a"></circle>
+      <path d="M288 292 C342 282 350 338 300 336" fill="none" stroke="#64748b" stroke-width="6" stroke-linecap="round"></path>
+      <line x1="296" y1="265" x2="352" y2="228" stroke="#0369a1" stroke-width="5" marker-end="url(#skinnerArrow)"></line>
+      <rect x="508" y="142" width="156" height="76" rx="18" fill="#ecfeff" stroke="#67e8f9" stroke-width="3"></rect>
+      <text x="586" y="174" text-anchor="middle" font-size="20" font-weight="900" fill="#0e7490">กดคันโยก</text>
+      <text x="586" y="198" text-anchor="middle" font-size="15" font-weight="700" fill="#475569">พฤติกรรม</text>
+      <line x1="586" y1="228" x2="586" y2="282" stroke="#0369a1" stroke-width="5" marker-end="url(#skinnerArrow)"></line>
+      <rect x="508" y="294" width="156" height="84" rx="18" fill="#ecfdf5" stroke="#86efac" stroke-width="3"></rect>
+      <circle cx="558" cy="326" r="12" fill="#f59e0b"></circle>
+      <circle cx="586" cy="326" r="12" fill="#f59e0b"></circle>
+      <circle cx="614" cy="326" r="12" fill="#f59e0b"></circle>
+      <text x="586" y="360" text-anchor="middle" font-size="20" font-weight="900" fill="#047857">ได้อาหาร</text>
+      <path d="M508 346 C452 394 286 410 234 356" fill="none" stroke="#0369a1" stroke-width="5" stroke-dasharray="10 10" marker-end="url(#skinnerArrow)"></path>
+      <text x="380" y="452" text-anchor="middle" font-size="20" font-weight="900" fill="#0f172a">พฤติกรรม → ผลที่ตามมา → โอกาสเกิดพฤติกรรมซ้ำเพิ่มหรือลด</text>
+    </svg>
+  </div>
+</div>
+
+<div class="grid grid-cols-1 md:grid-cols-3 gap-4 my-6">
+  <div class="rounded-3xl border border-emerald-100 bg-emerald-50 p-5 shadow-sm">
+    <div class="text-2xl font-black text-emerald-900 mb-2">Shaping</div>
+    <div class="text-slate-700 leading-relaxed">การเสริมแรงทีละขั้นเมื่อพฤติกรรมเข้าใกล้เป้าหมาย เช่น ครูชมตั้งแต่เด็กเริ่มเปิดสมุด จนค่อย ๆ ทำงานครบ</div>
+  </div>
+  <div class="rounded-3xl border border-amber-100 bg-amber-50 p-5 shadow-sm">
+    <div class="text-2xl font-black text-amber-900 mb-2">Schedule</div>
+    <div class="text-slate-700 leading-relaxed">ตารางการเสริมแรง เช่น ให้ทุกครั้ง ให้เป็นช่วงเวลา หรือให้เป็นครั้งคราว พฤติกรรมจะคงทนต่างกัน</div>
+  </div>
+  <div class="rounded-3xl border border-rose-100 bg-rose-50 p-5 shadow-sm">
+    <div class="text-2xl font-black text-rose-900 mb-2">Extinction</div>
+    <div class="text-slate-700 leading-relaxed">ถ้าพฤติกรรมไม่ได้รับผลที่เคยได้รับอีก พฤติกรรมนั้นอาจค่อย ๆ ลดลง เช่น เลิกสนใจพฤติกรรมเรียกร้องความสนใจที่ไม่เหมาะสม</div>
+  </div>
+</div>
+
 ## <span class="text-4xl font-black text-slate-900">ตารางสรุป 4 แบบที่ต้องแยกให้ออก</span>
 
 <div class="overflow-x-auto my-6 rounded-2xl border-2 border-slate-200 shadow-md">
@@ -1060,14 +1170,63 @@ export const B1_2_CHAPTER7 = `
 
 ## <span class="text-4xl font-black text-slate-900">พัฒนาการทางบุคลิกภาพของฟรอยด์ 5 ขั้น</span>
 
-<div class="bg-white rounded-3xl border border-slate-200 p-6 my-6 shadow-sm">
-  <ul class="list-disc pl-5 space-y-3 text-slate-700 text-lg leading-relaxed m-0">
-    <li><strong>ขั้นปาก (0-18 เดือน)</strong> ความพึงพอใจอยู่ที่ปาก เช่น ดูดนม ดูดนิ้ว หากคับข้องใจอาจเกิดการติดตรึง</li>
-    <li><strong>ขั้นทวารหนัก (18 เดือน - 3 ปี)</strong> ความพึงพอใจอยู่ที่การขับถ่าย เกิดความขัดแย้งได้จากการฝึกขับถ่าย</li>
-    <li><strong>ขั้นอวัยวะเพศ (3-5 ปี)</strong> ความพึงพอใจอยู่ที่อวัยวะเพศ มีแนวคิดเรื่องปม Oedipus และ Electra</li>
-    <li><strong>ขั้นแฝง (6-12 ปี)</strong> ความต้องการทางเพศลดลง เด็กมักรวมกลุ่มกับเพศเดียวกัน</li>
-    <li><strong>ขั้นสนใจเพศตรงข้าม (12 ปีขึ้นไป)</strong> เริ่มสนใจเพศตรงข้าม เป็นช่วงเริ่มต้นของวัยผู้ใหญ่</li>
-  </ul>
+<div class="rounded-3xl border border-fuchsia-100 bg-fuchsia-50 p-6 my-6 shadow-sm">
+  <div class="text-3xl font-black text-fuchsia-950 mb-3">หลักจำ: ถ้าขั้นใดพัฒนาไม่ราบรื่น อาจเกิดการติดตรึง (fixation) และสะท้อนเป็นบุคลิกภาพภายหลัง</div>
+  <div class="text-slate-700 text-lg leading-relaxed">
+    ในทฤษฎีฟรอยด์ เด็กแต่ละช่วงวัยมีจุดพึงพอใจและงานพัฒนาการต่างกัน หากถูกขัดขวาง เข้มงวดเกินไป ปล่อยปละเกินไป หรือได้รับการตอบสนองไม่สมดุล เด็กอาจติดตรึงอยู่กับความขัดแย้งของขั้นนั้น ข้อสอบมักถามว่า “สะดุดที่ขั้นใด แล้วโตมาเป็นลักษณะใด”
+  </div>
+</div>
+
+<div class="overflow-x-auto my-6 rounded-2xl border-2 border-slate-200 shadow-md">
+  <table class="w-full min-w-[900px] text-left border-collapse bg-white m-0">
+    <thead>
+      <tr class="bg-fuchsia-900 text-white">
+        <th class="px-4 py-3 border-b border-slate-300 font-bold">ขั้นพัฒนาการ</th>
+        <th class="px-4 py-3 border-b border-slate-300 font-bold">งานพัฒนาการ / จุดพึงพอใจ</th>
+        <th class="px-4 py-3 border-b border-slate-300 font-bold">ถ้าถูกขัดหรือพัฒนาไม่ราบรื่น</th>
+        <th class="px-4 py-3 border-b border-slate-300 font-bold">บุคลิกภาพที่ฟรอยด์มักอธิบาย</th>
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-slate-200 text-slate-800">
+      <tr class="hover:bg-rose-50">
+        <td class="px-4 py-3 font-bold text-rose-700">ขั้นปาก<br/>Oral Stage<br/><span class="font-semibold text-slate-500">0-18 เดือน</span></td>
+        <td class="px-4 py-3">ความพึงพอใจอยู่ที่ปาก เช่น ดูดนม ดูดนิ้ว กัด เคี้ยว ได้รับอาหารและความอบอุ่นจากผู้เลี้ยงดู</td>
+        <td class="px-4 py-3">ถูกหย่านมเร็วเกินไป ถูกละเลย หรือได้รับการตอบสนองมากเกินไปจนพึ่งพาความสบายจากปาก</td>
+        <td class="px-4 py-3">พึ่งพาผู้อื่นมาก ต้องการการดูแล กินจุบจิบ สูบบุหรี่ กัดเล็บ พูดเสียดสี หรือใช้คำพูดรุนแรง</td>
+      </tr>
+      <tr class="hover:bg-amber-50">
+        <td class="px-4 py-3 font-bold text-amber-700">ขั้นทวารหนัก<br/>Anal Stage<br/><span class="font-semibold text-slate-500">18 เดือน - 3 ปี</span></td>
+        <td class="px-4 py-3">ความพึงพอใจเกี่ยวกับการขับถ่าย การฝึกควบคุมร่างกาย ระเบียบ และการทำตามกฎ</td>
+        <td class="px-4 py-3">การฝึกขับถ่ายเข้มงวด ลงโทษ อับอาย หรือปล่อยปละจนเด็กไม่เกิดการควบคุมตนเอง</td>
+        <td class="px-4 py-3"><strong>เข้มงวดเกินไป:</strong> เจ้าระเบียบ ย้ำคิดย้ำทำ ดื้อ หวงของ ควบคุมมาก<br/><strong>ปล่อยปละเกินไป:</strong> ไม่เป็นระเบียบ ต่อต้านกฎ ใจร้อน ควบคุมตนเองยาก</td>
+      </tr>
+      <tr class="hover:bg-violet-50">
+        <td class="px-4 py-3 font-bold text-violet-700">ขั้นอวัยวะเพศ<br/>Phallic Stage<br/><span class="font-semibold text-slate-500">3-5 ปี</span></td>
+        <td class="px-4 py-3">เด็กเริ่มสนใจความแตกต่างทางเพศ เอกลักษณ์ทางเพศ และความสัมพันธ์กับพ่อแม่ มีแนวคิด Oedipus/Electra complex</td>
+        <td class="px-4 py-3">ความขัดแย้งกับพ่อแม่เพศเดียวกันหรือความรู้สึกผิดเกี่ยวกับเพศไม่ได้คลี่คลาย เด็กระบุตัวตนกับแบบอย่างไม่มั่นคง</td>
+        <td class="px-4 py-3">ขาดความมั่นใจเรื่องบทบาททางเพศ แสวงหาการยอมรับมากเกินไป ชอบโอ้อวด เจ้าชู้ แข่งขันสูง หรือรู้สึกผิด/กังวลกับเรื่องเพศ</td>
+      </tr>
+      <tr class="hover:bg-sky-50">
+        <td class="px-4 py-3 font-bold text-sky-700">ขั้นแฝง<br/>Latency Stage<br/><span class="font-semibold text-slate-500">6-12 ปี</span></td>
+        <td class="px-4 py-3">แรงขับทางเพศสงบลง เด็กใช้พลังไปกับการเรียน เพื่อน กิจกรรม กฎระเบียบ และทักษะทางสังคม</td>
+        <td class="px-4 py-3">ขาดโอกาสสร้างมิตรภาพ ขาดความสำเร็จในงานเรียนหรือกิจกรรม ถูกกีดกันจากกลุ่มเพื่อน</td>
+        <td class="px-4 py-3">เข้าสังคมยาก ไม่มั่นใจในความสามารถ ขาดวินัย หลีกเลี่ยงการแข่งขัน หรือรู้สึกด้อยเมื่ออยู่กับเพื่อน</td>
+      </tr>
+      <tr class="hover:bg-emerald-50">
+        <td class="px-4 py-3 font-bold text-emerald-700">ขั้นสนใจเพศตรงข้าม<br/>Genital Stage<br/><span class="font-semibold text-slate-500">12 ปีขึ้นไป</span></td>
+        <td class="px-4 py-3">พัฒนาเป็นวัยรุ่นและผู้ใหญ่ เรียนรู้ความรัก ความสัมพันธ์ ความรับผิดชอบ และการใช้พลังทางเพศอย่างเหมาะสม</td>
+        <td class="px-4 py-3">ขั้นก่อนหน้ายังติดตรึงมาก หรือไม่สามารถสร้างความสัมพันธ์ที่สมดุลกับผู้อื่นได้</td>
+        <td class="px-4 py-3">มีปัญหาความสัมพันธ์ ใกล้ชิดผู้อื่นยาก รับผิดชอบต่อความรักไม่มั่นคง หรือเอาตนเองเป็นศูนย์กลางมากเกินไป</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="rounded-3xl border border-slate-200 bg-slate-50 p-6 my-6 shadow-sm">
+  <div class="text-2xl font-black text-slate-900 mb-2">หมายเหตุสำหรับครู</div>
+  <div class="text-slate-700 text-lg leading-relaxed">
+    ตารางนี้เป็นการจำตามทฤษฎีฟรอยด์เพื่อทำข้อสอบและเข้าใจแนวคิดประวัติศาสตร์ทางจิตวิทยา ไม่ควรใช้วินิจฉัยหรือตีตราเด็กจากพฤติกรรมเพียงอย่างเดียว หากพบปัญหาจริงควรใช้ข้อมูลรอบด้านและส่งต่อผู้เชี่ยวชาญเมื่อจำเป็น
+  </div>
 </div>
 
 <blockquote>
