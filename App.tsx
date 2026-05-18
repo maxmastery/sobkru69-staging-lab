@@ -204,7 +204,8 @@ const App: React.FC = () => {
   const [bellNotifications, setBellNotifications] = useState<BellNotification[]>([]);
   const [unreadSupportCount, setUnreadSupportCount] = useState(0);
   const readNotifIds = userUiState.readNotificationIds;
-  const isDarkShell = appTheme === 'dark';
+  const shellTheme = currentTopic ? lessonTheme : appTheme;
+  const isDarkShell = shellTheme === 'dark';
 
   const toggleAppTheme = () => {
     setAppTheme(current => {
@@ -1015,7 +1016,7 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className={`app-shell app-shell--${appTheme} min-h-screen font-sans flex flex-col relative transition-colors duration-500 ${isDarkShell ? 'bg-[#070b16] text-slate-100' : 'bg-slate-50 text-slate-900'}`}>
+    <div className={`app-shell app-shell--${shellTheme} min-h-screen font-sans flex flex-col relative transition-colors duration-500 ${isDarkShell ? 'bg-[#070b16] text-slate-100' : 'bg-slate-50 text-slate-900'}`}>
       {/* Header with User Info */}
       <header className={`relative border-b px-4 md:px-6 py-4 flex justify-between items-center sticky top-0 z-50 gap-4 transition-colors duration-500 ${
         isDarkShell
