@@ -59,6 +59,7 @@ export interface KnowledgeGraphViewProps {
   initialSubject?: string;
   initialMode?: KnowledgeGraphMode;
   initialLessonId?: string;
+  theme?: 'light' | 'dark';
   onOpenLesson?: (node: KnowledgeNode) => void;
   onBack?: () => void;
 }

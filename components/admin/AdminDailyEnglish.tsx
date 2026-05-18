@@ -20,12 +20,12 @@ const createVocabularyRow = (): DailyEnglishVocabularyItem => ({
 
 const createDialogueLine = (index = 0): DailyEnglishDialogueLine => ({
   id: createId(),
-  speaker: index % 2 === 0 ? 'Speaker 1' : 'Speaker 2',
+  speaker: `Speaker ${(index % 4) + 1}`,
   content: '',
 });
 
-const createDialogueSpeakers = (count = 2) => Array.from({ length: count }, (_, index) => `Speaker ${index + 1}`);
-const createDialogueSpeakerProfiles = (count = 2): DailyEnglishSpeakerProfile[] => Array.from({ length: count }, (_, index) => ({
+const createDialogueSpeakers = (count = 4) => Array.from({ length: count }, (_, index) => `Speaker ${index + 1}`);
+const createDialogueSpeakerProfiles = (count = 4): DailyEnglishSpeakerProfile[] => Array.from({ length: count }, (_, index) => ({
   id: createId(),
   name: `Speaker ${index + 1}`,
   gender: (index % 2 === 0 ? 'female' : 'male') as DailyEnglishSpeakerGender,
@@ -36,7 +36,7 @@ const getSpeakerProfiles = (lesson: Partial<ContentDailyEnglishLesson>): DailyEn
     return lesson.dialogueSpeakerProfiles;
   }
 
-  const speakers = lesson.dialogueSpeakers?.length ? lesson.dialogueSpeakers : createDialogueSpeakers(2);
+  const speakers = lesson.dialogueSpeakers?.length ? lesson.dialogueSpeakers : createDialogueSpeakers(4);
   return speakers.map((name, index) => ({
     id: createId(),
     name: name || `Speaker ${index + 1}`,
@@ -48,8 +48,8 @@ const createNewLesson = (): Partial<ContentDailyEnglishLesson> => ({
   title: '',
   lessonType: 'article',
   content: '',
-  dialogueSpeakers: createDialogueSpeakers(2),
-  dialogueSpeakerProfiles: createDialogueSpeakerProfiles(2),
+  dialogueSpeakers: createDialogueSpeakers(4),
+  dialogueSpeakerProfiles: createDialogueSpeakerProfiles(4),
   dialogueLines: [createDialogueLine(0)],
   translation: '',
   vocabulary: [createVocabularyRow()],
@@ -493,6 +493,11 @@ const AdminDailyEnglish: React.FC = () => {
                 padding: 14px !important;
                 font-size: 15px;
               }
+              .daily-english-translation-editor .ql-editor {
+                min-height: 220px;
+                font-size: 16px;
+                line-height: 2;
+              }
               .daily-english-dialogue-editor {
                 position: relative;
                 overflow: visible !important;
@@ -651,13 +656,16 @@ const AdminDailyEnglish: React.FC = () => {
 
             <div>
               <label className="mb-2 block text-sm font-bold text-slate-700">คำแปลภาษาไทยทั้งบทเรียน</label>
-              <textarea
-                required
-                value={currentLesson.translation || ''}
-                onChange={(event) => setCurrentLesson({ ...currentLesson, translation: event.target.value })}
-                className="min-h-[220px] w-full resize-y rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-base leading-8 text-slate-700 outline-none transition focus:border-cyan-500 focus:ring-2 focus:ring-cyan-100"
-                placeholder="ใส่คำแปลภาษาไทยของบทเรียนทั้งบท..."
-              />
+              <div className="daily-english-editor daily-english-translation-editor overflow-hidden rounded-2xl border border-slate-200 bg-white focus-within:ring-2 focus-within:ring-cyan-100">
+                <ReactQuill
+                  theme="snow"
+                  value={currentLesson.translation || ''}
+                  onChange={(value) => setCurrentLesson({ ...currentLesson, translation: value })}
+                  modules={modules}
+                  formats={formats}
+                  placeholder="ใส่คำแปลภาษาไทยของบทเรียนทั้งบท ปรับตัวหนา สี ไฮไลท์ และจัดย่อหน้าได้..."
+                />
+              </div>
             </div>
           </div>
 

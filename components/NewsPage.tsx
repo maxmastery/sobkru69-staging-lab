@@ -1,16 +1,19 @@
-import React, { useState, useEffect } from 'react';
-import { ArrowLeft, Calendar, User, Link as LinkIcon, X, ArrowRight } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { ArrowLeft, ArrowRight, Calendar, Link as LinkIcon, User } from 'lucide-react';
 import { NewsItem } from './admin/AdminNews';
 import { contentService } from '../services/contentService';
+import type { FeatureTheme } from './FeatureThemeToggle';
 
 interface NewsPageProps {
   onBack: () => void;
+  theme?: FeatureTheme;
 }
 
-const NewsPage: React.FC<NewsPageProps> = ({ onBack }) => {
+const NewsPage: React.FC<NewsPageProps> = ({ onBack, theme = 'light' }) => {
   const [news, setNews] = useState<NewsItem[]>([]);
   const [selectedNews, setSelectedNews] = useState<NewsItem | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const pageThemeClass = `feature-page ${theme === 'dark' ? 'feature-dark' : 'feature-light'}`;
 
   useEffect(() => {
     const loadNews = async () => {
@@ -47,43 +50,47 @@ const NewsPage: React.FC<NewsPageProps> = ({ onBack }) => {
 
   if (selectedNews) {
     return (
-      <div className="w-full max-w-[800px] mx-auto px-6 md:px-0 pt-8 md:pt-[60px] pb-12 animate-in fade-in duration-300">
-        <button onClick={() => setSelectedNews(null)} className="flex items-center text-slate-500 hover:text-slate-800 mb-6 transition-colors font-medium">
-          <ArrowLeft className="w-5 h-5 mr-2" />
-          กลับไปหน้าข่าวสาร
-        </button>
-        
-        <div className="w-full">
-          <h1 className="text-3xl md:text-5xl font-bold text-slate-900 mb-8 leading-tight">
-            {selectedNews.title}
-          </h1>
+      <div className={`${pageThemeClass} w-full px-6 pt-8 pb-12 animate-in fade-in duration-300 md:pt-[60px]`}>
+        <div className="mx-auto max-w-[800px]">
+          <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
+            <button onClick={() => setSelectedNews(null)} className="flex items-center text-slate-500 hover:text-slate-800 transition-colors font-medium">
+              <ArrowLeft className="w-5 h-5 mr-2" />
+              กลับไปหน้าข่าวสาร
+            </button>
+          </div>
 
-          {selectedNews.imageUrl && (
-            <div className="w-full mb-8 rounded-2xl overflow-hidden bg-slate-100 flex items-center justify-center">
-              <img src={selectedNews.imageUrl} alt={selectedNews.title} className="max-w-full h-auto object-contain" />
-            </div>
-          )}
-          
-          <div className="">
-            <div className="flex flex-wrap items-center gap-4 text-sm text-slate-500 mb-6">
-              <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-100 px-3 py-1.5 rounded-full">
-                <Calendar className="w-4 h-4" />
-                {selectedNews.date}
+          <div className="w-full">
+            <h1 className="mb-8 text-3xl font-bold leading-tight text-slate-900 md:text-5xl">
+              {selectedNews.title}
+            </h1>
+
+            {selectedNews.imageUrl && (
+              <div className="mb-8 flex w-full items-center justify-center overflow-hidden rounded-2xl bg-slate-100">
+                <img src={selectedNews.imageUrl} alt={selectedNews.title} className="h-auto max-w-full object-contain" />
               </div>
-              <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-100 px-3 py-1.5 rounded-full">
-                <User className="w-4 h-4" />
-                {selectedNews.author}
-              </div>
-              {selectedNews.source && (
-                <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-100 px-3 py-1.5 rounded-full">
-                  <LinkIcon className="w-4 h-4" />
-                  {selectedNews.source}
+            )}
+
+            <div>
+              <div className="mb-6 flex flex-wrap items-center gap-4 text-sm text-slate-500">
+                <div className="flex items-center gap-1.5 rounded-full border border-slate-100 bg-slate-50 px-3 py-1.5">
+                  <Calendar className="w-4 h-4" />
+                  {selectedNews.date}
                 </div>
-              )}
-            </div>
-            
-            <div className="prose prose-slate max-w-none text-slate-700 leading-relaxed ql-editor-display">
-              <div dangerouslySetInnerHTML={{ __html: selectedNews.content }} />
+                <div className="flex items-center gap-1.5 rounded-full border border-slate-100 bg-slate-50 px-3 py-1.5">
+                  <User className="w-4 h-4" />
+                  {selectedNews.author}
+                </div>
+                {selectedNews.source && (
+                  <div className="flex items-center gap-1.5 rounded-full border border-slate-100 bg-slate-50 px-3 py-1.5">
+                    <LinkIcon className="w-4 h-4" />
+                    {selectedNews.source}
+                  </div>
+                )}
+              </div>
+
+              <div className="prose prose-slate ql-editor-display max-w-none text-slate-700 leading-relaxed">
+                <div dangerouslySetInnerHTML={{ __html: selectedNews.content }} />
+              </div>
             </div>
           </div>
         </div>
@@ -92,84 +99,88 @@ const NewsPage: React.FC<NewsPageProps> = ({ onBack }) => {
   }
 
   return (
-    <div className="w-full max-w-[1200px] mx-auto px-6 md:px-[80px] pt-8 md:pt-[60px] pb-8 animate-in fade-in duration-300">
-      <button onClick={onBack} className="flex items-center text-slate-500 hover:text-slate-800 mb-6 transition-colors font-medium">
-        <ArrowLeft className="w-5 h-5 mr-2" />
-        กลับหน้าหลัก
-      </button>
-      <h1 className="text-3xl font-bold text-slate-800 mb-8 flex items-center gap-3">
-        ข่าวสารประชาสัมพันธ์
-      </h1>
+    <div className={`${pageThemeClass} w-full px-6 pt-8 pb-8 animate-in fade-in duration-300 md:px-[80px] md:pt-[60px]`}>
+      <div className="mx-auto max-w-[1200px]">
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
+          <button onClick={onBack} className="flex items-center text-slate-500 hover:text-slate-800 transition-colors font-medium">
+            <ArrowLeft className="w-5 h-5 mr-2" />
+            กลับหน้าหลัก
+          </button>
+        </div>
+        <h1 className="mb-8 flex items-center gap-3 text-3xl font-bold text-slate-800">
+          ข่าวสารประชาสัมพันธ์
+        </h1>
 
-      {isLoading ? (
-        <div className="bg-white p-12 rounded-2xl border border-slate-200 text-center flex flex-col items-center justify-center">
-          <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-4 animate-pulse">
-            <Calendar className="w-8 h-8 text-slate-400" />
-          </div>
-          <h3 className="text-lg font-bold text-slate-700 mb-2">กำลังโหลดข่าวสาร</h3>
-          <p className="text-slate-500">กำลังดึงข้อมูลจากระบบกลาง...</p>
-        </div>
-      ) : news.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {news.map((item) => (
-            <div 
-              key={item.id}
-              onClick={() => void openNews(item)}
-              className="bg-white rounded-2xl border border-slate-200 overflow-hidden transition-shadow flex flex-col h-full group cursor-pointer"
-            >
-              <div className="h-48 bg-slate-100 overflow-hidden relative">
-                {item.imageUrl ? (
-                  <img src={item.imageUrl} alt={item.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center text-slate-400 bg-slate-100">ไม่มีรูปภาพ</div>
-                )}
-                <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-medium text-slate-700 flex items-center gap-1.5">
-                  <Calendar className="w-3.5 h-3.5" />
-                  {item.date}
-                </div>
-              </div>
-              <div className="p-6 flex flex-col flex-1">
-                <h3 className="text-xl font-bold text-slate-800 mb-3 line-clamp-2 group-hover:text-blue-600 transition-colors">
-                  {item.title}
-                </h3>
-                <div className="mt-auto">
-                  <button 
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      void openNews(item);
-                    }}
-                    className="w-full py-2.5 px-4 bg-slate-50 hover:bg-blue-600 hover:text-white text-blue-600 rounded-xl font-semibold text-sm transition-all flex items-center justify-center gap-2 border border-slate-100 group/btn"
-                  >
-                    อ่านเพิ่มเติม
-                    <ArrowRight className="w-4 h-4 group-hover/btn:translate-x-1 transition-transform" />
-                  </button>
-                </div>
-                
-                <div className="pt-4 border-t border-slate-100 flex items-center justify-between text-[10px] text-slate-400 mt-4">
-                  <div className="flex items-center gap-1">
-                    <User className="w-3 h-3" />
-                    {item.author}
-                  </div>
-                  {item.source && (
-                    <div className="flex items-center gap-1">
-                      <LinkIcon className="w-3 h-3" />
-                      {item.source.length > 20 ? item.source.substring(0, 20) + '...' : item.source}
-                    </div>
-                  )}
-                </div>
-              </div>
+        {isLoading ? (
+          <div className="flex flex-col items-center justify-center rounded-2xl border border-slate-200 bg-white p-12 text-center">
+            <div className="mb-4 flex h-16 w-16 animate-pulse items-center justify-center rounded-full bg-slate-100">
+              <Calendar className="h-8 w-8 text-slate-400" />
             </div>
-          ))}
-        </div>
-      ) : (
-        <div className="bg-white p-12 rounded-2xl border border-slate-200 text-center flex flex-col items-center justify-center">
-          <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-4">
-            <Calendar className="w-8 h-8 text-slate-400" />
+            <h3 className="mb-2 text-lg font-bold text-slate-700">กำลังโหลดข่าวสาร</h3>
+            <p className="text-slate-500">กำลังดึงข้อมูลจากระบบกลาง...</p>
           </div>
-          <h3 className="text-lg font-bold text-slate-700 mb-2">ยังไม่มีข่าวสารในขณะนี้</h3>
-          <p className="text-slate-500">โปรดติดตามประกาศใหม่ๆ เร็วๆ นี้</p>
-        </div>
-      )}
+        ) : news.length > 0 ? (
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {news.map(item => (
+              <div
+                key={item.id}
+                onClick={() => void openNews(item)}
+                className="group flex h-full cursor-pointer flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white transition-shadow"
+              >
+                <div className="relative h-48 overflow-hidden bg-slate-100">
+                  {item.imageUrl ? (
+                    <img src={item.imageUrl} alt={item.title} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                  ) : (
+                    <div className="flex h-full w-full items-center justify-center bg-slate-100 text-slate-400">ไม่มีรูปภาพ</div>
+                  )}
+                  <div className="absolute right-4 top-4 flex items-center gap-1.5 rounded-full bg-white/90 px-3 py-1 text-xs font-medium text-slate-700 backdrop-blur-sm">
+                    <Calendar className="h-3.5 w-3.5" />
+                    {item.date}
+                  </div>
+                </div>
+                <div className="flex flex-1 flex-col p-6">
+                  <h3 className="mb-3 line-clamp-2 text-xl font-bold text-slate-800 transition-colors group-hover:text-blue-600">
+                    {item.title}
+                  </h3>
+                  <div className="mt-auto">
+                    <button
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        void openNews(item);
+                      }}
+                      className="group/btn flex w-full items-center justify-center gap-2 rounded-xl border border-slate-100 bg-slate-50 px-4 py-2.5 text-sm font-semibold text-blue-600 transition-all hover:bg-blue-600 hover:text-white"
+                    >
+                      อ่านเพิ่มเติม
+                      <ArrowRight className="h-4 w-4 transition-transform group-hover/btn:translate-x-1" />
+                    </button>
+                  </div>
+
+                  <div className="mt-4 flex items-center justify-between border-t border-slate-100 pt-4 text-[10px] text-slate-400">
+                    <div className="flex items-center gap-1">
+                      <User className="h-3 w-3" />
+                      {item.author}
+                    </div>
+                    {item.source && (
+                      <div className="flex items-center gap-1">
+                        <LinkIcon className="h-3 w-3" />
+                        {item.source.length > 20 ? item.source.substring(0, 20) + '...' : item.source}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="flex flex-col items-center justify-center rounded-2xl border border-slate-200 bg-white p-12 text-center">
+            <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-slate-100">
+              <Calendar className="h-8 w-8 text-slate-400" />
+            </div>
+            <h3 className="mb-2 text-lg font-bold text-slate-700">ยังไม่มีข่าวสารในขณะนี้</h3>
+            <p className="text-slate-500">โปรดติดตามประกาศใหม่ๆ เร็วๆ นี้</p>
+          </div>
+        )}
+      </div>
     </div>
   );
 };

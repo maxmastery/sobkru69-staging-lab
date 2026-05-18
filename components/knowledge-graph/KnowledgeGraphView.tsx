@@ -92,6 +92,7 @@ const KnowledgeGraphView: React.FC<KnowledgeGraphViewProps> = ({
   initialSubject = 'all',
   initialMode = 'global',
   initialLessonId,
+  theme = 'dark',
   onOpenLesson,
   onBack,
 }) => {
@@ -134,7 +135,7 @@ const KnowledgeGraphView: React.FC<KnowledgeGraphViewProps> = ({
   };
 
   return (
-    <div className="flex min-h-[calc(100vh-72px)] flex-col overflow-hidden bg-[#171a1c] text-slate-100 lg:h-[calc(100vh-72px)] lg:flex-row">
+    <div className={`knowledge-graph-page knowledge-graph-page--${theme} flex min-h-[calc(100vh-72px)] flex-col overflow-hidden bg-[#171a1c] text-slate-100 lg:h-[calc(100vh-72px)] lg:flex-row`}>
       <KnowledgeGraphSidebar
         searchTerm={searchTerm}
         onSearchChange={setSearchTerm}

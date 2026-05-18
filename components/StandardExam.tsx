@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Clock, Send, ChevronLeft, ChevronRight, Flag, CheckCircle, AlertCircle, StopCircle, ChevronUp, ChevronDown } from 'lucide-react';
+import FeatureThemeToggle, { type FeatureTheme } from './FeatureThemeToggle';
 
 export interface Question {
   id: number;
@@ -17,6 +18,8 @@ interface StandardExamProps {
   onBack: () => void;
   examKey?: string;
   onExamComplete?: (data: { score: number; total: number; answeredCount: number; durationSeconds: number; isCompleted: boolean; examKey: string }) => void;
+  theme?: FeatureTheme;
+  onToggleTheme?: () => void;
 }
 
 const OPTION_LABELS = ['ก', 'ข', 'ค', 'ง'];
@@ -48,7 +51,7 @@ const renderTextWithMathSymbols = (text: string) => {
   return parts.length > 0 ? parts : normalizedText;
 };
 
-export const StandardExam: React.FC<StandardExamProps> = ({ title, durationSeconds, questions, onBack, examKey = '', onExamComplete }) => {
+export const StandardExam: React.FC<StandardExamProps> = ({ title, durationSeconds, questions, onBack, examKey = '', onExamComplete, theme = 'light', onToggleTheme = () => {} }) => {
   const [timeLeft, setTimeLeft] = useState(durationSeconds);
   const [isFinished, setIsFinished] = useState(false);
   
@@ -59,6 +62,7 @@ export const StandardExam: React.FC<StandardExamProps> = ({ title, durationSecon
   const [showStopModal, setShowStopModal] = useState(false);
   const [showMobileNav, setShowMobileNav] = useState(false);
   const hasReportedRef = useRef(false);
+  const pageThemeClass = `feature-page ${theme === 'dark' ? 'feature-dark' : 'feature-light'}`;
 
   useEffect(() => {
     if (isFinished) return;
@@ -140,8 +144,11 @@ export const StandardExam: React.FC<StandardExamProps> = ({ title, durationSecon
     }
 
     return (
-      <div className="fixed inset-0 bg-slate-50 z-50 overflow-y-auto font-sans p-4 md:p-8">
+      <div className={`${pageThemeClass} fixed inset-0 z-50 overflow-y-auto bg-slate-50 p-4 font-sans md:p-8`}>
         <div className="max-w-5xl mx-auto animate-in fade-in zoom-in duration-300">
+          <div className="mb-4 flex justify-end">
+            <FeatureThemeToggle theme={theme} onToggle={onToggleTheme} />
+          </div>
           <div className="bg-white rounded-3xl overflow-hidden border border-slate-100 p-6 md:p-10 text-center mb-6">
             <div className={`w-24 h-24 rounded-full mx-auto flex items-center justify-center mb-6 ${isPassed ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'}`}>
               {isPassed ? <CheckCircle className="w-12 h-12" /> : <AlertCircle className="w-12 h-12" />}
@@ -277,7 +284,7 @@ export const StandardExam: React.FC<StandardExamProps> = ({ title, durationSecon
   const answeredCount = Object.keys(answers).length;
 
   return (
-    <div className="fixed inset-0 bg-slate-50 z-50 flex flex-col font-sans">
+    <div className={`${pageThemeClass} fixed inset-0 z-50 flex flex-col bg-slate-50 font-sans`}>
       {/* Top Header */}
       <header className="bg-white border-b border-slate-200 px-4 md:px-8 py-4 flex items-center justify-between shrink-0">
         <div className="flex items-center gap-4">
@@ -287,6 +294,7 @@ export const StandardExam: React.FC<StandardExamProps> = ({ title, durationSecon
         </div>
         
         <div className="flex items-center gap-4 md:gap-6">
+          <FeatureThemeToggle theme={theme} onToggle={onToggleTheme} className="hidden sm:inline-flex" />
           <div className={`flex items-center gap-2 font-mono text-lg md:text-xl font-bold px-3 py-1.5 md:px-4 md:py-2 rounded-lg ${timeLeft < 600 ? 'bg-red-50 text-red-600' : 'bg-slate-100 text-slate-700'}`}>
             <Clock className="w-4 h-4 md:w-5 md:h-5" />
             {formatTime(timeLeft)}
@@ -478,21 +486,21 @@ export const StandardExam: React.FC<StandardExamProps> = ({ title, durationSecon
                       <button
                         key={optIdx}
                         onClick={() => handleAnswerSelect(optIdx)}
-                        className={`w-full text-left p-4 md:p-5 rounded-xl border-2 transition-all flex items-start gap-4 ${
+                        className={`standard-exam-answer-option ${isSelected ? 'is-selected' : ''} w-full text-left p-4 md:p-5 rounded-xl border-2 transition-all flex items-start gap-4 ${
                           isSelected 
                             ? 'border-blue-500 bg-blue-50/50' 
                             : 'border-slate-100 hover:border-blue-200 hover:bg-slate-50'
                         }`}
                       >
-                        <div className={`w-6 h-6 rounded-full border-2 flex-shrink-0 mt-0.5 flex items-center justify-center ${
+                        <div className={`standard-exam-answer-dot w-6 h-6 rounded-full border-2 flex-shrink-0 mt-0.5 flex items-center justify-center ${
                           isSelected ? 'border-blue-500' : 'border-slate-300'
                         }`}>
                           {isSelected && <div className="w-3 h-3 bg-blue-500 rounded-full"></div>}
                         </div>
-                        <span className={`text-base md:text-lg font-black ${isSelected ? 'text-blue-900' : 'text-slate-500'}`}>
+                        <span className={`standard-exam-option-label text-base md:text-lg font-black ${isSelected ? 'text-blue-900' : 'text-slate-500'}`}>
                           {OPTION_LABELS[optIdx]}.
                         </span>
-                        <span className={`text-base md:text-lg whitespace-pre-line ${isSelected ? 'text-blue-900 font-medium' : 'text-slate-700'}`}>
+                        <span className={`standard-exam-option-text text-base md:text-lg whitespace-pre-line ${isSelected ? 'text-blue-900 font-medium' : 'text-slate-700'}`}>
                           {renderTextWithMathSymbols(option)}
                         </span>
                       </button>

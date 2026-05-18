@@ -3,13 +3,15 @@ import { BarChart3, Clock, BookOpen, ChevronLeft } from 'lucide-react';
 import { EXAM_CURRICULUM } from '../constants';
 import { getStoredUser, userActivityService } from '../services/userActivityService';
 import { User } from '../services/authService';
+import type { FeatureTheme } from './FeatureThemeToggle';
 
 interface LearningStatsProps {
   onClose: () => void;
   user?: User | null;
+  theme?: FeatureTheme;
 }
 
-const LearningStats: React.FC<LearningStatsProps> = ({ onClose, user: propUser }) => {
+const LearningStats: React.FC<LearningStatsProps> = ({ onClose, user: propUser, theme = 'light' }) => {
   const [stats, setStats] = useState<{ [chapterId: string]: number }>({});
 
   useEffect(() => {
@@ -56,14 +58,15 @@ const LearningStats: React.FC<LearningStatsProps> = ({ onClose, user: propUser }
   const progressPercentage = totalChapters > 0 ? Math.min(100, Math.round((viewedChaptersCount / totalChapters) * 100)) : 0;
 
   return (
-    <div className="w-full max-w-[1200px] mx-auto px-6 md:px-[80px] pt-8 md:pt-[60px] pb-8">
-      <button 
-        onClick={onClose}
-        className="flex items-center text-slate-500 hover:text-slate-800 mb-6 transition-colors"
-      >
-        <ChevronLeft className="w-5 h-5 mr-1" />
-        กลับสู่หน้าหลัก
-      </button>
+    <div className={`feature-page ${theme === 'dark' ? 'feature-dark' : 'feature-light'} w-full`}>
+      <div className="w-full max-w-[1200px] mx-auto px-6 md:px-[80px] pt-8 md:pt-[60px] pb-8">
+        <button
+          onClick={onClose}
+          className="flex items-center text-slate-500 hover:text-slate-800 mb-6 transition-colors"
+        >
+          <ChevronLeft className="w-5 h-5 mr-1" />
+          กลับสู่หน้าหลัก
+        </button>
 
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-slate-900 flex items-center gap-3">
@@ -153,6 +156,7 @@ const LearningStats: React.FC<LearningStatsProps> = ({ onClose, user: propUser }
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 };

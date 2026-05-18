@@ -170,6 +170,14 @@ export const userActivityService = {
     );
   },
 
+  async getUserLessonProgressRows(userId: string): Promise<Array<{ topic_id: string; chapter_id: string; completed_at: string }>> {
+    ensureSupabase();
+    return supabaseRest.select<Array<{ topic_id: string; chapter_id: string; completed_at: string }>>(
+      'lesson_progress',
+      `select=topic_id,chapter_id,completed_at&user_id=eq.${encodeValue(userId)}&order=completed_at.desc&limit=20000`
+    );
+  },
+
   async incrementStudyTime(userId: string, chapterId: string, seconds: number) {
     ensureSupabase();
     const existing = await supabaseRest.select<StudyTimeRow[]>('study_time', `select=id,user_id,topic_id,seconds&user_id=eq.${encodeValue(userId)}&topic_id=eq.${encodeValue(chapterId)}&limit=1`);
@@ -255,6 +263,12 @@ export const userActivityService = {
   }, authToken?: string) {
     ensureSupabase();
     try {
+      await supabaseRest.delete<any[]>(
+        'mock_exam_attempts',
+        `user_id=eq.${encodeValue(data.userId)}&exam_key=eq.${encodeValue(data.examKey)}`,
+        authToken
+      ).catch(() => null);
+
       await supabaseRest.insert<any[]>('mock_exam_attempts', {
         id: createId(),
         user_id: data.userId,
@@ -287,10 +301,10 @@ export const userActivityService = {
     }
   },
 
-  async getMockExamStats(userId: string): Promise<{ attemptCount: number; totalCorrect: number; totalAnswered: number; totalQuestions: number }> {
+  async getMockExamStats(userId: string): Promise<{ attemptCount: number; totalCorrect: number; totalAnswered: number; totalQuestions: number; latestCorrect?: number; latestTotal?: number }> {
     try {
       ensureSupabase();
-      const rows = await supabaseRest.select<any[]>('mock_exam_attempts', `select=score,total,answered_count,is_completed&user_id=eq.${encodeValue(userId)}`);
+      const rows = await supabaseRest.select<any[]>('mock_exam_attempts', `select=score,total,answered_count,is_completed,created_at&user_id=eq.${encodeValue(userId)}&order=created_at.desc`);
       
       if (!Array.isArray(rows)) {
         return { attemptCount: 0, totalCorrect: 0, totalAnswered: 0, totalQuestions: 0 };
@@ -306,12 +320,20 @@ export const userActivityService = {
         totalAnswered += answered;
         totalQuestions += Number(r.total || 0);
       });
-      return { attemptCount: rows.length, totalCorrect, totalAnswered, totalQuestions };
+      const latest = rows[0];
+      return {
+        attemptCount: rows.length,
+        totalCorrect,
+        totalAnswered,
+        totalQuestions,
+        latestCorrect: latest ? Number(latest.score || 0) : 0,
+        latestTotal: latest ? Number(latest.total || latest.answered_count || 0) : 0,
+      };
     } catch (err) {
       console.error('getMockExamStats error (might be missing columns):', err);
       // Fallback for older schema
       try {
-        const rows = await supabaseRest.select<any[]>('mock_exam_attempts', `select=score,total&user_id=eq.${encodeValue(userId)}`);
+        const rows = await supabaseRest.select<any[]>('mock_exam_attempts', `select=score,total&user_id=eq.${encodeValue(userId)}&limit=1000`);
         if (!Array.isArray(rows)) return { attemptCount: 0, totalCorrect: 0, totalAnswered: 0, totalQuestions: 0 };
         
         let totalCorrect = 0;
@@ -320,7 +342,15 @@ export const userActivityService = {
           totalCorrect += Number(r.score || 0);
           totalQuestions += Number(r.total || 0);
         });
-        return { attemptCount: rows.length, totalCorrect, totalAnswered: totalQuestions, totalQuestions };
+        const latest = rows[rows.length - 1];
+        return {
+          attemptCount: rows.length,
+          totalCorrect,
+          totalAnswered: totalQuestions,
+          totalQuestions,
+          latestCorrect: latest ? Number(latest.score || 0) : 0,
+          latestTotal: latest ? Number(latest.total || 0) : 0,
+        };
       } catch {
         return { attemptCount: 0, totalCorrect: 0, totalAnswered: 0, totalQuestions: 0 };
       }

@@ -1,6 +1,6 @@
 
 import React, { useRef, useEffect, useState, createContext, useContext } from 'react';
-import { ChevronLeft, ChevronDown, ChevronRight, Loader2, AlertCircle, BookOpen, Lightbulb, Star, CheckCircle, PlayCircle, Menu, ArrowRight, FileText, Play } from 'lucide-react';
+import { ChevronLeft, ChevronDown, ChevronRight, Loader2, AlertCircle, BookOpen, BookOpenCheck, Lightbulb, Star, CheckCircle, PlayCircle, Menu, ArrowRight, FileText, Play } from 'lucide-react';
 import { LessonChapter, SubTopic } from '../types';
 import ReactMarkdown, { Components } from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -18,6 +18,7 @@ const SvgContext = createContext(false);
 interface LessonViewProps {
   topic: SubTopic;
   onBack: () => void;
+  theme?: 'light' | 'dark';
 }
 
 // Keep post-lesson assessments in the codebase, but hide them from lessons for now.
@@ -25,20 +26,45 @@ const SHOW_LESSON_ASSESSMENTS = false;
 // Keep AI Tutor available in code, but hide the floating chat from lessons for now.
 const SHOW_AI_TUTOR = false;
 const shouldShowLessonChapter = (chapter: LessonChapter) => SHOW_LESSON_ASSESSMENTS || !chapter.isQuiz;
+const lessonAccentClasses = [
+  'border-l-blue-400 bg-blue-50/80 text-blue-700 shadow-blue-100/70',
+  'border-l-emerald-400 bg-emerald-50/80 text-emerald-700 shadow-emerald-100/70',
+  'border-l-amber-400 bg-amber-50/85 text-amber-700 shadow-amber-100/70',
+  'border-l-violet-400 bg-violet-50/80 text-violet-700 shadow-violet-100/70',
+  'border-l-rose-400 bg-rose-50/80 text-rose-700 shadow-rose-100/70',
+];
+const lessonMenuToneClasses = [
+  'lesson-menu-tone-blue',
+  'lesson-menu-tone-orange',
+  'lesson-menu-tone-emerald',
+  'lesson-menu-tone-violet',
+  'lesson-menu-tone-rose',
+  'lesson-menu-tone-sky',
+  'lesson-menu-tone-amber',
+];
+const getLessonToneClass = (index: number) => lessonMenuToneClasses[index % lessonMenuToneClasses.length];
 
-const LessonView: React.FC<LessonViewProps> = ({ topic, onBack }) => {
+const LessonView: React.FC<LessonViewProps> = ({ topic, onBack, theme = 'light' }) => {
   const contentRef = useRef<HTMLDivElement>(null);
   const [content, setContent] = useState<string>('');
   const [fullLessonContent, setFullLessonContent] = useState<string>('');
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const isDark = theme === 'dark';
   
   // Chapter State
   const hasChapters = topic.chapters && topic.chapters.length > 0;
   const isPartBLesson = topic.id.startsWith('B');
-  const [currentChapterIndex, setCurrentChapterIndex] = useState(hasChapters && topic.chapters!.length > 1 ? -1 : 0);
+  const shouldSkipLessonOverview = topic.id.startsWith('C');
+  const initialChapterIndex = hasChapters && topic.chapters!.length > 1 && !shouldSkipLessonOverview ? -1 : 0;
+  const [currentChapterIndex, setCurrentChapterIndex] = useState(initialChapterIndex);
   const [completedChapters, setCompletedChapters] = useState<Set<number>>(new Set());
   const [isSidebarOpen, setIsSidebarOpen] = useState(false); 
+
+  useEffect(() => {
+    setCurrentChapterIndex(initialChapterIndex);
+    setIsSidebarOpen(false);
+  }, [topic.id, initialChapterIndex]);
 
   useEffect(() => {
     const loadCompletedChapters = async () => {
@@ -74,6 +100,7 @@ const LessonView: React.FC<LessonViewProps> = ({ topic, onBack }) => {
   const firstVisibleChapterIndex = visibleChapterEntries[0]?.idx ?? 0;
   const nextVisibleChapterIndex = visibleChapterEntries.find(({ idx }) => idx > currentChapterIndex)?.idx ?? -1;
   const isLastVisibleChapter = hasChapters && currentChapterIndex >= 0 && nextVisibleChapterIndex === -1;
+  const currentVisiblePosition = visibleChapterEntries.findIndex(({ idx }) => idx === currentChapterIndex) + 1;
 
   // Timer for learning stats
   useEffect(() => {
@@ -338,7 +365,7 @@ const LessonView: React.FC<LessonViewProps> = ({ topic, onBack }) => {
           console.error(error);
         }
       }
-      setCurrentChapterIndex(-1);
+      setCurrentChapterIndex(initialChapterIndex);
     };
 
     resetProgress();
@@ -355,72 +382,79 @@ const LessonView: React.FC<LessonViewProps> = ({ topic, onBack }) => {
 
   const renderTOC = () => {
     return (
-      <div className="max-w-4xl mx-auto">
-        <div className="text-center mb-10">
-          <h1 className="text-3xl md:text-4xl font-bold text-slate-900 mb-4">สารบัญบทเรียน: {topic.title}</h1>
-          <p className="text-lg text-slate-600">ภาพรวมเนื้อหาและลำดับการเรียนรู้</p>
+      <div className="lesson-overview-toc mx-auto max-w-5xl animate-[sobkruRise_.45s_ease-out_both]">
+        <div className="lesson-overview-header mb-10 text-center">
+          <p className="lesson-overview-pill mx-auto inline-flex items-center gap-2 rounded-full border border-indigo-200 bg-white px-4 py-2 text-xs font-black uppercase tracking-[0.18em] text-indigo-600 shadow-sm">
+            <BookOpenCheck className="h-4 w-4" />
+            Lesson Overview
+          </p>
+          <h1 className="lesson-overview-title mx-auto mt-5 max-w-4xl text-4xl font-black leading-tight tracking-tight text-slate-950 md:text-5xl">
+            สารบัญบทเรียน: {topic.title}
+          </h1>
+          <p className="lesson-overview-subtitle mx-auto mt-4 max-w-2xl text-lg font-semibold leading-8 text-slate-500">
+            ภาพรวมเนื้อหาและลำดับการเรียนรู้ เลือกบทที่ต้องการเริ่ม หรือเรียนต่อจากจุดที่ค้างไว้ได้ทันที
+          </p>
         </div>
 
-        {/* Action Buttons */}
-        <div className="flex flex-col sm:flex-row justify-center gap-4 mb-12">
-          <button onClick={handleStartLearning} className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-4 px-10 rounded-full transition-all flex items-center justify-center gap-3 transform hover:scale-105 text-lg">
-            <Play className="w-6 h-6 fill-current" />
+        <div className="lesson-overview-actions mb-12 flex flex-col justify-center gap-4 sm:flex-row">
+          <button onClick={handleStartLearning} className="group inline-flex items-center justify-center gap-3 rounded-full bg-gradient-to-r from-amber-300 to-orange-400 px-10 py-4 text-lg font-black text-slate-950 shadow-[0_18px_45px_rgba(245,158,11,.22)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_22px_60px_rgba(245,158,11,.28)]">
+            <Play className="h-6 w-6 fill-current transition group-hover:scale-110" />
             เริ่มต้นเรียน
           </button>
           {completedChapters.size > 0 && (
-            <button onClick={handleResetLearning} className="bg-white hover:bg-red-50 text-red-600 border-2 border-red-200 hover:border-red-300 font-bold py-4 px-10 rounded-full transition-all flex items-center justify-center gap-3 text-lg">
-              <AlertCircle className="w-6 h-6" />
+            <button onClick={handleResetLearning} className="inline-flex items-center justify-center gap-3 rounded-full border border-rose-200 bg-white px-10 py-4 text-lg font-black text-rose-600 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-rose-300 hover:bg-rose-50">
+              <AlertCircle className="h-6 w-6" />
               รีเซตการเรียนของฉัน
             </button>
           )}
         </div>
 
-        {/* Chapter List */}
         {topic.topicParts ? (
           <div className="space-y-4">
             {topic.topicParts.map((part, partIndex) => {
               const partChapters = topic.chapters?.map((chapter, idx) => ({ chapter, idx })).filter(c => c.chapter.part === part.id && shouldShowLessonChapter(c.chapter)) || [];
               const isExpanded = expandedPart === part.id;
-              
-              const colorSchemes = [
-                "bg-blue-50 hover:bg-blue-100 border-l-4 border-l-blue-500",
-                "bg-green-50 hover:bg-green-100 border-l-4 border-l-green-500",
-                "bg-orange-50 hover:bg-orange-100 border-l-4 border-l-orange-500",
-                "bg-purple-50 hover:bg-purple-100 border-l-4 border-l-purple-500",
-                "bg-pink-50 hover:bg-pink-100 border-l-4 border-l-pink-500"
-              ];
-              const headerColor = colorSchemes[partIndex % colorSchemes.length];
+              const headerColor = lessonAccentClasses[partIndex % lessonAccentClasses.length];
               
               return (
-                <div key={part.id} className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
+                <div
+                  key={part.id}
+                  className="lesson-overview-part-card animate-[sobkruCardStack_.45s_ease-out_both] overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-xl shadow-slate-200/60 transition hover:-translate-y-0.5"
+                  style={{ animationDelay: `${partIndex * 70}ms` }}
+                >
                   <button 
                     onClick={() => setExpandedPart(isExpanded ? null : part.id)}
-                    className={`w-full px-6 py-5 transition-colors text-left flex items-center justify-between border-b border-slate-200 ${headerColor}`}
+                    className={`lesson-overview-part-toggle flex w-full items-center justify-between gap-4 border-l-4 px-6 py-5 text-left transition-colors ${headerColor}`}
                   >
-                    <h3 className="font-bold text-slate-800 text-lg flex items-center gap-3">
-                      <BookOpen className="w-5 h-5 opacity-80" />
-                      {part.title} ({partChapters.length} บทเรียน)
-                    </h3>
-                    {isExpanded ? <ChevronDown className="w-6 h-6 text-slate-500" /> : <ChevronRight className="w-6 h-6 text-slate-500" />}
+                    <div className="flex min-w-0 items-center gap-4">
+                      <div className="lesson-overview-part-icon flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-white/80 shadow-sm">
+                        <BookOpen className="h-6 w-6 opacity-80" />
+                      </div>
+                      <div className="min-w-0">
+                        <h3 className="lesson-overview-part-title text-lg font-black text-slate-900 md:text-xl">{part.title}</h3>
+                        <p className="lesson-overview-part-count mt-1 text-sm font-bold opacity-70">{partChapters.length} บทเรียน</p>
+                      </div>
+                    </div>
+                    {isExpanded ? <ChevronDown className="h-6 w-6 text-slate-500" /> : <ChevronRight className="h-6 w-6 text-slate-500" />}
                   </button>
                   
                   {isExpanded && (
-                    <div className="divide-y divide-slate-100">
+                    <div className="lesson-overview-chapters divide-y divide-slate-100">
                       {partChapters.map(({ chapter, idx }) => (
-                        <div key={chapter.id} onClick={() => handleSelectChapter(idx)} className="p-6 hover:bg-slate-50 transition-colors cursor-pointer flex items-start gap-4 group">
+                        <div key={chapter.id} onClick={() => handleSelectChapter(idx)} className="lesson-overview-chapter-row group flex cursor-pointer items-start gap-4 p-5 transition-all duration-300 hover:bg-slate-50 md:p-6">
                           <div className="mt-1">
                             {completedChapters.has(idx) ? (
-                              <CheckCircle className="w-6 h-6 text-green-500" />
+                              <CheckCircle className="h-7 w-7 text-emerald-500" />
                             ) : (
-                              <div className="w-6 h-6 rounded-full border-2 border-slate-300 group-hover:border-indigo-400 transition-colors flex items-center justify-center">
-                                <span className="text-xs font-bold text-slate-400 group-hover:text-indigo-500">{idx + 1}</span>
+                              <div className="flex h-7 w-7 items-center justify-center rounded-full border-2 border-slate-300 transition-colors group-hover:border-amber-400 group-hover:bg-amber-50">
+                                <span className="text-xs font-black text-slate-400 group-hover:text-amber-600">{idx + 1}</span>
                               </div>
                             )}
                           </div>
-                          <div>
-                            <h4 className={`font-bold text-lg mb-1 transition-colors ${completedChapters.has(idx) ? 'text-slate-700' : 'text-slate-900 group-hover:text-indigo-700'}`}>{chapter.title}</h4>
-                            <p className="text-slate-500 text-sm">คลิกเพื่อเข้าสู่บทเรียน</p>
+                          <div className="min-w-0 flex-1">
+                            <h4 className={`lesson-overview-chapter-title text-lg font-black transition-colors ${completedChapters.has(idx) ? 'text-slate-700' : 'text-slate-900 group-hover:text-amber-700'}`}>{chapter.title}</h4>
                           </div>
+                          <ArrowRight className="mt-2 h-5 w-5 shrink-0 text-slate-300 transition group-hover:translate-x-1 group-hover:text-amber-500" />
                         </div>
                       ))}
                     </div>
@@ -431,22 +465,21 @@ const LessonView: React.FC<LessonViewProps> = ({ topic, onBack }) => {
             
             {/* Orphan Chapters (e.g. Global Quiz) */}
             {topic.chapters?.map((chapter, idx) => ({ chapter, idx })).filter(c => !c.chapter.part && shouldShowLessonChapter(c.chapter)).length! > 0 && (
-              <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden mt-6 shadow-sm border-l-4 border-l-rose-500">
-                <div className="divide-y divide-slate-100">
+              <div className="lesson-overview-part-card mt-6 overflow-hidden rounded-[28px] border border-slate-200 border-l-4 border-l-rose-500 bg-white shadow-xl shadow-rose-100/50">
+                <div className="lesson-overview-chapters divide-y divide-slate-100">
                   {topic.chapters?.map((chapter, idx) => ({ chapter, idx })).filter(c => !c.chapter.part && shouldShowLessonChapter(c.chapter)).map(({ chapter, idx }) => (
-                    <div key={chapter.id} onClick={() => handleSelectChapter(idx)} className="p-6 hover:bg-rose-50 transition-colors cursor-pointer flex items-start gap-4 group bg-rose-50/30">
+                    <div key={chapter.id} onClick={() => handleSelectChapter(idx)} className="lesson-overview-chapter-row group flex cursor-pointer items-start gap-4 bg-rose-50/30 p-6 transition-colors hover:bg-rose-50">
                       <div className="mt-1">
                         {completedChapters.has(idx) ? (
-                          <CheckCircle className="w-6 h-6 text-green-500" />
+                          <CheckCircle className="h-6 w-6 text-emerald-500" />
                         ) : (
-                          <div className="w-6 h-6 rounded-full border-2 border-rose-300 group-hover:border-rose-400 transition-colors flex items-center justify-center">
-                            <span className="text-xs font-bold text-rose-400 group-hover:text-rose-500">{idx + 1}</span>
+                          <div className="flex h-6 w-6 items-center justify-center rounded-full border-2 border-rose-300 transition-colors group-hover:border-rose-400">
+                            <span className="text-xs font-black text-rose-400 group-hover:text-rose-500">{idx + 1}</span>
                           </div>
                         )}
                       </div>
                       <div>
-                        <h4 className={`font-bold text-lg mb-1 transition-colors ${completedChapters.has(idx) ? 'text-slate-700' : 'text-rose-900 group-hover:text-rose-700'}`}>{chapter.title}</h4>
-                        <p className="text-rose-500 text-sm">คลิกเพื่อเข้าสู่บทเรียน</p>
+                        <h4 className={`lesson-overview-chapter-title font-bold text-lg mb-1 transition-colors ${completedChapters.has(idx) ? 'text-slate-700' : 'text-rose-900 group-hover:text-rose-700'}`}>{chapter.title}</h4>
                       </div>
                     </div>
                   ))}
@@ -455,28 +488,27 @@ const LessonView: React.FC<LessonViewProps> = ({ topic, onBack }) => {
             )}
           </div>
         ) : (
-          <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
-            <div className="bg-slate-50 px-6 py-4 border-b border-slate-200">
-              <h3 className="font-bold text-slate-800 text-lg flex items-center gap-2">
-                <BookOpen className="w-5 h-5 text-indigo-600" />
+          <div className="lesson-overview-flat-card overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-xl shadow-slate-200/60">
+            <div className="lesson-overview-flat-head border-b border-slate-200 bg-slate-50 px-6 py-4">
+              <h3 className="flex items-center gap-2 text-lg font-black text-slate-800">
+                <BookOpen className="h-5 w-5 text-indigo-600" />
                 เนื้อหาทั้งหมด ({visibleChapterTotal} บทเรียน)
               </h3>
             </div>
-            <div className="divide-y divide-slate-100">
+            <div className="lesson-overview-chapters divide-y divide-slate-100">
               {topic.chapters?.map((chapter, idx) => ({ chapter, idx })).filter(c => shouldShowLessonChapter(c.chapter)).map(({ chapter, idx }) => (
-                <div key={chapter.id} onClick={() => handleSelectChapter(idx)} className="p-6 hover:bg-slate-50 transition-colors cursor-pointer flex items-start gap-4 group">
+                <div key={chapter.id} onClick={() => handleSelectChapter(idx)} className="lesson-overview-chapter-row group flex cursor-pointer items-start gap-4 p-6 transition-colors hover:bg-slate-50">
                   <div className="mt-1">
                     {completedChapters.has(idx) ? (
-                      <CheckCircle className="w-6 h-6 text-green-500" />
+                      <CheckCircle className="h-6 w-6 text-emerald-500" />
                     ) : (
-                      <div className="w-6 h-6 rounded-full border-2 border-slate-300 group-hover:border-indigo-400 transition-colors flex items-center justify-center">
-                        <span className="text-xs font-bold text-slate-400 group-hover:text-indigo-500">{idx + 1}</span>
+                      <div className="flex h-6 w-6 items-center justify-center rounded-full border-2 border-slate-300 transition-colors group-hover:border-amber-400">
+                        <span className="text-xs font-black text-slate-400 group-hover:text-amber-500">{idx + 1}</span>
                       </div>
                     )}
                   </div>
                   <div>
-                    <h4 className={`font-bold text-lg mb-1 transition-colors ${completedChapters.has(idx) ? 'text-slate-700' : 'text-slate-900 group-hover:text-indigo-700'}`}>{chapter.title}</h4>
-                    <p className="text-slate-500 text-sm">คลิกเพื่อเข้าสู่บทเรียน</p>
+                    <h4 className={`lesson-overview-chapter-title font-bold text-lg mb-1 transition-colors ${completedChapters.has(idx) ? 'text-slate-700' : 'text-slate-900 group-hover:text-indigo-700'}`}>{chapter.title}</h4>
                   </div>
                 </div>
               ))}
@@ -489,6 +521,35 @@ const LessonView: React.FC<LessonViewProps> = ({ topic, onBack }) => {
 
   const currentPart = hasChapters && currentChapter ? topic.topicParts?.find(p => p.id === currentChapter.part) : null;
   const currentPdfUrl = hasChapters ? currentChapter?.summaryPdfUrl : topic.summaryPdfUrl;
+  const readingProgressPercent = hasChapters && visibleChapterTotal > 0 && currentVisiblePosition > 0
+    ? Math.round((currentVisiblePosition / visibleChapterTotal) * 100)
+    : 100;
+  const readingStatusLabel = hasChapters && visibleChapterTotal > 0 && currentVisiblePosition > 0
+    ? `${currentVisiblePosition}/${visibleChapterTotal} บทเรียน`
+    : 'บทเรียนเดียว';
+
+  const renderReadingHeader = () => (
+    <div className="lesson-reading-status">
+      <div className="lesson-reading-status__main">
+        <span className="lesson-reading-status__pill">
+          <BookOpenCheck className="h-4 w-4" />
+          Lesson Content
+        </span>
+        <div className="lesson-reading-status__text">
+          <span>{currentPart?.title || topic.title}</span>
+        </div>
+      </div>
+      <div className="lesson-reading-status__progress" aria-label={`อ่านถึง ${readingProgressPercent}%`}>
+        <div className="lesson-reading-status__meta">
+          <span>{readingStatusLabel}</span>
+          <strong>{readingProgressPercent}%</strong>
+        </div>
+        <div className="lesson-reading-status__track">
+          <div style={{ width: `${readingProgressPercent}%` }} />
+        </div>
+      </div>
+    </div>
+  );
 
   const SvgComponent = (props: any) => {
     const { children, ...rest } = props;
@@ -504,36 +565,35 @@ const LessonView: React.FC<LessonViewProps> = ({ topic, onBack }) => {
 
   const markdownComponents: Components = {
     h1: ({ children }) => (
-      <div className="border-b-4 border-indigo-500 pb-4 mb-8 mt-4">
-        <h1 className="text-3xl md:text-4xl font-bold text-slate-900 flex items-center gap-3">
-          <BookOpen className="w-10 h-10 text-indigo-600 flex-shrink-0" />
-          <span>{children}</span>
+      <div className="lesson-chapter-hero">
+        <div className="lesson-chapter-hero__icon">
+          <BookOpen className="h-7 w-7" />
+        </div>
+        <h1>
+          {children}
         </h1>
       </div>
     ),
     h2: ({ children }) => (
-      <div className="flex items-center mt-12 mb-6 sticky top-0 z-10 bg-slate-50/90 backdrop-blur-sm py-2">
-        <div className="w-2 h-10 bg-orange-500 rounded-lg mr-4"></div>
-        <h2 className="text-2xl font-bold text-slate-800 bg-slate-50 px-4 py-2 rounded-lg w-full border border-slate-100">
-          {children}
-        </h2>
-      </div>
+      <h2 className="lesson-section-heading">
+        {children}
+      </h2>
     ),
     h3: ({ children }) => (
-      <h3 className="text-xl font-bold text-indigo-700 mt-8 mb-4 flex items-center gap-2 border-b border-indigo-100 pb-2 w-fit pr-8">
-        <Star className="w-6 h-6 text-yellow-400 fill-yellow-400 flex-shrink-0" />
+      <h3 className="lesson-subheading">
+        <Star className="h-5 w-5 flex-shrink-0" />
         {children}
       </h3>
     ),
     p: ({ children }) => {
-      return <div className="text-slate-700 leading-relaxed mb-4 text-lg font-normal">{children}</div>;
+      return <p className="lesson-copy">{children}</p>;
     },
     div: ({ children, className, ...props }: any) => <div className={className} {...props}>{children}</div>,
     ul: ({ children }) => {
       const depth = useContext(ListDepthContext);
       return (
         <ListDepthContext.Provider value={depth + 1}>
-          <ul className={`list-none mb-6 space-y-3 ${depth > 0 ? 'ml-6 mt-3' : 'ml-2'}`}>{children}</ul>
+          <ul className={`lesson-list lesson-list--unordered ${depth > 0 ? 'lesson-list--nested' : ''}`}>{children}</ul>
         </ListDepthContext.Provider>
       );
     },
@@ -541,7 +601,7 @@ const LessonView: React.FC<LessonViewProps> = ({ topic, onBack }) => {
       const depth = useContext(ListDepthContext);
       return (
         <ListDepthContext.Provider value={depth + 1}>
-          <ol className={`list-decimal mb-6 space-y-3 ${depth > 0 ? 'ml-6 mt-3' : 'ml-6'}`}>{children}</ol>
+          <ol className={`lesson-list lesson-list--ordered ${depth > 0 ? 'lesson-list--nested' : ''}`}>{children}</ol>
         </ListDepthContext.Provider>
       );
     },
@@ -564,50 +624,47 @@ const LessonView: React.FC<LessonViewProps> = ({ topic, onBack }) => {
       }
 
       return (
-        <li className="flex items-start gap-3 text-slate-700 text-lg group">
-          <div className={`mt-1.5 flex-shrink-0 ${bgColor} rounded-full p-0.5`}>
-            <Icon className={`w-5 h-5 ${iconColor}`} />
+        <li className="lesson-list-item group">
+          <div className={`lesson-list-item__icon ${bgColor}`}>
+            <Icon className={`h-5 w-5 ${iconColor}`} />
           </div>
-          <div className="flex-1 group-hover:text-slate-900 transition-colors">{children}</div>
+          <div className="lesson-list-item__content">{children}</div>
         </li>
       );
     },
     blockquote: ({ children }) => (
-      <div className="my-8 p-6 bg-gradient-to-br from-indigo-50 to-blue-50 border-l-4 border-indigo-500 rounded-r-xl relative overflow-hidden group">
-        <div className="absolute -right-6 -top-6 opacity-5 transform group-hover:rotate-12 group-hover:scale-110 transition-all duration-500">
-          <BookOpen className="w-40 h-40 text-indigo-700" />
+      <div className="lesson-callout">
+        <div className="lesson-callout__icon">
+          <Lightbulb className="h-6 w-6" />
         </div>
-        <div className="relative z-10 flex gap-4">
-           <div className="flex-shrink-0 mt-1 bg-white p-3 rounded-full h-fit border border-indigo-100/50"><Lightbulb className="w-6 h-6 text-indigo-500 fill-indigo-100" /></div>
-           <div className="text-indigo-900 text-lg space-y-2 font-medium w-full">
-             <span className="block text-sm font-bold text-indigo-600 tracking-wider mb-2 flex items-center gap-2"><span className="w-6 h-0.5 bg-indigo-600"></span>สูตรสำคัญที่ต้องจำ</span>
-             <div className="leading-relax bg-white/60 p-4 rounded-lg border border-white doc-formula">{children}</div>
-           </div>
+        <div className="lesson-callout__body">
+          <span>สูตรสำคัญที่ต้องจำ</span>
+          <div className="doc-formula">{children}</div>
         </div>
       </div>
     ),
     strong: ({ children }) => (
-      <strong className="font-bold text-indigo-700 bg-indigo-50 px-1 rounded-md border-b-[2px] border-indigo-200">{children}</strong>
+      <strong className="lesson-inline-strong">{children}</strong>
     ),
     em: ({ children }) => (
-      <em className="text-pink-600 font-medium not-italic bg-pink-50 px-1 rounded-sm border-b-[2px] border-pink-200">{children}</em>
+      <em className="lesson-inline-em">{children}</em>
     ),
     table: ({ children }) => (
-      <div className="overflow-x-auto my-8 rounded-xl border-2 border-indigo-200 bg-white shadow-sm overflow-hidden">
-        <table className="w-full text-left border-collapse min-w-[700px]">{children}</table>
+      <div className="lesson-table-wrap">
+        <table>{children}</table>
       </div>
     ),
-    thead: ({ children }) => <thead className="bg-indigo-600 text-white uppercase text-base font-bold tracking-wider border-b-2 border-indigo-200">{children}</thead>,
-    th: ({ children }) => <th className="px-6 py-4 whitespace-nowrap text-center border-r border-indigo-200 last:border-r-0">{children}</th>,
-    tbody: ({ children }) => <tbody className="divide-y divide-indigo-200">{children}</tbody>,
-    tr: ({ children }) => <tr className="hover:bg-indigo-50/80 transition-colors even:bg-indigo-50/40">{children}</tr>,
-    td: ({ children }) => <td className="px-6 py-4 text-slate-700 align-top text-lg border-r border-indigo-200 last:border-r-0">{children}</td>,
+    thead: ({ children }) => <thead>{children}</thead>,
+    th: ({ children }) => <th>{children}</th>,
+    tbody: ({ children }) => <tbody>{children}</tbody>,
+    tr: ({ children }) => <tr>{children}</tr>,
+    td: ({ children }) => <td>{children}</td>,
     br: () => <br />,
     img: ({ src, alt, className, ...props }: any) => {
       const imageUrl = src ? (getGoogleDriveImageUrl(src) || src) : '';
       return (
-        <div className="flex justify-center my-6">
-          <img src={imageUrl} alt={alt || ""} referrerPolicy="no-referrer" className={`max-w-full h-auto rounded-xl shadow-md border border-slate-200 ${className || ''}`} {...props} />
+        <div className="lesson-image-frame">
+          <img src={imageUrl} alt={alt || ""} referrerPolicy="no-referrer" className={className || ''} {...props} />
         </div>
       );
     },
@@ -635,43 +692,49 @@ const LessonView: React.FC<LessonViewProps> = ({ topic, onBack }) => {
   };
 
   return (
-    <div className="flex flex-1 bg-slate-50 justify-center">
-      <div className="flex w-full max-w-[95%] xl:max-w-[1400px] relative">
-      <aside className={`fixed md:sticky z-40 w-72 bg-white border-r border-slate-200 h-[calc(100vh-73px)] transform transition-transform duration-300 ease-in-out flex flex-col top-[73px] ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}>
-        <div className="p-4 border-b border-slate-100 flex items-center justify-between">
-            <button onClick={onBack} className="text-slate-500 hover:text-indigo-600 flex items-center text-sm font-medium">
+    <div className={`flex flex-1 justify-center transition-colors duration-500 ${
+      isDark
+        ? 'lesson-dark bg-[radial-gradient(circle_at_84%_0%,rgba(250,204,21,.12),transparent_28%),radial-gradient(circle_at_12%_12%,rgba(99,102,241,.14),transparent_26%),linear-gradient(180deg,#10131d_0%,#0d1220_44%,#080d18_100%)] text-slate-100'
+        : 'lesson-light bg-[radial-gradient(circle_at_84%_0%,rgba(180,83,9,.06),transparent_26%),linear-gradient(180deg,#ffffff_0%,#f3f5f8_100%)]'
+    }`}>
+      <div className="relative flex w-full max-w-[1600px]">
+      <aside className={`fixed md:sticky z-40 w-80 bg-white/92 border-r border-slate-200/80 h-[calc(100vh-73px)] transform transition-transform duration-300 ease-in-out flex flex-col top-[73px] shadow-2xl shadow-slate-900/10 backdrop-blur-xl ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}>
+        <div className="flex items-center justify-between border-b border-slate-100 p-4">
+            <button onClick={onBack} className="flex items-center rounded-full px-3 py-2 text-sm font-bold text-slate-500 transition hover:bg-slate-100 hover:text-slate-900">
                 <ChevronLeft className="w-4 h-4 mr-1" />
-                Back to Dashboard
+                กลับสู่หน้าหลัก
             </button>
             <button onClick={() => setIsSidebarOpen(false)} className="md:hidden text-slate-400"><ChevronLeft className="w-6 h-6" /></button>
         </div>
         <div className="p-6">
-            <h2 className="font-bold text-lg text-slate-900 leading-tight mb-2">{topic.title}</h2>
-            <div className="w-full bg-slate-100 h-1.5 rounded-full mt-2 mb-4">
-                <div className="bg-indigo-600 h-1.5 rounded-full transition-all duration-300" style={{ width: `${hasChapters && visibleChapterTotal > 0 ? (visibleCompletedCount / visibleChapterTotal) * 100 : 0}%` }}></div>
+            <p className="mb-3 text-xs font-black uppercase tracking-[0.18em] text-amber-500">Learning Path</p>
+            <h2 className="mb-3 text-xl font-black leading-tight text-slate-950">{topic.title}</h2>
+            <div className="mt-2 mb-4 h-2 w-full overflow-hidden rounded-full bg-slate-100">
+                <div className="h-2 rounded-full bg-gradient-to-r from-amber-300 via-orange-400 to-emerald-400 transition-all duration-500" style={{ width: `${hasChapters && visibleChapterTotal > 0 ? (visibleCompletedCount / visibleChapterTotal) * 100 : 0}%` }}></div>
             </div>
-            <p className="text-xs text-slate-400 font-medium text-right">{hasChapters && visibleChapterTotal > 0 ? `${Math.round((visibleCompletedCount / visibleChapterTotal) * 100)}% Complete` : ''}</p>
+            <p className="text-right text-xs font-black uppercase tracking-[0.12em] text-slate-400">{hasChapters && visibleChapterTotal > 0 ? `${Math.round((visibleCompletedCount / visibleChapterTotal) * 100)}% Complete` : ''}</p>
         </div>
         <div className="flex-1 overflow-y-auto custom-scrollbar px-4 pb-8 space-y-2">
             {hasChapters ? (
                 <>
                     {visibleChapterTotal > 1 && (
-                        <button onClick={() => handleSelectChapter(-1)} className={`w-full text-left p-3 rounded-lg flex items-start gap-3 transition-all ${-1 === currentChapterIndex ? 'bg-indigo-50 border-l-4 border-indigo-600 text-indigo-700' : 'hover:bg-slate-50 text-slate-600'}`}>
+                        <button onClick={() => handleSelectChapter(-1)} className={`w-full text-left p-3 rounded-2xl flex items-start gap-3 transition-all ${-1 === currentChapterIndex ? 'bg-amber-50 ring-1 ring-amber-200 text-amber-700 shadow-sm' : 'hover:bg-slate-50 text-slate-600'}`}>
                             <div className="mt-0.5"><BookOpen className={`w-5 h-5 ${-1 === currentChapterIndex ? 'text-indigo-600' : 'text-slate-400'}`} /></div>
                             <div className="flex-1"><span className="text-sm font-bold block">สารบัญบทเรียน</span></div>
                         </button>
                     )}
                     {topic.topicParts ? (
                         <div className="space-y-3 mt-4">
-                            {topic.topicParts.map((part) => {
+                            {topic.topicParts.map((part, partIndex) => {
                                 const partChapters = topic.chapters!.map((chapter, idx) => ({ chapter, idx })).filter(item => item.chapter.part === part.id && shouldShowLessonChapter(item.chapter));
                                 const isExpanded = expandedPart === part.id;
+                                const partToneClass = getLessonToneClass(partIndex);
                                 
                                 return (
-                                    <div key={part.id} className="rounded-xl overflow-hidden border border-slate-200 bg-white">
+                                    <div key={part.id} className={`lesson-sidebar-part-card ${partToneClass} overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm`}>
                                         <button 
                                             onClick={() => setExpandedPart(isExpanded ? null : part.id)}
-                                            className="w-full text-left p-4 bg-indigo-900 text-white flex items-center justify-between hover:bg-indigo-800 transition-colors"
+                                            className="lesson-sidebar-part-toggle flex w-full items-center justify-between bg-slate-950 p-4 text-left text-white transition-colors hover:bg-slate-900"
                                         >
                                             <div className="flex items-center gap-3">
                                                 <BookOpen className="w-5 h-5 opacity-80" />
@@ -682,8 +745,8 @@ const LessonView: React.FC<LessonViewProps> = ({ topic, onBack }) => {
                                         
                                         {isExpanded && (
                                             <div className="divide-y divide-slate-100 bg-white">
-                                                {partChapters.map(({ chapter, idx }) => (
-                                                    <button key={chapter.id} onClick={() => handleSelectChapter(idx)} className={`w-full text-left p-3 flex items-start gap-3 transition-all ${idx === currentChapterIndex ? 'bg-indigo-50 border-l-4 border-indigo-600 text-indigo-700' : 'hover:bg-slate-50 text-slate-600'}`}>
+                                                {partChapters.map(({ chapter, idx }, chapterIndex) => (
+                                                    <button key={chapter.id} onClick={() => handleSelectChapter(idx)} className={`lesson-sidebar-chapter-button ${getLessonToneClass(partIndex + chapterIndex)} w-full text-left p-3 flex items-start gap-3 transition-all ${idx === currentChapterIndex ? 'is-active bg-amber-50 border-l-4 border-amber-400 text-amber-700' : 'hover:bg-slate-50 text-slate-600'} ${completedChapters.has(idx) ? 'is-completed' : ''}`}>
                                                         <div className="mt-0.5">{idx === currentChapterIndex ? <PlayCircle className="w-5 h-5 text-indigo-600 fill-indigo-100" /> : completedChapters.has(idx) ? <CheckCircle className="w-5 h-5 text-green-500" /> : <div className="w-5 h-5 rounded-full border-2 border-slate-300"></div>}</div>
                                                         <div className="flex-1"><span className="text-sm font-medium block">{chapter.title}</span></div>
                                                     </button>
@@ -698,7 +761,7 @@ const LessonView: React.FC<LessonViewProps> = ({ topic, onBack }) => {
                             {topic.chapters?.map((chapter, idx) => ({ chapter, idx })).filter(c => !c.chapter.part && shouldShowLessonChapter(c.chapter)).length! > 0 && (
                                 <div className="mt-4 pt-4 border-t border-slate-200">
                                     {topic.chapters?.map((chapter, idx) => ({ chapter, idx })).filter(c => !c.chapter.part && shouldShowLessonChapter(c.chapter)).map(({ chapter, idx }) => (
-                                        <button key={chapter.id} onClick={() => handleSelectChapter(idx)} className={`w-full text-left p-4 rounded-xl flex items-center gap-3 transition-all mb-2 ${idx === currentChapterIndex ? 'bg-rose-50 border border-rose-200 text-rose-700' : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border border-transparent'}`}>
+                                        <button key={chapter.id} onClick={() => handleSelectChapter(idx)} className={`lesson-sidebar-chapter-button lesson-menu-tone-rose w-full text-left p-4 rounded-2xl flex items-center gap-3 transition-all mb-2 ${idx === currentChapterIndex ? 'is-active bg-rose-50 border border-rose-200 text-rose-700' : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border border-transparent'} ${completedChapters.has(idx) ? 'is-completed' : ''}`}>
                                             <div className="mt-0.5">{idx === currentChapterIndex ? <PlayCircle className="w-5 h-5 text-rose-600 fill-rose-100" /> : completedChapters.has(idx) ? <CheckCircle className="w-5 h-5 text-green-500" /> : <div className="w-5 h-5 rounded-full border-2 border-slate-300 bg-white"></div>}</div>
                                             <div className="flex-1 text-sm font-bold block leading-snug">{chapter.title}</div>
                                         </button>
@@ -708,33 +771,34 @@ const LessonView: React.FC<LessonViewProps> = ({ topic, onBack }) => {
                         </div>
                     ) : (
                         topic.chapters!.map((chapter, idx) => ({ chapter, idx })).filter(c => shouldShowLessonChapter(c.chapter)).map(({ chapter, idx }) => (
-                            <button key={chapter.id} onClick={() => handleSelectChapter(idx)} className={`w-full text-left p-3 rounded-lg flex items-start gap-3 transition-all ${idx === currentChapterIndex ? 'bg-indigo-50 border-l-4 border-indigo-600 text-indigo-700' : 'hover:bg-slate-50 text-slate-600'}`}>
+                            <button key={chapter.id} onClick={() => handleSelectChapter(idx)} className={`lesson-sidebar-chapter-button ${getLessonToneClass(idx)} w-full text-left p-3 rounded-2xl flex items-start gap-3 transition-all ${idx === currentChapterIndex ? 'is-active bg-amber-50 border-l-4 border-amber-400 text-amber-700' : 'hover:bg-slate-50 text-slate-600'} ${completedChapters.has(idx) ? 'is-completed' : ''}`}>
                                 <div className="mt-0.5">{idx === currentChapterIndex ? <PlayCircle className="w-5 h-5 text-indigo-600 fill-indigo-100" /> : completedChapters.has(idx) ? <CheckCircle className="w-5 h-5 text-green-500" /> : <div className="w-5 h-5 rounded-full border-2 border-slate-300"></div>}</div>
                                 <div className="flex-1"><span className="text-sm font-medium block">{chapter.title}</span></div>
                             </button>
                         ))
                     )}
                 </>
-            ) : <div className="p-3 bg-indigo-50 text-indigo-700 rounded-lg text-sm font-medium">บทเรียนแบบหน้าเดียว</div>}
+            ) : <div className="rounded-2xl bg-amber-50 p-3 text-sm font-bold text-amber-700">บทเรียนแบบหน้าเดียว</div>}
         </div>
       </aside>
       {isSidebarOpen && <div className="fixed inset-0 bg-black/50 z-30 md:hidden" onClick={() => setIsSidebarOpen(false)}></div>}
 
-      <main className="flex-1 flex flex-col relative bg-slate-50/50 min-w-0">
-        <div className="md:hidden bg-white p-4 border-b border-slate-200 flex items-center z-20 sticky top-[73px]">
+      <main className="relative flex min-w-0 flex-1 flex-col bg-transparent">
+        <div className="sticky top-[73px] z-20 flex items-center border-b border-slate-200 bg-white/90 p-4 backdrop-blur md:hidden">
             <button onClick={() => setIsSidebarOpen(true)} className="mr-3 text-slate-600"><Menu className="w-6 h-6" /></button>
             <span className="font-bold text-slate-800 truncate">{hasChapters ? currentChapter?.title : topic.title}</span>
         </div>
 
-        <div className="flex-1 p-6 md:p-8 relative" ref={contentRef}>
-            <div className="w-full mx-auto min-h-full">
+        <div className="relative flex-1 p-5 md:p-8 lg:p-10" ref={contentRef}>
+            <div className="mx-auto min-h-full w-full">
                 <div className="pb-16">
                     {isLoading ? <div className="flex flex-col items-center justify-center py-20 text-slate-400"><Loader2 className="w-12 h-12 animate-spin mb-4 text-indigo-500" /><p>กำลังโหลดเนื้อหา...</p></div> : error ? <div className="text-center py-20 text-red-500"><AlertCircle className="w-12 h-12 mx-auto mb-4" /><p>{error}</p></div> : (
                         <div className="lesson-markdown">
                             {hasChapters && currentChapterIndex === -1 ? (
                                 renderTOC()
                             ) : SHOW_LESSON_ASSESSMENTS && hasChapters && currentChapter?.isQuiz && !isPartBLesson ? (
-                                <div className="w-full">
+                                <div className="lesson-reader mx-auto w-full max-w-[1240px]">
+                                    {renderReadingHeader()}
                                     <div className="prose prose-slate max-w-none mb-12">
                                         <ReactMarkdown components={markdownComponents} remarkPlugins={[remarkGfm, remarkMath]} rehypePlugins={[rehypeRaw, rehypeKatex]}>{content}</ReactMarkdown>
                                     </div>
@@ -743,7 +807,8 @@ const LessonView: React.FC<LessonViewProps> = ({ topic, onBack }) => {
                                     </div>
                                 </div>
                             ) : (
-                                <>
+                                <div className="lesson-reader mx-auto w-full max-w-[1240px]">
+                                    {renderReadingHeader()}
                                     <ReactMarkdown components={markdownComponents} remarkPlugins={[remarkGfm, remarkMath]} rehypePlugins={[rehypeRaw, rehypeKatex]}>{content}</ReactMarkdown>
                                     
                                     {/* Comprehension Check Section for standard chapters */}
@@ -762,12 +827,12 @@ const LessonView: React.FC<LessonViewProps> = ({ topic, onBack }) => {
                                         </div>
                                     )}
                                     {currentPdfUrl && <div className="mt-8 mb-8 flex justify-center"><a href={currentPdfUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-6 rounded-xl transition-all transform hover:scale-105"><FileText className="w-5 h-5" /><span>ดาวน์โหลดสรุปเนื้อหา (PDF)</span></a></div>}
-                                </>
+                                </div>
                             )}
                         </div>
                     )}
                     {currentChapterIndex !== -1 && (
-                        <div className="mt-12 pt-12 border-t border-slate-100 flex justify-center pb-8 w-full"><button onClick={handleNextStep} className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-4 px-12 rounded-full transition-all flex items-center gap-3 transform hover:scale-105 text-lg mx-auto"><span>{isLastVisibleChapter ? "ฉันเข้าใจบทเรียนนี้แล้ว (กลับไปหน้าความรู้ความสามารถทั่วไป)" : "บทเรียนถัดไป"}</span><ArrowRight className="w-6 h-6" /></button></div>
+                        <div className="lesson-next-bar mx-auto w-full max-w-[1240px]"><button onClick={handleNextStep} className="lesson-next-button"><span>{isLastVisibleChapter ? "ฉันเข้าใจบทเรียนนี้แล้ว (กลับไปหน้าความรู้ความสามารถทั่วไป)" : "บทเรียนถัดไป"}</span><ArrowRight className="w-6 h-6" /></button></div>
                     )}
                 </div>
             </div>

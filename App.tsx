@@ -1,9 +1,13 @@
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import Dashboard from './components/Dashboard';
+import PublicQuestLanding from './components/PublicQuestLanding';
+import ExamTrackSelection, { ExamTrack } from './components/ExamTrackSelection';
+import QuestDashboard from './components/QuestDashboard';
+import QuestChallenge from './components/QuestChallenge';
 import TopicList from './components/TopicList';
 import LessonView from './components/LessonView';
 import Auth from './components/Auth';
+import AuthModal from './components/AuthModal';
 import AdminDashboard from './components/AdminDashboard';
 import LearningStats from './components/LearningStats';
 import EditProfile from './components/EditProfile';
@@ -19,18 +23,63 @@ import ContactSupport from './components/ContactSupport';
 import BellNotificationsPanel from './components/BellNotificationsPanel';
 import Leaderboard from './components/Leaderboard';
 import UserStatistics from './components/UserStatistics';
+import FeatureThemeToggle, { type FeatureTheme } from './components/FeatureThemeToggle';
 import { EXAM_CURRICULUM } from './constants';
 import { convertLessonsToKnowledgeGraph } from './lib/knowledge-graph/adapters';
 import { KnowledgeNode } from './lib/knowledge-graph/types';
 import { ExamPart, SubTopic } from './types';
 import { authService, User, BellNotification, UserUiState, MaintenanceModeState } from './services/authService';
 import { userActivityService } from './services/userActivityService';
+import { visitorAnalyticsService } from './services/visitorAnalyticsService';
 import { contentService, DEFAULT_KNOWLEDGE_GRAPH_SETTINGS, type KnowledgeGraphSettings } from './services/contentService';
-import { LogOut, AlertTriangle, Bell, X, Settings, User as UserIcon, BarChart3, Megaphone, MessageSquare, Loader2, Lock } from 'lucide-react';
+import { LogOut, AlertTriangle, Bell, X, Settings, User as UserIcon, BarChart3, Megaphone, MessageSquare, Loader2, Lock, BookOpenCheck } from 'lucide-react';
 
-type PageState = 'dashboard' | 'news' | 'discussion' | 'shop' | 'mock-exam' | 'daily-english' | 'knowledge-graph' | 'contact-support' | 'leaderboard' | 'user-stats';
+type PageState = 'dashboard' | 'news' | 'discussion' | 'shop' | 'mock-exam' | 'daily-english' | 'knowledge-graph' | 'contact-support' | 'leaderboard' | 'user-stats' | 'quest-challenge';
+type AppTheme = FeatureTheme;
 const SHOW_DONATION_HISTORY_SHORTCUT = false;
-const FOOTER_LOGO_URL = 'https://cribfrwvdpshvdpxgnuc.supabase.co/storage/v1/object/public/sobkru-images/cc1.png';
+const FOOTER_LOGO_URL = 'https://cribfrwvdpshvdpxgnuc.supabase.co/storage/v1/object/public/sobkru-images/cc2.png';
+const EXAM_TRACK_STORAGE_PREFIX = 'sobkru69_exam_track:';
+const APP_THEME_STORAGE_KEY = 'sobkru69_app_theme';
+const LESSON_THEME_STORAGE_KEY = 'sobkru69_lesson_theme';
+const FEATURE_THEME_STORAGE_KEY = 'sobkru69_feature_theme';
+
+const getStoredExamTrack = (userId: string): ExamTrack | null => {
+  if (typeof window === 'undefined') return null;
+  const value = window.localStorage.getItem(`${EXAM_TRACK_STORAGE_PREFIX}${userId}`);
+  return value === 'teacher-assistant' ? value : null;
+};
+
+const saveStoredExamTrack = (userId: string, track: ExamTrack) => {
+  if (typeof window === 'undefined') return;
+  window.localStorage.setItem(`${EXAM_TRACK_STORAGE_PREFIX}${userId}`, track);
+};
+
+const getStoredAppTheme = (): AppTheme => {
+  if (typeof window === 'undefined') return 'dark';
+  const value =
+    window.localStorage.getItem(APP_THEME_STORAGE_KEY) ||
+    window.localStorage.getItem(FEATURE_THEME_STORAGE_KEY);
+  if (value === 'light' || value === 'dark') return value;
+  return 'dark';
+};
+
+const getStoredLessonTheme = (): AppTheme => {
+  if (typeof window === 'undefined') return 'dark';
+  const value = window.localStorage.getItem(LESSON_THEME_STORAGE_KEY);
+  if (value === 'light' || value === 'dark') return value;
+  return 'dark';
+};
+
+const saveStoredAppTheme = (theme: AppTheme) => {
+  if (typeof window === 'undefined') return;
+  window.localStorage.setItem(APP_THEME_STORAGE_KEY, theme);
+  window.localStorage.setItem(FEATURE_THEME_STORAGE_KEY, theme);
+};
+
+const saveStoredLessonTheme = (theme: AppTheme) => {
+  if (typeof window === 'undefined') return;
+  window.localStorage.setItem(LESSON_THEME_STORAGE_KEY, theme);
+};
 
 const FloatingCoffeeCup: React.FC = () => (
   <span className="sobkru-coffee-wrap" aria-hidden="true">
@@ -129,6 +178,10 @@ const App: React.FC = () => {
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [notificationModal, setNotificationModal] = useState<{ title: string; message: string; imageUrl?: string } | null>(null);
   const [showAdminPanel, setShowAdminPanel] = useState(false);
+  const [showAuthGate, setShowAuthGate] = useState(false);
+  const [authGateMessage, setAuthGateMessage] = useState('');
+  const [authModalMode, setAuthModalMode] = useState<'login' | 'register'>('login');
+  const [selectedExamTrack, setSelectedExamTrack] = useState<ExamTrack | null>(null);
 
   // New states for profile menu and views
   const [showProfileMenu, setShowProfileMenu] = useState(false);
@@ -142,6 +195,8 @@ const App: React.FC = () => {
   const [showMaintenanceAdminLogin, setShowMaintenanceAdminLogin] = useState(false);
   const [showShopButton, setShowShopButton] = useState(false);
   const [knowledgeGraphSettings, setKnowledgeGraphSettings] = useState<KnowledgeGraphSettings>(DEFAULT_KNOWLEDGE_GRAPH_SETTINGS);
+  const [appTheme, setAppTheme] = useState<AppTheme>(getStoredAppTheme);
+  const [lessonTheme, setLessonTheme] = useState<AppTheme>(getStoredLessonTheme);
   const menuRef = useRef<HTMLDivElement>(null);
 
   // Bell Notifications
@@ -149,10 +204,28 @@ const App: React.FC = () => {
   const [bellNotifications, setBellNotifications] = useState<BellNotification[]>([]);
   const [unreadSupportCount, setUnreadSupportCount] = useState(0);
   const readNotifIds = userUiState.readNotificationIds;
+  const isDarkShell = appTheme === 'dark';
+
+  const toggleAppTheme = () => {
+    setAppTheme(current => {
+      const nextTheme = current === 'dark' ? 'light' : 'dark';
+      saveStoredAppTheme(nextTheme);
+      return nextTheme;
+    });
+  };
+
+  const toggleLessonTheme = () => {
+    setLessonTheme(current => {
+      const nextTheme = current === 'dark' ? 'light' : 'dark';
+      saveStoredLessonTheme(nextTheme);
+      return nextTheme;
+    });
+  };
 
   const hydrateAuthenticatedUser = async (activeUser: User) => {
     setAuthBootstrapError('');
     setUser(activeUser);
+    setSelectedExamTrack(getStoredExamTrack(activeUser.id));
 
     const uiStateRes = await authService.getUserUiState(activeUser.id);
     const nextUiState = uiStateRes.success ? uiStateRes.state : EMPTY_UI_STATE;
@@ -234,6 +307,7 @@ const App: React.FC = () => {
             );
           }
           setUser(null);
+          setSelectedExamTrack(null);
           setUserUiState(EMPTY_UI_STATE);
           setUnreadSupportCount(0);
         }
@@ -242,6 +316,7 @@ const App: React.FC = () => {
         if (!isMounted) return;
         setAuthBootstrapError('ระบบกู้คืน Google login ไม่สำเร็จ กรุณาลองใหม่อีกครั้ง');
         setUser(null);
+        setSelectedExamTrack(null);
         setUserUiState(EMPTY_UI_STATE);
         setUnreadSupportCount(0);
       } finally {
@@ -283,6 +358,7 @@ const App: React.FC = () => {
         if (result.event === 'SIGNED_OUT') {
           setAuthBootstrapError('');
           setUser(null);
+          setSelectedExamTrack(null);
           setUserUiState(EMPTY_UI_STATE);
           setUnreadSupportCount(0);
           setBellNotifications([]);
@@ -320,6 +396,38 @@ const App: React.FC = () => {
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'auto' });
   }, [currentPage, currentPart, currentTopic, showLearningStats]);
+
+  useEffect(() => {
+    const pageLabel = currentTopic?.id
+      ? `lesson:${currentTopic.id}`
+      : currentPart?.id
+        ? `topic:${currentPart.id}`
+        : currentPage;
+    visitorAnalyticsService.trackPageView(pageLabel);
+  }, [currentPage, currentPart, currentTopic]);
+
+  useEffect(() => {
+    let maxDepth = 0;
+    const pageLabel = currentTopic?.id
+      ? `lesson:${currentTopic.id}`
+      : currentPart?.id
+        ? `topic:${currentPart.id}`
+        : currentPage;
+
+    const handleScroll = () => {
+      const scrollable = document.documentElement.scrollHeight - window.innerHeight;
+      if (scrollable <= 0) return;
+      maxDepth = Math.max(maxDepth, Math.min(100, Math.round((window.scrollY / scrollable) * 100)));
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      if (maxDepth > 0) {
+        visitorAnalyticsService.trackScrollDepth(pageLabel, maxDepth);
+      }
+    };
+  }, [currentPage, currentPart, currentTopic]);
 
   useEffect(() => {
     if (!user) {
@@ -490,7 +598,33 @@ const App: React.FC = () => {
 
   const handleLogin = async (loggedInUser: User) => {
     await hydrateAuthenticatedUser(loggedInUser);
+    setShowAuthGate(false);
+    setAuthGateMessage('');
     setShowMaintenanceAdminLogin(false);
+  };
+
+  const handleSelectExamTrack = (track: ExamTrack) => {
+    if (track === 'teacher-license') return;
+    if (user) {
+      saveStoredExamTrack(user.id, track);
+    }
+    setSelectedExamTrack(track);
+    setCurrentPage('dashboard');
+    setCurrentPart(null);
+    setCurrentTopic(null);
+    setShowLearningStats(false);
+    if (typeof window !== 'undefined' && window.location.pathname === '/knowledge-graph') {
+      window.history.pushState({}, '', '/');
+    }
+  };
+
+  const handleOpenExamTrackSelection = () => {
+    setSelectedExamTrack(null);
+    setCurrentPage('dashboard');
+    setCurrentPart(null);
+    setCurrentTopic(null);
+    setShowLearningStats(false);
+    setShowProfileMenu(false);
   };
 
   const handleUpdateProfile = (updatedUser: User) => {
@@ -515,6 +649,54 @@ const App: React.FC = () => {
     }
   };
 
+  const handleContinueLastLesson = async () => {
+    const fallbackPart = EXAM_CURRICULUM[0];
+    const fallbackTopic = fallbackPart.sections[0]?.subTopics[0] || null;
+
+    const openTopic = (part: ExamPart, topic: SubTopic | null) => {
+      setCurrentPage('dashboard');
+      setCurrentPart(part);
+      setCurrentTopic(topic);
+      if (typeof window !== 'undefined' && window.location.pathname === '/knowledge-graph') {
+        window.history.pushState({}, '', '/');
+      }
+    };
+
+    if (!user) {
+      openTopic(fallbackPart, fallbackTopic);
+      return;
+    }
+
+    try {
+      const rows = await userActivityService.getUserLessonProgressRows(user.id);
+      const completed = new Set(rows.map(row => `${row.topic_id}:${row.chapter_id}`));
+
+      for (const part of EXAM_CURRICULUM) {
+        for (const section of part.sections) {
+          if (section.isSelfStudy) continue;
+          for (const topic of section.subTopics) {
+            const chapters = (topic.chapters || []).filter(chapter => !chapter.isQuiz);
+            if (chapters.length === 0 || chapters.some(chapter => !completed.has(`${topic.id}:${chapter.id}`))) {
+              openTopic(part, topic);
+              return;
+            }
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Failed to resolve next unfinished lesson', error);
+    }
+
+    openTopic(fallbackPart, fallbackTopic);
+  };
+
+  const requireAuthFor = (label: string) => {
+    visitorAnalyticsService.trackSignupIntent(currentPage, label);
+    setAuthModalMode(label.includes('register') || label.includes('signup') ? 'register' : 'login');
+    setAuthGateMessage('');
+    setShowAuthGate(true);
+  };
+
   const handleBackToPart = () => {
     setCurrentTopic(null);
   };
@@ -523,6 +705,7 @@ const App: React.FC = () => {
     await authService.logout();
     setAuthBootstrapError('');
     setUser(null);
+    setSelectedExamTrack(null);
     setUserUiState(EMPTY_UI_STATE);
     setCurrentPart(null);
     setCurrentTopic(null);
@@ -534,6 +717,8 @@ const App: React.FC = () => {
     setNotificationModal(null);
     setShowBellPanel(false);
     setShowMaintenanceAdminLogin(false);
+    setShowAuthGate(false);
+    setAuthGateMessage('');
   };
 
   const isAdminUser = user?.email === 'Krumax';
@@ -629,7 +814,42 @@ const App: React.FC = () => {
     if (maintenanceMode.isActive && !showMaintenanceAdminLogin) {
       return <MaintenanceScreen allowAdminEntry />;
     }
-    return <Auth onLogin={handleLogin} initialError={authBootstrapError} maintenanceMode={maintenanceMode} adminOnlyMode={maintenanceMode.isActive} />;
+
+    if (showMaintenanceAdminLogin) {
+      return <Auth onLogin={handleLogin} initialError={authBootstrapError} maintenanceMode={maintenanceMode} adminOnlyMode={maintenanceMode.isActive} />;
+    }
+
+    if (currentPage === 'news') {
+      return <NewsPage onBack={handleBackToDashboard} theme={appTheme} />;
+    }
+    if (currentPage === 'shop') {
+      return <ShopPage onBack={handleBackToDashboard} theme={appTheme} />;
+    }
+    if (currentPage === 'user-stats') {
+      return <UserStatistics onBack={handleBackToDashboard} theme={appTheme} />;
+    }
+
+    return (
+      <>
+        <PublicQuestLanding
+          onOpenAuth={(mode, label) => {
+            setAuthModalMode(mode);
+            requireAuthFor(label);
+          }}
+        />
+        <AuthModal
+          isOpen={showAuthGate}
+          onClose={() => {
+            setShowAuthGate(false);
+            setAuthGateMessage('');
+          }}
+          onLogin={handleLogin}
+          initialMode={authModalMode}
+          initialError={authBootstrapError}
+          maintenanceMode={maintenanceMode}
+        />
+      </>
+    );
   }
 
   if (maintenanceMode.isActive && !canBypassMaintenance) {
@@ -642,6 +862,15 @@ const App: React.FC = () => {
         user={user}
         onComplete={handleUpdateProfile}
         onLogout={handleLogout}
+      />
+    );
+  }
+
+  if (!selectedExamTrack) {
+    return (
+      <ExamTrackSelection
+        userName={user.name}
+        onSelect={handleSelectExamTrack}
       />
     );
   }
@@ -675,23 +904,37 @@ const App: React.FC = () => {
 
   const renderMainContent = () => {
     if (showLearningStats) {
-      return <LearningStats onClose={() => setShowLearningStats(false)} user={user} />;
+      return <LearningStats onClose={() => setShowLearningStats(false)} user={user} theme={appTheme} />;
     }
 
     if (currentPage === 'news') {
-      return <NewsPage onBack={handleBackToDashboard} />;
+      return <NewsPage onBack={handleBackToDashboard} theme={appTheme} />;
     }
     if (currentPage === 'discussion') {
-      return <DiscussionBoard onBack={handleBackToDashboard} currentUser={user!} />;
+      return <DiscussionBoard onBack={handleBackToDashboard} currentUser={user!} theme={appTheme} />;
     }
     if (currentPage === 'shop') {
-      return <ShopPage onBack={handleBackToDashboard} />;
+      return <ShopPage onBack={handleBackToDashboard} theme={appTheme} />;
     }
     if (currentPage === 'mock-exam') {
-      return <MockExamDemo onBack={handleBackToDashboard} />;
+      return <MockExamDemo onBack={handleBackToDashboard} theme={appTheme} onToggleTheme={toggleAppTheme} />;
+    }
+    if (currentPage === 'quest-challenge') {
+      return (
+        <QuestChallenge
+          user={user}
+          onBack={handleBackToDashboard}
+          theme={appTheme}
+          onOpenLessons={() => {
+            setCurrentPage('dashboard');
+            setCurrentPart(EXAM_CURRICULUM[0]);
+            setCurrentTopic(null);
+          }}
+        />
+      );
     }
     if (currentPage === 'daily-english') {
-      return <DailyEnglishPage onBack={handleBackToDashboard} />;
+      return <DailyEnglishPage onBack={handleBackToDashboard} theme={appTheme} />;
     }
     if (currentPage === 'knowledge-graph') {
       return (
@@ -699,6 +942,7 @@ const App: React.FC = () => {
           data={knowledgeGraphData}
           onBack={handleBackToDashboard}
           onOpenLesson={handleOpenKnowledgeNode}
+          theme={appTheme}
         />
       );
     }
@@ -707,19 +951,28 @@ const App: React.FC = () => {
         <ContactSupport
           user={user}
           onBack={handleBackToDashboard}
+          theme={appTheme}
           readSupportMessageIds={userUiState.readSupportMessageIds}
           onMarkMessageRead={handleMarkSupportMessageAsRead}
         />
       );
     }
     if (currentPage === 'user-stats') {
-      return <UserStatistics onBack={handleBackToDashboard} />;
+      return <UserStatistics onBack={handleBackToDashboard} theme={appTheme} />;
+    }
+
+    if (!currentPart && selectedExamTrack === 'teacher-license') {
+      return <ExamTrackSelection userName={user.name} onSelect={handleSelectExamTrack} />;
     }
 
     if (!currentPart) {
       return (
-        <Dashboard
+        <QuestDashboard
+          user={user}
+          theme={appTheme}
           onSelectPart={handleSelectPart}
+          onStartQuest={() => setCurrentPage('quest-challenge')}
+          onContinueLesson={handleContinueLastLesson}
           onNavigateToNews={() => setCurrentPage('news')}
           onNavigateToDiscussion={() => setCurrentPage('discussion')}
           onNavigateToShop={() => setCurrentPage('shop')}
@@ -747,6 +1000,7 @@ const App: React.FC = () => {
           part={currentPart}
           onBack={handleBackToDashboard}
           onSelectTopic={handleSelectTopic}
+          theme={appTheme}
         />
       );
     }
@@ -755,27 +1009,33 @@ const App: React.FC = () => {
       <LessonView
         topic={currentTopic}
         onBack={handleBackToPart}
+        theme={lessonTheme}
       />
     );
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 font-sans text-slate-900 flex flex-col relative">
+    <div className={`app-shell app-shell--${appTheme} min-h-screen font-sans flex flex-col relative transition-colors duration-500 ${isDarkShell ? 'bg-[#070b16] text-slate-100' : 'bg-slate-50 text-slate-900'}`}>
       {/* Header with User Info */}
-      <header className="bg-white border-b border-slate-200 px-4 md:px-6 py-4 flex justify-between items-center sticky top-0 z-50 gap-4">
-        <div className="flex items-center gap-2 cursor-pointer shrink-0" onClick={() => { setShowLearningStats(false); handleBackToDashboard(); }}>
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-amber-400 to-amber-600 flex items-center justify-center text-white font-bold">
-            S
-          </div>
-          <span className="font-bold text-lg text-slate-800 hidden md:block">SobKru69</span>
+      <header className={`relative border-b px-4 md:px-6 py-4 flex justify-between items-center sticky top-0 z-50 gap-4 transition-colors duration-500 ${
+        isDarkShell
+          ? 'border-slate-800/80 bg-slate-950/92 shadow-[0_14px_48px_rgba(0,0,0,.28)] backdrop-blur-xl'
+          : 'border-slate-200 bg-white'
+      }`}>
+        <div className="flex cursor-pointer items-center gap-1 shrink-0" onClick={() => { setShowLearningStats(false); handleBackToDashboard(); }}>
+          <span className={`text-lg font-black tracking-tight ${isDarkShell ? 'text-slate-100' : 'text-slate-900'}`}>
+            SobKru <span className="text-orange-500">69</span>
+          </span>
         </div>
 
         {/* Marquee Section */}
         {marquee && marquee.isActive && (
-          <div className="flex-1 overflow-hidden flex items-center bg-slate-50 rounded-full px-4 py-2 border border-slate-100 max-w-2xl mx-auto">
+          <div className={`app-header-marquee absolute left-1/2 top-1/2 hidden h-9 overflow-hidden rounded-full border px-4 py-2 transition-colors duration-500 md:flex md:items-center ${
+            isDarkShell ? 'border-indigo-300/10 bg-white/[.06]' : 'border-slate-100 bg-slate-50'
+          }`}>
             <Megaphone className="w-5 h-5 text-red-500 shrink-0 mr-3 animate-pulse" />
             <div className="overflow-hidden w-full relative h-5">
-              <div className="absolute whitespace-nowrap animate-[marquee_20s_linear_infinite] text-slate-700 font-medium text-sm flex items-center h-full">
+              <div className={`absolute whitespace-nowrap animate-[marquee_20s_linear_infinite] font-medium text-sm flex items-center h-full ${isDarkShell ? 'text-slate-200' : 'text-slate-700'}`}>
                 {marquee.text}
               </div>
             </div>
@@ -783,62 +1043,70 @@ const App: React.FC = () => {
         )}
 
         <div className="flex items-center gap-3 sm:gap-4 shrink-0">
+          <FeatureThemeToggle theme={currentTopic ? lessonTheme : appTheme} onToggle={currentTopic ? toggleLessonTheme : toggleAppTheme} />
           {/* Notification Bell */}
           <button
-            className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full transition-colors relative"
+            className={`p-2 rounded-full transition-colors relative ${isDarkShell ? 'text-slate-400 hover:bg-white/10 hover:text-slate-100' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-100'}`}
             onClick={() => setShowBellPanel(true)}
           >
             <Bell className="w-6 h-6" />
             {bellNotifications.filter(n => !readNotifIds.includes(n.id)).length > 0 && (
-              <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border border-white"></span>
+              <span className={`absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border ${isDarkShell ? 'border-slate-950' : 'border-white'}`}></span>
             )}
           </button>
 
           {/* Vertical Divider */}
-          <div className="w-px h-8 bg-slate-200 hidden sm:block"></div>
+          <div className={`w-px h-8 hidden sm:block ${isDarkShell ? 'bg-slate-800' : 'bg-slate-200'}`}></div>
 
           {/* User Profile Dropdown */}
           <div className="relative" ref={menuRef}>
             <button
               onClick={() => setShowProfileMenu(!showProfileMenu)}
               className="flex items-center gap-3 hover:opacity-80 transition-opacity relative"
-            >
-              <div className="text-right hidden sm:block">
-                <div className="text-sm font-bold text-slate-800">{user.name}</div>
-                <div className="text-xs text-slate-500">{user.email}</div>
-              </div>
-              <div className="w-10 h-10 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center border border-indigo-100 relative">
-                <UserIcon className="w-5 h-5" />
-                {unreadSupportCount > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full border-2 border-white">
-                    {unreadSupportCount}
-                  </span>
-                )}
-              </div>
+	            >
+	              <div className="text-right hidden sm:block">
+	                <div className={`text-sm font-bold ${isDarkShell ? 'text-slate-100' : 'text-slate-800'}`}>{user.name}</div>
+	                <div className={`text-xs ${isDarkShell ? 'text-slate-400' : 'text-slate-500'}`}>{user.email}</div>
+	              </div>
+	              <div className={`w-10 h-10 rounded-full flex items-center justify-center border relative ${isDarkShell ? 'border-indigo-300/20 bg-indigo-400/10 text-indigo-200' : 'border-indigo-100 bg-indigo-50 text-indigo-600'}`}>
+	                <UserIcon className="w-5 h-5" />
+	                {unreadSupportCount > 0 && (
+	                  <span className={`absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full border-2 ${isDarkShell ? 'border-slate-950' : 'border-white'}`}>
+	                    {unreadSupportCount}
+	                  </span>
+	                )}
+	              </div>
             </button>
 
-            {/* Dropdown Menu */}
-            {showProfileMenu && (
-              <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl border border-slate-100 py-2 z-50">
-                <button
-                  onClick={() => { setShowEditProfile(true); setShowProfileMenu(false); }}
-                  className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2"
-                >
-                  <Settings className="w-4 h-4 text-slate-400" />
-                  แก้ไขโปรไฟล์
-                </button>
-                <button
-                  onClick={() => { setShowLearningStats(true); setShowProfileMenu(false); }}
-                  className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2"
-                >
-                  <BarChart3 className="w-4 h-4 text-slate-400" />
-                  สถิติการเรียน
+	            {/* Dropdown Menu */}
+	            {showProfileMenu && (
+	              <div className={`absolute right-0 mt-2 w-56 rounded-xl border py-2 z-50 shadow-xl ${isDarkShell ? 'border-slate-800 bg-slate-950 text-slate-100 shadow-black/30' : 'border-slate-100 bg-white'}`}>
+	                <button
+	                  onClick={handleOpenExamTrackSelection}
+	                  className={`w-full text-left px-4 py-2 text-sm flex items-center gap-2 ${isDarkShell ? 'text-slate-200 hover:bg-white/10' : 'text-slate-700 hover:bg-slate-50'}`}
+	                >
+	                  <BookOpenCheck className="w-4 h-4 text-slate-400" />
+	                  เลือกสนามสอบ
+	                </button>
+	                <button
+	                  onClick={() => { setShowEditProfile(true); setShowProfileMenu(false); }}
+	                  className={`w-full text-left px-4 py-2 text-sm flex items-center gap-2 ${isDarkShell ? 'text-slate-200 hover:bg-white/10' : 'text-slate-700 hover:bg-slate-50'}`}
+	                >
+	                  <Settings className="w-4 h-4 text-slate-400" />
+	                  แก้ไขโปรไฟล์
+	                </button>
+	                <button
+	                  onClick={() => { setShowLearningStats(true); setShowProfileMenu(false); }}
+	                  className={`w-full text-left px-4 py-2 text-sm flex items-center gap-2 ${isDarkShell ? 'text-slate-200 hover:bg-white/10' : 'text-slate-700 hover:bg-slate-50'}`}
+	                >
+	                  <BarChart3 className="w-4 h-4 text-slate-400" />
+	                  สถิติการเรียน
                 </button>
                 {user.email !== 'Krumax' && (
-                  <button
-                    onClick={() => { setCurrentPage('contact-support'); setShowProfileMenu(false); }}
-                    className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 flex items-center justify-between"
-                  >
+	                  <button
+	                    onClick={() => { setCurrentPage('contact-support'); setShowProfileMenu(false); }}
+	                    className={`w-full text-left px-4 py-2 text-sm flex items-center justify-between ${isDarkShell ? 'text-slate-200 hover:bg-white/10' : 'text-slate-700 hover:bg-slate-50'}`}
+	                  >
                     <div className="flex items-center gap-2">
                       <MessageSquare className="w-4 h-4 text-slate-400" />
                       ติดต่อผู้ดูแลระบบ
@@ -851,19 +1119,19 @@ const App: React.FC = () => {
                   </button>
                 )}
                 {user.email === 'Krumax' && (
-                  <button
-                    onClick={() => { setShowAdminPanel(true); setShowProfileMenu(false); }}
-                    className="w-full text-left px-4 py-2 text-sm text-indigo-600 hover:bg-indigo-50 flex items-center gap-2 font-medium border-t border-slate-100 mt-1 pt-2"
-                  >
+	                  <button
+	                    onClick={() => { setShowAdminPanel(true); setShowProfileMenu(false); }}
+	                    className={`w-full text-left px-4 py-2 text-sm flex items-center gap-2 font-medium border-t mt-1 pt-2 ${isDarkShell ? 'border-slate-800 text-indigo-300 hover:bg-indigo-400/10' : 'border-slate-100 text-indigo-600 hover:bg-indigo-50'}`}
+	                  >
                     <Settings className="w-4 h-4" />
                     ระบบจัดการหลังบ้าน
                   </button>
                 )}
-                <div className="h-px bg-slate-100 my-1"></div>
-                <button
-                  onClick={() => { setShowLogoutConfirm(true); setShowProfileMenu(false); }}
-                  className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
-                >
+	                <div className={`h-px my-1 ${isDarkShell ? 'bg-slate-800' : 'bg-slate-100'}`}></div>
+	                <button
+	                  onClick={() => { setShowLogoutConfirm(true); setShowProfileMenu(false); }}
+	                  className={`w-full text-left px-4 py-2 text-sm text-red-600 flex items-center gap-2 ${isDarkShell ? 'hover:bg-red-500/10' : 'hover:bg-red-50'}`}
+	                >
                   <LogOut className="w-4 h-4 text-red-500" />
                   ออกจากระบบ
                 </button>
@@ -880,7 +1148,7 @@ const App: React.FC = () => {
 
       {/* Footer */}
       {currentPage !== 'knowledge-graph' && (
-        <footer className="py-8 mt-auto pb-12">
+        <footer className="mt-auto bg-slate-950 py-8 pb-12 text-white">
           <div className="max-w-[1200px] mx-auto px-6 flex flex-col items-center justify-center">
             <img
               src={FOOTER_LOGO_URL}
@@ -889,9 +1157,9 @@ const App: React.FC = () => {
               loading="lazy"
               referrerPolicy="no-referrer"
             />
-            <p className="text-sm text-slate-500 text-center">
+            <p className="text-sm font-semibold text-white/65 text-center">
               &copy; 2026 SobKru69 All Rights Reserved.<br/>
-              Developed by Cool Com | <a href="https://www.coolcom.click" target="_blank" rel="noopener noreferrer" className="hover:text-indigo-600 transition-colors">www.coolcom.click</a>
+              Developed by Cool Com | <a href="https://www.coolcom.click" target="_blank" rel="noopener noreferrer" className="text-white/80 hover:text-amber-300 transition-colors">www.coolcom.click</a>
             </p>
           </div>
         </footer>

@@ -2,9 +2,11 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { ArrowLeft, ShoppingCart, CheckCircle2, Package, Search, SlidersHorizontal, Sparkles, Percent, Tag, ExternalLink, Loader2 } from 'lucide-react';
 import { ProductItem } from './admin/AdminShop';
 import { contentService } from '../services/contentService';
+import type { FeatureTheme } from './FeatureThemeToggle';
 
 interface ShopPageProps {
   onBack: () => void;
+  theme?: FeatureTheme;
 }
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -46,7 +48,7 @@ const DiscountRibbon = ({ percent }: { percent: number }) => (
   </div>
 );
 
-const ShopPage: React.FC<ShopPageProps> = ({ onBack }) => {
+const ShopPage: React.FC<ShopPageProps> = ({ onBack, theme = 'light' }) => {
   const [products, setProducts] = useState<ProductItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedProduct, setSelectedProduct] = useState<ProductItem | null>(null);
@@ -58,6 +60,7 @@ const ShopPage: React.FC<ShopPageProps> = ({ onBack }) => {
   const [showFilters, setShowFilters] = useState(false);
   const [checkoutProductId, setCheckoutProductId] = useState('');
   const [checkoutError, setCheckoutError] = useState('');
+  const pageThemeClass = `feature-page ${theme === 'dark' ? 'feature-dark' : 'feature-light'}`;
 
   useEffect(() => {
     const loadProducts = async () => {
@@ -162,7 +165,7 @@ const ShopPage: React.FC<ShopPageProps> = ({ onBack }) => {
     const isCheckingOut = checkoutProductId === selectedProduct.id;
 
     return (
-      <div className="w-full max-w-[1180px] mx-auto px-6 md:px-[80px] pt-8 md:pt-[56px] pb-14 animate-in fade-in duration-300">
+      <div className={`${pageThemeClass} w-full max-w-[1180px] mx-auto px-6 md:px-[80px] pt-8 md:pt-[56px] pb-14 animate-in fade-in duration-300`}>
         <button onClick={() => setSelectedProduct(null)} className="mb-7 inline-flex items-center text-slate-500 hover:text-slate-900 transition-colors font-bold">
           <ArrowLeft className="w-5 h-5 mr-2" />
           กลับไปหน้าสินค้า
@@ -275,7 +278,7 @@ const ShopPage: React.FC<ShopPageProps> = ({ onBack }) => {
   }
 
   return (
-    <div className="w-full max-w-[1120px] mx-auto px-6 md:px-[80px] pt-8 md:pt-[60px] pb-10 animate-in fade-in duration-300">
+    <div className={`${pageThemeClass} w-full max-w-[1120px] mx-auto px-6 md:px-[80px] pt-8 md:pt-[60px] pb-10 animate-in fade-in duration-300`}>
       <button onClick={onBack} className="flex items-center text-slate-500 hover:text-slate-800 mb-6 transition-colors font-medium">
         <ArrowLeft className="w-5 h-5 mr-2" />
         กลับหน้าหลัก

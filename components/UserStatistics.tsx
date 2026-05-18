@@ -1,9 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { BarChart3, Users, MapPin, GraduationCap, Calendar, ChevronLeft, Loader2, TrendingUp, UserCheck } from 'lucide-react';
 import { authService, User } from '../services/authService';
+import type { FeatureTheme } from './FeatureThemeToggle';
 
 interface UserStatisticsProps {
   onBack: () => void;
+  theme?: FeatureTheme;
 }
 
 interface StatsData {
@@ -17,9 +19,10 @@ interface StatsData {
   byExamCount: { name: string; count: number; percentage: number }[];
 }
 
-const UserStatistics: React.FC<UserStatisticsProps> = ({ onBack }) => {
+const UserStatistics: React.FC<UserStatisticsProps> = ({ onBack, theme = 'light' }) => {
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState<StatsData | null>(null);
+  const pageThemeClass = `feature-page ${theme === 'dark' ? 'feature-dark' : 'feature-light'}`;
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -86,7 +89,7 @@ const UserStatistics: React.FC<UserStatisticsProps> = ({ onBack }) => {
 
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[400px] gap-4">
+      <div className={`${pageThemeClass} flex min-h-[400px] flex-col items-center justify-center gap-4`}>
         <Loader2 className="w-10 h-10 text-indigo-600 animate-spin" />
         <p className="text-slate-500 font-medium animate-pulse">กำลังโหลดข้อมูลสถิติ...</p>
       </div>
@@ -96,14 +99,17 @@ const UserStatistics: React.FC<UserStatisticsProps> = ({ onBack }) => {
   if (!stats) return null;
 
   return (
-    <div className="w-full max-w-[1200px] mx-auto px-6 md:px-[80px] py-8 animate-in fade-in duration-500">
-      <button 
-        onClick={onBack}
-        className="flex items-center text-slate-500 hover:text-slate-800 mb-8 transition-colors group"
-      >
-        <ChevronLeft className="w-5 h-5 mr-1 group-hover:-translate-x-1 transition-transform" />
-        กลับสู่หน้าหลัก
-      </button>
+    <div className={`${pageThemeClass} w-full px-6 py-8 animate-in fade-in duration-500 md:px-[80px]`}>
+      <div className="mx-auto max-w-[1200px]">
+        <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
+          <button
+            onClick={onBack}
+            className="group flex items-center text-slate-500 hover:text-slate-800 transition-colors"
+          >
+            <ChevronLeft className="w-5 h-5 mr-1 group-hover:-translate-x-1 transition-transform" />
+            กลับสู่หน้าหลัก
+          </button>
+        </div>
 
       <div className="mb-10">
         <div className="flex items-center gap-3 mb-2">
@@ -157,6 +163,7 @@ const UserStatistics: React.FC<UserStatisticsProps> = ({ onBack }) => {
           data={stats.byMajor}
           barColor="bg-purple-500"
         />
+      </div>
       </div>
     </div>
   );

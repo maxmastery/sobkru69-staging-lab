@@ -1,9 +1,11 @@
 import React, { CSSProperties, ReactNode, useEffect, useMemo, useRef, useState } from 'react';
 import { ArrowLeft, BookOpenText, CalendarDays, Eye, Languages, Loader2, Play, RefreshCcw, Square, TableProperties, Volume2 } from 'lucide-react';
 import { contentService, ContentDailyEnglishLesson, DailyEnglishSpeakerGender, DailyEnglishVocabularyItem } from '../services/contentService';
+import type { FeatureTheme } from './FeatureThemeToggle';
 
 interface DailyEnglishPageProps {
   onBack: () => void;
+  theme?: FeatureTheme;
 }
 
 type PageMode = 'list' | 'lesson' | 'vocabulary';
@@ -13,8 +15,8 @@ const ARTICLE_WORD_PATTERN = /[\p{L}\p{N}]+(?:[’'-][\p{L}\p{N}]+)*/gu;
 type HighlightTone = 'sky' | 'orange';
 
 const getActiveWordClass = (tone: HighlightTone) => tone === 'orange'
-  ? 'relative z-10 bg-orange-500 text-white shadow-[0_0_0_4px_rgba(251,146,60,0.42)]'
-  : 'relative z-10 bg-sky-200 text-sky-950 shadow-[0_0_0_3px_rgba(125,211,252,0.45)]';
+  ? 'relative z-10 bg-orange-500 text-white shadow-[0_0_0_4px_rgba(251,146,60,0.5)]'
+  : 'relative z-10 bg-cyan-300 text-slate-950 shadow-[0_0_0_4px_rgba(103,232,249,0.5)]';
 
 const stripHtml = (value: string) => {
   if (typeof window !== 'undefined' && 'DOMParser' in window) {
@@ -38,7 +40,7 @@ const styleStringToObject = (value: string): CSSProperties => {
       const [rawKey, ...rawValue] = rule.split(':');
       const key = rawKey?.trim();
       const styleValue = rawValue.join(':').trim();
-      if (!key || !styleValue || /^(white-space|word-break|overflow-wrap|background|background-color)$/i.test(key)) {
+      if (!key || !styleValue || /^(white-space|word-break|overflow-wrap)$/i.test(key)) {
         return styles;
       }
 
@@ -311,18 +313,39 @@ const getEnglishVoices = () => {
     .sort((a, b) => scoreVoice(b) - scoreVoice(a));
 };
 
+const uniqueVoices = (voices: SpeechSynthesisVoice[]) => voices.filter((voice, index, array) =>
+  array.findIndex(item => item.name === voice.name && item.lang === voice.lang) === index
+);
+
 const pickEnglishVoice = (index = 0, gender?: DailyEnglishSpeakerGender) => {
   const voices = getEnglishVoices();
   const preferredFemale = /samantha|karen|moira|victoria|allison|ava|serena|tessa|veena|zira|aria|jenny|susan|female/i;
   const preferredMale = /alex|daniel|guy|david|mark|fred|tom|arthur|george|oliver|rishi|male/i;
-  const genderVoices = gender
-    ? voices.filter(voice => (gender === 'male' ? preferredMale : preferredFemale).test(voice.name))
-    : [];
-  const naturalVoice = voices.find(voice => /google|microsoft|natural|neural|samantha|alex|daniel|karen|moira|aria|jenny|guy/i.test(voice.name));
+  const femaleVoices = uniqueVoices([
+    ...voices.filter(voice => preferredFemale.test(voice.name)),
+    ...voices.filter(voice => !preferredMale.test(voice.name)),
+  ]);
+  const maleVoices = uniqueVoices([
+    ...voices.filter(voice => preferredMale.test(voice.name)),
+    ...voices.filter(voice => !preferredFemale.test(voice.name)),
+  ]);
+  const fallbackGender = index % 2 === 0 ? 'female' : 'male';
+  const targetGender = gender || fallbackGender;
+  const genderVoices = targetGender === 'male' ? maleVoices : femaleVoices;
   return genderVoices[index % Math.max(genderVoices.length, 1)]
     || voices[index % Math.max(Math.min(voices.length, 4), 1)]
-    || naturalVoice
     || null;
+};
+
+const getSpeechTuning = (voiceIndex: number, gender?: DailyEnglishSpeakerGender) => {
+  const variant = voiceIndex % 4;
+  const rateVariants = [0.8, 0.84, 0.78, 0.82];
+  const femalePitch = [1.04, 1.12, 1.0, 1.08];
+  const malePitch = [0.86, 0.94, 0.9, 0.98];
+  return {
+    rate: rateVariants[variant],
+    pitch: (gender === 'male' ? malePitch : femalePitch)[variant],
+  };
 };
 
 const getLessonPreviewText = (lesson: ContentDailyEnglishLesson) => {
@@ -364,7 +387,7 @@ const normalizeLessonError = (err: any) => {
   return message || 'สร้างบทเรียนภาษาอังกฤษไม่สำเร็จ';
 };
 
-const DailyEnglishPage: React.FC<DailyEnglishPageProps> = ({ onBack }) => {
+const DailyEnglishPage: React.FC<DailyEnglishPageProps> = ({ onBack, theme = 'light' }) => {
   const [lessons, setLessons] = useState<ContentDailyEnglishLesson[]>([]);
   const [selectedLessonId, setSelectedLessonId] = useState('');
   const [mode, setMode] = useState<PageMode>('list');
@@ -378,6 +401,7 @@ const DailyEnglishPage: React.FC<DailyEnglishPageProps> = ({ onBack }) => {
   const speechRunIdRef = useRef(0);
   const speechTimersRef = useRef<number[]>([]);
   const todayKey = useMemo(() => getTodayKey(), []);
+  const pageThemeClass = `feature-page ${theme === 'dark' ? 'feature-dark' : 'feature-light'}`;
   const resetActiveSpeechHighlight = () => {
     setActiveWordIndex(-1);
     setActiveDialogueLineId('');
@@ -440,11 +464,16 @@ const DailyEnglishPage: React.FC<DailyEnglishPageProps> = ({ onBack }) => {
   );
   const translationParagraphs = useMemo(() => {
     if (!selectedLesson?.translation) return [];
+    if (/<[a-z][\s\S]*>/i.test(selectedLesson.translation)) return [];
     return selectedLesson.translation
       .split(/\n{2,}/)
       .map(item => item.trim())
       .filter(Boolean);
   }, [selectedLesson]);
+  const translationIsHtml = useMemo(
+    () => Boolean(selectedLesson?.translation && /<[a-z][\s\S]*>/i.test(selectedLesson.translation)),
+    [selectedLesson]
+  );
   const allVocabulary = useMemo(() => lessons.flatMap(lesson =>
     lesson.vocabulary.map(item => ({
       lesson,
@@ -554,11 +583,13 @@ const DailyEnglishPage: React.FC<DailyEnglishPageProps> = ({ onBack }) => {
       } else {
         utterance.lang = 'en-US';
       }
-      utterance.rate = 0.78 + (segment.voiceIndex % 3) * 0.025;
-      utterance.pitch = (segment.voiceGender === 'male' ? 0.9 : 1.03) + ((segment.voiceIndex % 3) - 1) * 0.035;
+      const tuning = getSpeechTuning(segment.voiceIndex, segment.voiceGender);
+      utterance.rate = tuning.rate;
+      utterance.pitch = tuning.pitch;
       utterance.volume = 1;
       let lastSpokenWordIndex = -1;
       let segmentFinished = false;
+      const localWordTimers: number[] = [];
       const activateSegmentWord = (wordIndex: number) => {
         if (segment.wordStarts.length === 0) return;
         const nextWordIndex = Math.min(Math.max(wordIndex, 0), segment.wordStarts.length - 1);
@@ -575,6 +606,18 @@ const DailyEnglishPage: React.FC<DailyEnglishPageProps> = ({ onBack }) => {
         }
       };
       activateSegmentWord(0);
+      if (segment.wordStarts.length > 1) {
+        const estimatedWordMs = Math.max(245, Math.min(430, Math.round((segment.text.length * 42) / segment.wordStarts.length)));
+        segment.wordStarts.slice(1).forEach((_, wordIndex) => {
+          const timerId = window.setTimeout(() => {
+            if (speechRunIdRef.current === runId && !segmentFinished) {
+              activateSegmentWord(wordIndex + 1);
+            }
+          }, estimatedWordMs * (wordIndex + 1));
+          localWordTimers.push(timerId);
+          speechTimersRef.current.push(timerId);
+        });
+      }
       utterance.onboundary = (event) => {
         if (event.charIndex < 0) return;
         const nextWordIndex = getWordIndexAtChar(segment.wordStarts, event.charIndex);
@@ -585,6 +628,7 @@ const DailyEnglishPage: React.FC<DailyEnglishPageProps> = ({ onBack }) => {
       const continueReading = () => {
         if (segmentFinished) return;
         segmentFinished = true;
+        localWordTimers.forEach(timerId => window.clearTimeout(timerId));
         const nextSegmentTimer = window.setTimeout(() => {
           speechTimersRef.current = speechTimersRef.current.filter(timerId => timerId !== nextSegmentTimer);
           if (speechRunIdRef.current === runId) {
@@ -643,10 +687,12 @@ const DailyEnglishPage: React.FC<DailyEnglishPageProps> = ({ onBack }) => {
 
   const renderHeader = () => (
     <>
-      <button onClick={mode === 'list' ? onBack : showList} className="mb-7 inline-flex items-center text-slate-500 hover:text-slate-900 transition-colors font-bold">
-        <ArrowLeft className="w-5 h-5 mr-2" />
-        {mode === 'list' ? 'กลับหน้าหลัก' : 'กลับหน้าเลือกบทเรียน'}
-      </button>
+      <div className="mb-7 flex flex-wrap items-center justify-between gap-4">
+        <button onClick={mode === 'list' ? onBack : showList} className="inline-flex items-center text-slate-500 hover:text-slate-900 transition-colors font-bold">
+          <ArrowLeft className="w-5 h-5 mr-2" />
+          {mode === 'list' ? 'กลับหน้าหลัก' : 'กลับหน้าเลือกบทเรียน'}
+        </button>
+      </div>
 
       <header className="mb-8 grid gap-6 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
         <div>
@@ -783,13 +829,20 @@ const DailyEnglishPage: React.FC<DailyEnglishPageProps> = ({ onBack }) => {
             <BookOpenText className="h-6 w-6 text-cyan-600" />
             <h3 className="text-2xl font-black text-slate-950">คำแปลภาษาไทย</h3>
           </div>
-          <div className="space-y-5">
-            {(translationParagraphs.length > 0 ? translationParagraphs : [selectedLesson.translation]).map((paragraph, index) => (
-              <p key={index} className="whitespace-pre-line text-base leading-8 text-slate-600">
-                {paragraph}
-              </p>
-            ))}
-          </div>
+          {translationIsHtml ? (
+            <div
+              className="prose prose-slate min-w-0 max-w-none overflow-x-hidden leading-8 text-slate-600 ql-editor-display"
+              dangerouslySetInnerHTML={{ __html: selectedLesson.translation }}
+            />
+          ) : (
+            <div className="space-y-5">
+              {(translationParagraphs.length > 0 ? translationParagraphs : [selectedLesson.translation]).map((paragraph, index) => (
+                <p key={index} className="whitespace-pre-line text-base leading-8 text-slate-600">
+                  {paragraph}
+                </p>
+              ))}
+            </div>
+          )}
         </section>
 
         <section className="border-t border-slate-200 pt-7">
@@ -875,35 +928,37 @@ const DailyEnglishPage: React.FC<DailyEnglishPageProps> = ({ onBack }) => {
   };
 
   return (
-    <div className="w-full max-w-[1180px] mx-auto px-6 md:px-[80px] pt-8 md:pt-[56px] pb-14 animate-in fade-in duration-300">
-      {renderHeader()}
+    <div className={`${pageThemeClass} w-full px-6 pt-8 pb-14 animate-in fade-in duration-300 md:px-[80px] md:pt-[56px]`}>
+      <div className="mx-auto max-w-[1180px]">
+        {renderHeader()}
 
-      {isLoading ? (
-        <div className="flex min-h-[420px] flex-col items-center justify-center rounded-[32px] border border-cyan-100 bg-white">
-          <Loader2 className="mb-5 h-12 w-12 animate-spin text-cyan-600" />
-          <div className="text-lg font-black text-slate-900">กำลังโหลดบทเรียนภาษาอังกฤษ</div>
-          <p className="mt-2 text-sm text-slate-500">กำลังดึงบทเรียนล่าสุดจากระบบหลังบ้าน</p>
-        </div>
-      ) : error ? (
-        <div className="rounded-[28px] border border-red-100 bg-red-50 p-7 text-red-700">
-          <div className="font-black">โหลดบทเรียนไม่สำเร็จ</div>
-          <p className="mt-2 text-sm leading-6">{error}</p>
-        </div>
-      ) : lessons.length === 0 ? (
-        <div className="rounded-[32px] border border-dashed border-cyan-200 bg-cyan-50/40 p-12 text-center">
-          <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-3xl bg-white text-cyan-700 shadow-sm">
-            <Languages className="h-8 w-8" />
+        {isLoading ? (
+          <div className="flex min-h-[420px] flex-col items-center justify-center rounded-[32px] border border-cyan-100 bg-white">
+            <Loader2 className="mb-5 h-12 w-12 animate-spin text-cyan-600" />
+            <div className="text-lg font-black text-slate-900">กำลังโหลดบทเรียนภาษาอังกฤษ</div>
+            <p className="mt-2 text-sm text-slate-500">กำลังดึงบทเรียนล่าสุดจากระบบหลังบ้าน</p>
           </div>
-          <h2 className="text-2xl font-black text-slate-950">ยังไม่มีบทเรียนเผยแพร่</h2>
-          <p className="mt-2 text-sm leading-6 text-slate-500">ผู้ดูแลสามารถสร้างบทเรียนได้จากหลังบ้านเมนู Daily English</p>
-        </div>
-      ) : mode === 'lesson' ? (
-        renderLesson()
-      ) : mode === 'vocabulary' ? (
-        renderAllVocabulary()
-      ) : (
-        renderList()
-      )}
+        ) : error ? (
+          <div className="rounded-[28px] border border-red-100 bg-red-50 p-7 text-red-700">
+            <div className="font-black">โหลดบทเรียนไม่สำเร็จ</div>
+            <p className="mt-2 text-sm leading-6">{error}</p>
+          </div>
+        ) : lessons.length === 0 ? (
+          <div className="rounded-[32px] border border-dashed border-cyan-200 bg-cyan-50/40 p-12 text-center">
+            <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-3xl bg-white text-cyan-700 shadow-sm">
+              <Languages className="h-8 w-8" />
+            </div>
+            <h2 className="text-2xl font-black text-slate-950">ยังไม่มีบทเรียนเผยแพร่</h2>
+            <p className="mt-2 text-sm leading-6 text-slate-500">ผู้ดูแลสามารถสร้างบทเรียนได้จากหลังบ้านเมนู Daily English</p>
+          </div>
+        ) : mode === 'lesson' ? (
+          renderLesson()
+        ) : mode === 'vocabulary' ? (
+          renderAllVocabulary()
+        ) : (
+          renderList()
+        )}
+      </div>
     </div>
   );
 };

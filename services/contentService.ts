@@ -585,7 +585,11 @@ const normalizeDailyEnglishDialogueSpeakers = (items: unknown, lines: DailyEngli
     : [];
   const derivedSpeakers = lines.map(line => line.speaker.trim()).filter(Boolean);
   const unique = [...speakers, ...derivedSpeakers].filter((item, index, array) => array.indexOf(item) === index);
-  return unique.length > 0 ? unique : ['Speaker 1', 'Speaker 2'];
+  const normalized = unique.length > 0 ? [...unique] : [];
+  while (normalized.length < 4) {
+    normalized.push(`Speaker ${normalized.length + 1}`);
+  }
+  return normalized;
 };
 
 const normalizeDailyEnglishSpeakerProfiles = (
@@ -621,11 +625,26 @@ const normalizeDailyEnglishSpeakerProfiles = (
     }
   });
 
+  let fallbackIndex = 1;
+  while (merged.length < 4) {
+    const name = `Speaker ${fallbackIndex}`;
+    if (!merged.some(item => item.name === name)) {
+      merged.push({
+        id: createId(),
+        name,
+        gender: ((fallbackIndex - 1) % 2 === 0 ? 'female' : 'male') as DailyEnglishSpeakerGender,
+      });
+    }
+    fallbackIndex += 1;
+  }
+
   return merged.length > 0
     ? merged
     : [
         { id: createId(), name: 'Speaker 1', gender: 'female' as DailyEnglishSpeakerGender },
         { id: createId(), name: 'Speaker 2', gender: 'male' as DailyEnglishSpeakerGender },
+        { id: createId(), name: 'Speaker 3', gender: 'female' as DailyEnglishSpeakerGender },
+        { id: createId(), name: 'Speaker 4', gender: 'male' as DailyEnglishSpeakerGender },
       ];
 };
 

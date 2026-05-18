@@ -777,7 +777,7 @@ export const EXAM_CURRICULUM: ExamPart[] = [
     sections: [
       {
         id: "C1",
-        title: "1. สัมภาษณ์และสาธิตการสอน",
+        title: "สัมภาษณ์และสาธิตการสอน",
         subTopics: [
           {
             id: "C1-1",

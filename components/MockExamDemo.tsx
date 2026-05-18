@@ -9,15 +9,19 @@ import { PART_B1_TEACHING_EXAM_META, getPartB1TeachingExamQuestions } from '../d
 import { PART_B3_EDUCATION_LAW_EXAM_META, getPartB3EducationLawExamQuestions } from '../data/mockExamB3EducationLaw';
 import { userActivityService, getStoredUser } from '../services/userActivityService';
 import { authService } from '../services/authService';
+import type { FeatureTheme } from './FeatureThemeToggle';
 
 interface MockExamDemoProps {
   onBack: () => void;
+  theme?: FeatureTheme;
+  onToggleTheme?: () => void;
 }
 
 type ViewState = 'hub' | 'partA_menu' | 'partB_menu' | 'exam';
 
-export const MockExamDemo: React.FC<MockExamDemoProps> = ({ onBack }) => {
+export const MockExamDemo: React.FC<MockExamDemoProps> = ({ onBack, theme = 'light', onToggleTheme = () => {} }) => {
   const [view, setView] = useState<ViewState>('hub');
+  const pageThemeClass = `feature-page ${theme === 'dark' ? 'feature-dark' : 'feature-light'}`;
   
   // Exam State
   const [examTitle, setExamTitle] = useState('');
@@ -99,11 +103,11 @@ export const MockExamDemo: React.FC<MockExamDemoProps> = ({ onBack }) => {
   };
 
   if (view === 'exam') {
-    return <StandardExam title={examTitle} durationSeconds={examDuration} questions={examQuestions} onBack={() => setView('hub')} examKey={examKey} onExamComplete={handleExamComplete} />;
+    return <StandardExam title={examTitle} durationSeconds={examDuration} questions={examQuestions} onBack={() => setView('hub')} examKey={examKey} onExamComplete={handleExamComplete} theme={theme} onToggleTheme={onToggleTheme} />;
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 font-sans pb-20">
+    <div className={`${pageThemeClass} min-h-screen bg-slate-50 font-sans pb-20`}>
       {/* Header */}
       <div className="bg-white border-b border-slate-200 sticky top-0 z-30">
         <div className="max-w-5xl mx-auto px-4 h-16 flex items-center justify-between">
@@ -117,7 +121,7 @@ export const MockExamDemo: React.FC<MockExamDemoProps> = ({ onBack }) => {
             <h1 className="text-xl font-bold text-slate-800">
               {view === 'hub' ? 'ระบบจำลองการสอบบรรจุครู' : 
                view === 'partA_menu' ? 'ภาค ก: ความรู้ความสามารถทั่วไป' : 
-               'ภาค ข: มาตรฐานความรู้และประสบการณ์วิชาชีพ'}
+              'ภาค ข: มาตรฐานความรู้และประสบการณ์วิชาชีพ'}
             </h1>
           </div>
         </div>

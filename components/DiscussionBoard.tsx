@@ -4,13 +4,15 @@ import { DiscussionThread, DiscussionReply } from './admin/AdminDiscussion';
 import { Report, BannedUser } from './admin/AdminReports';
 import { contentService } from '../services/contentService';
 import { User as AuthUser } from '../services/authService';
+import type { FeatureTheme } from './FeatureThemeToggle';
 
 interface DiscussionBoardProps {
   onBack: () => void;
   currentUser: AuthUser;
+  theme?: FeatureTheme;
 }
 
-const DiscussionBoard: React.FC<DiscussionBoardProps> = ({ onBack, currentUser }) => {
+const DiscussionBoard: React.FC<DiscussionBoardProps> = ({ onBack, currentUser, theme = 'light' }) => {
   const [threads, setThreads] = useState<DiscussionThread[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [activeBoardTab, setActiveBoardTab] = useState<'question' | 'suggestion'>('question');
@@ -173,6 +175,7 @@ const DiscussionBoard: React.FC<DiscussionBoardProps> = ({ onBack, currentUser }
 
   const [currentPage, setCurrentPage] = useState(1);
   const threadsPerPage = 100;
+  const pageThemeClass = `feature-page ${theme === 'dark' ? 'feature-dark' : 'feature-light'}`;
 
   useEffect(() => {
     setCurrentPage(1);
@@ -282,11 +285,14 @@ const DiscussionBoard: React.FC<DiscussionBoardProps> = ({ onBack, currentUser }
   };
 
   return (
-    <div className="w-full max-w-[1200px] mx-auto px-6 md:px-[80px] pt-8 md:pt-[60px] pb-8 animate-in fade-in duration-300">
-      <button onClick={() => view === 'list' ? onBack() : setView('list')} className="flex items-center text-slate-500 hover:text-slate-800 mb-6 transition-colors font-medium">
-        <ArrowLeft className="w-5 h-5 mr-2" />
-        {view === 'list' ? 'กลับหน้าหลัก' : 'กลับไปหน้ารวมกระทู้'}
-      </button>
+    <div className={`${pageThemeClass} w-full px-6 pt-8 pb-8 animate-in fade-in duration-300 md:px-[80px] md:pt-[60px]`}>
+      <div className="mx-auto max-w-[1200px]">
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
+        <button onClick={() => view === 'list' ? onBack() : setView('list')} className="flex items-center text-slate-500 hover:text-slate-800 transition-colors font-medium">
+          <ArrowLeft className="w-5 h-5 mr-2" />
+          {view === 'list' ? 'กลับหน้าหลัก' : 'กลับไปหน้ารวมกระทู้'}
+        </button>
+      </div>
       
       {view === 'list' && (
         <>
@@ -886,6 +892,7 @@ const DiscussionBoard: React.FC<DiscussionBoardProps> = ({ onBack, currentUser }
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 };

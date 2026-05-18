@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { ArrowLeft, Send, MessageSquare, Clock, CheckCircle2, Edit3, Inbox, Send as SendIcon, Loader2 } from 'lucide-react';
 import { authService, User, SupportMessage } from '../services/authService';
+import type { FeatureTheme } from './FeatureThemeToggle';
 
 interface ContactSupportProps {
   user: User;
   onBack: () => void;
+  theme?: FeatureTheme;
   readSupportMessageIds?: string[];
   onMarkMessageRead?: (messageId: string) => void | Promise<void>;
 }
@@ -12,6 +14,7 @@ interface ContactSupportProps {
 const ContactSupport: React.FC<ContactSupportProps> = ({
   user,
   onBack,
+  theme = 'light',
   readSupportMessageIds = [],
   onMarkMessageRead,
 }) => {
@@ -92,7 +95,8 @@ const ContactSupport: React.FC<ContactSupportProps> = ({
   const unreadCount = getUnreadCount();
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8 w-full animate-in fade-in duration-500 flex flex-col" style={{ minHeight: 'calc(100vh - 100px)' }}>
+    <div className={`feature-page ${theme === 'dark' ? 'feature-dark' : 'feature-light'} w-full animate-in fade-in duration-500`}>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8 w-full flex flex-col" style={{ minHeight: 'calc(100vh - 100px)' }}>
       <div className="flex items-center gap-4 mb-4 sm:mb-6 shrink-0">
         <button 
           onClick={onBack}
@@ -369,6 +373,7 @@ const ContactSupport: React.FC<ContactSupportProps> = ({
             </div>
           )}
         </div>
+      </div>
       </div>
     </div>
   );
