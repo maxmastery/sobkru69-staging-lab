@@ -4153,3 +4153,33 @@ body,
     transform: translateY(-1.7rem) !important;
   }
 }
+
+@media (max-width: 640px), (hover: none) {
+  .topic-section-card {
+    min-height: 320px !important;
+  }
+
+  .topic-section-card:hover .topic-section-card-main,
+  .topic-section-card:focus-visible .topic-section-card-main {
+    transform: none !important;
+  }
+
+  .topic-section-card:hover .topic-section-card-details,
+  .topic-section-card:focus-visible .topic-section-card-details {
+    opacity: 0 !important;
+    transform: translateY(10px) !important;
+    pointer-events: none !important;
+  }
+
+  .topic-section-card-main h3 {
+    font-size: clamp(2rem, 9vw, 2.85rem) !important;
+    line-height: 1.15 !important;
+    text-wrap: balance;
+  }
+
+  .topic-section-card-main p {
+    margin-top: 12px !important;
+    font-size: clamp(1.35rem, 6vw, 2rem) !important;
+    line-height: 1.2 !important;
+  }
+}
