@@ -138,7 +138,7 @@ const TopicList: React.FC<TopicListProps> = ({ part, onBack, onSelectTopic, them
                   <div className="topic-section-card-fade pointer-events-none absolute inset-x-0 bottom-0 h-1/2 translate-y-8 bg-gradient-to-t from-slate-950/75 to-transparent opacity-80 transition duration-500 group-hover:translate-y-0" />
 
                   <div className="relative flex w-full flex-1 flex-col items-center justify-center p-6 md:p-7">
-                    <div className="topic-section-card-main absolute inset-0 flex flex-col items-center justify-center px-6 transition-transform duration-500 group-hover:-translate-y-16 md:px-8">
+                    <div className="topic-section-card-main flex flex-col items-center justify-center px-6 pt-8 transition-transform duration-500 md:absolute md:inset-0 md:px-8 md:pt-0 md:group-hover:-translate-y-16">
                       <div className="flex items-center justify-center text-amber-100 transition-all duration-300 group-hover:text-amber-200">
                         <Icon className="h-12 w-12 transition-all duration-300 group-hover:h-8 group-hover:w-8" />
                       </div>
@@ -149,7 +149,7 @@ const TopicList: React.FC<TopicListProps> = ({ part, onBack, onSelectTopic, them
                       </div>
                     </div>
 
-                    <div className="topic-section-card-details absolute inset-x-6 bottom-12 mx-auto max-w-[280px] translate-y-6 opacity-0 transition-all duration-500 group-hover:translate-y-0 group-hover:opacity-100 md:bottom-14">
+                    <div className="topic-section-card-details mt-5 w-full max-w-[280px] translate-y-0 opacity-100 transition-all duration-500 md:absolute md:inset-x-6 md:bottom-14 md:mt-0 md:translate-y-6 md:opacity-0 md:group-hover:translate-y-0 md:group-hover:opacity-100">
                       {section.isSelfStudy ? (
                         <p className="rounded-2xl border border-amber-200/20 bg-white/8 px-5 py-4 text-base font-black leading-7 text-amber-100">
                           ให้ศึกษาด้วยตนเอง
