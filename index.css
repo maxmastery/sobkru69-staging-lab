@@ -4149,9 +4149,4 @@ body,
     max-width: 100% !important;
     grid-template-columns: minmax(0, 1fr) !important;
   }
-
-  .topic-section-card:hover .topic-section-card-main,
-  .topic-section-card:focus-visible .topic-section-card-main {
-    transform: translateY(-1.7rem) !important;
-  }
 }
