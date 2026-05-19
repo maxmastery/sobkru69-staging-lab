@@ -1,7 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
   ArrowRight,
-  BookOpenCheck,
   Brain,
   CheckCircle2,
   ChevronLeft,
@@ -45,6 +44,7 @@ type LessonSection = {
   remember: string;
   icon: React.ComponentType<{ className?: string }>;
   tone: 'blue' | 'amber' | 'emerald' | 'rose' | 'violet' | 'slate';
+  visual?: 'flow' | 'skills' | 'sdgs' | 'tech' | 'bani' | 'sep' | 'new-theory';
   cards?: LessonCard[];
   list?: string[];
   rows?: { label: string; value: string; note?: string }[];
@@ -67,6 +67,7 @@ const sections: LessonSection[] = [
     remember: 'ข้อสอบชอบถามภาพจำว่า โลกเชื่อมต่อเร็วขึ้น -> ความรู้เข้าถึงง่ายขึ้น -> ครูต้องออกแบบการเรียนรู้ให้ผู้เรียนใช้ข้อมูลอย่างรู้เท่าทัน',
     icon: Globe2,
     tone: 'blue',
+    visual: 'flow',
     cards: [
       { title: 'Globalization', body: 'การพึ่งพาและเชื่อมโยงกันทั่วโลกทำให้เศรษฐกิจ วัฒนธรรม การศึกษา และการทำงานข้ามพรมแดนมากขึ้น' },
       { title: 'Native / Immigrant Digital', body: 'ผู้เรียนจำนวนมากเติบโตมากับดิจิทัล ส่วนผู้ใหญ่บางกลุ่มต้องปรับตัว แต่ทั้งสองกลุ่มต้องพัฒนาทักษะรู้เท่าทันสื่อและข้อมูล' },
@@ -89,6 +90,7 @@ const sections: LessonSection[] = [
     remember: 'จำคู่กันเสมอ: 3Rs คือฐานอ่าน เขียน คิดเลข ส่วน 8Cs คือทักษะต่อยอดที่ใช้แก้ปัญหาในชีวิตจริง',
     icon: Brain,
     tone: 'violet',
+    visual: 'skills',
     cards: [
       { tag: '3Rs', title: 'Reading', body: 'อ่านออก เข้าใจสาร และใช้การอ่านเป็นฐานการเรียนรู้' },
       { tag: '3Rs', title: 'Writing', body: 'เขียนได้ สื่อสารความคิดและความเข้าใจอย่างเป็นระบบ' },
@@ -115,6 +117,7 @@ const sections: LessonSection[] = [
     remember: 'ถ้าข้อสอบถาม “การศึกษาที่มีคุณภาพ เท่าเทียม ทั่วถึง และเรียนรู้ตลอดชีวิต” ให้ตอบ SDG 4',
     icon: Target,
     tone: 'emerald',
+    visual: 'sdgs',
     cards: [
       { title: 'People', body: 'มิติด้านสังคม ครอบคลุมเป้าหมาย 1-5 เช่น ความยากจน สุขภาพ การศึกษา และความเท่าเทียม' },
       { title: 'Prosperity', body: 'มิติด้านเศรษฐกิจ ครอบคลุมเป้าหมาย 7-11 เช่น พลังงาน งานที่มีคุณค่า เมืองยั่งยืน และนวัตกรรม' },
@@ -137,6 +140,7 @@ const sections: LessonSection[] = [
     remember: 'เวลาทำข้อสอบให้แยกคำให้ได้: Soft Power คืออิทธิพลทางความคิด, NEETs คือเยาวชนที่ไม่เรียน ไม่ทำงาน ไม่ฝึกอบรม, Digital Disruption คือเทคโนโลยีทำให้ระบบเดิมต้องปรับตัว',
     icon: Rocket,
     tone: 'amber',
+    visual: 'tech',
     cards: [
       { title: 'Soft Power', body: 'การขยายอิทธิพลผ่านวัฒนธรรม ค่านิยม นโยบาย คุณภาพชีวิต การศึกษา กฎหมาย และบทบาทในเวทีนานาชาติ' },
       { title: 'NEETs', body: 'Not in Education, Employment or Training มักหมายถึงเยาวชนอายุ 15-24 ปีที่ไม่อยู่ในระบบเรียน งาน หรือฝึกอบรม' },
@@ -166,6 +170,7 @@ const sections: LessonSection[] = [
     remember: 'จำ BANI เป็น 4 คำ: Brittle, Anxious, Nonlinear, Incomprehensible แล้วเชื่อมกับบทบาทครูที่ต้องสร้างภูมิคุ้มกันทางความคิดให้ผู้เรียน',
     icon: Network,
     tone: 'rose',
+    visual: 'bani',
     cards: [
       { tag: 'B', title: 'Brittle', body: 'ระบบดูแข็งแรงแต่เปราะ ภายใต้ความเครียดหรือวิกฤตอาจล้มเร็ว' },
       { tag: 'A', title: 'Anxious', body: 'สังคมเต็มไปด้วยความกังวล เพราะตัดสินใจภายใต้ความไม่แน่นอนสูง' },
@@ -186,6 +191,7 @@ const sections: LessonSection[] = [
     remember: 'แกนจำที่ต้องแม่นที่สุดคือ 3 ห่วง 2 เงื่อนไข สมดุล 4 มิติ',
     icon: Leaf,
     tone: 'emerald',
+    visual: 'sep',
     cards: [
       { tag: '3 ห่วง', title: 'พอประมาณ', body: 'ทำสิ่งต่าง ๆ ให้พอดีกับกำลัง ทรัพยากร และบริบท ไม่มากหรือน้อยเกินไป' },
       { tag: '3 ห่วง', title: 'มีเหตุผล', body: 'ตัดสินใจจากข้อมูล เหตุและผล เห็นผลกระทบต่อระยะสั้นและระยะยาว' },
@@ -210,6 +216,7 @@ const sections: LessonSection[] = [
     remember: 'ตัวเลขที่ออกสอบง่าย: ทฤษฎีใหม่ 30:30:30:10, สัปปุริสธรรม 7, พระบรมราโชบาย 4 ด้าน',
     icon: Landmark,
     tone: 'slate',
+    visual: 'new-theory',
     cards: [
       { tag: '30%', title: 'แหล่งน้ำ', body: 'เก็บน้ำไว้ใช้ในหน้าแล้งและรองรับการผลิต' },
       { tag: '30%', title: 'นาข้าว', body: 'ผลิตอาหารหลักเพื่อความมั่นคงทางอาหาร' },
@@ -331,6 +338,132 @@ const tocItems = [
   { id: 'practice', label: 'แบบฝึกหัดท้ายบท' },
 ];
 
+const LessonVisual: React.FC<{ type?: LessonSection['visual'] }> = ({ type }) => {
+  if (!type) return null;
+
+  if (type === 'flow') {
+    return (
+      <div className="b11-visual b11-flow-visual" aria-label="แผนภาพโลกไร้พรมแดน">
+        {[
+          ['โลกเชื่อมต่อ', 'ข่าวสารและความรู้เดินทางเร็ว'],
+          ['ผู้เรียนเข้าถึงข้อมูล', 'เรียนรู้ได้จากหลายพื้นที่'],
+          ['ครูคัดกรองและออกแบบ', 'สร้างกิจกรรมให้ใช้ข้อมูลเป็น'],
+          ['เรียนรู้อย่างรู้เท่าทัน', 'ใช้เทคโนโลยีอย่างมีจริยธรรม'],
+        ].map(([title, body], index) => (
+          <div key={title} className="b11-flow-step">
+            <span>{String(index + 1).padStart(2, '0')}</span>
+            <strong>{title}</strong>
+            <p>{body}</p>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  if (type === 'skills') {
+    return (
+      <div className="b11-visual b11-skills-visual" aria-label="แผนภาพ 3Rs และ 8Cs">
+        <div className="b11-skill-core">
+          <strong>3Rs</strong>
+          <span>Reading • Writing • Arithmetic</span>
+        </div>
+        <div className="b11-skill-ring">
+          {['Critical', 'Creative', 'Collaborate', 'Communicate', 'Culture', 'Computing', 'Career', 'Compassion'].map(item => (
+            <span key={item}>{item}</span>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (type === 'sdgs') {
+    return (
+      <div className="b11-visual b11-sdgs-visual" aria-label="แผนภาพ SDGs 5P">
+        <div className="b11-sdgs-main">
+          <strong>SDG 4</strong>
+          <span>Quality Education</span>
+          <p>คุณภาพ • เท่าเทียม • เรียนรู้ตลอดชีวิต</p>
+        </div>
+        <div className="b11-sdgs-petals">
+          {['People', 'Prosperity', 'Planet', 'Peace', 'Partnership'].map(item => (
+            <span key={item}>{item}</span>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (type === 'tech') {
+    return (
+      <div className="b11-visual b11-tech-visual" aria-label="แผนภาพเทคโนโลยีและคำออกสอบ">
+        <div>
+          <Rocket className="h-10 w-10" />
+          <strong>Digital Disruption</strong>
+          <span>AI • Cloud • Mobile • Real-time Data</span>
+        </div>
+        <div className="b11-tech-tags">
+          {['Soft Power', 'NEETs', 'Lifelong Learning', 'Education For All', '5G/6G', 'Metaverse'].map(item => (
+            <span key={item}>{item}</span>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (type === 'bani') {
+    return (
+      <div className="b11-visual b11-bani-visual" aria-label="แผนภาพ BANI World">
+        {[
+          ['B', 'Brittle', 'เปราะ'],
+          ['A', 'Anxious', 'กังวล'],
+          ['N', 'Nonlinear', 'ไม่เป็นเส้นตรง'],
+          ['I', 'Incomprehensible', 'เข้าใจยาก'],
+        ].map(([letter, word, thai]) => (
+          <div key={letter}>
+            <span>{letter}</span>
+            <strong>{word}</strong>
+            <p>{thai}</p>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  if (type === 'sep') {
+    return (
+      <div className="b11-visual b11-sep-visual" aria-label="แผนภาพเศรษฐกิจพอเพียง">
+        <div className="b11-sep-orbit">
+          <span>พอประมาณ</span>
+          <span>มีเหตุผล</span>
+          <span>ภูมิคุ้มกัน</span>
+          <strong>ทางสายกลาง</strong>
+        </div>
+        <div className="b11-sep-conditions">
+          <span>ความรู้</span>
+          <span>คุณธรรม</span>
+          <em>สมดุล 4 มิติ</em>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="b11-visual b11-theory-visual" aria-label="แผนภาพทฤษฎีใหม่">
+      {[
+        ['30%', 'แหล่งน้ำ'],
+        ['30%', 'นาข้าว'],
+        ['30%', 'พืชผสมผสาน'],
+        ['10%', 'ที่อยู่อาศัย'],
+      ].map(([value, label]) => (
+        <div key={label}>
+          <strong>{value}</strong>
+          <span>{label}</span>
+        </div>
+      ))}
+    </div>
+  );
+};
+
 const WorldContextSufficiencyLesson: React.FC<WorldContextSufficiencyLessonProps> = ({
   topic,
   onBack,
@@ -395,8 +528,8 @@ const WorldContextSufficiencyLesson: React.FC<WorldContextSufficiencyLessonProps
           </h1>
 
           <p>
-            เรียบเรียงจาก PDF ทั้ง 3 ไฟล์ให้เป็นบทเรียนอ่านต่อเนื่อง ครอบคลุมบริบทโลก ทักษะศตวรรษที่ 21
-            SDGs เทคโนโลยีใหม่ และหลักปรัชญาของเศรษฐกิจพอเพียง พร้อมแบบฝึกหัดท้ายบทที่ซ่อนเฉลยไว้
+            บทเรียนสนามสอบใบประกอบฯ ที่แปลงเนื้อหาจากไฟล์สรุปให้เป็นชีทอ่านง่าย
+            จำภาพใหญ่ได้ไว และฝึกข้อสอบท้ายบทโดยซ่อนเฉลยไว้ก่อน
           </p>
 
           <div className="b11-hero-actions">
@@ -424,25 +557,23 @@ const WorldContextSufficiencyLesson: React.FC<WorldContextSufficiencyLessonProps
               <span>ข้อฝึกท้ายบท</span>
             </div>
           </div>
-        </div>
 
-        <div className="b11-hero-sheet" aria-hidden="true">
-          <div className="b11-sheet-topline">
-            <span>สนามสอบใบประกอบฯ</span>
-            <BookOpenCheck className="h-5 w-5" />
-          </div>
-          <div className="b11-sheet-title">B1-1</div>
-          <div className="b11-sheet-row is-blue">
-            <Globe2 className="h-5 w-5" />
-            บริบทโลก
-          </div>
-          <div className="b11-sheet-row is-amber">
-            <Target className="h-5 w-5" />
-            SDGs + ทักษะคน
-          </div>
-          <div className="b11-sheet-row is-green">
-            <Leaf className="h-5 w-5" />
-            เศรษฐกิจพอเพียง
+          <div className="b11-hero-topic-cloud" aria-label="ภาพรวมหัวข้อบทเรียน">
+            <div className="is-blue">
+              <Globe2 className="h-6 w-6" />
+              <strong>บริบทโลก</strong>
+              <span>Megatrends • BANI • Digital</span>
+            </div>
+            <div className="is-amber">
+              <Target className="h-6 w-6" />
+              <strong>SDGs และทักษะคน</strong>
+              <span>3Rs8Cs • SDG 4 • Lifelong</span>
+            </div>
+            <div className="is-green">
+              <Leaf className="h-6 w-6" />
+              <strong>เศรษฐกิจพอเพียง</strong>
+              <span>3 ห่วง 2 เงื่อนไข • ทฤษฎีใหม่</span>
+            </div>
           </div>
         </div>
       </section>
@@ -454,7 +585,7 @@ const WorldContextSufficiencyLesson: React.FC<WorldContextSufficiencyLessonProps
               <LibraryBig className="h-6 w-6" />
               <div>
                 <strong>สารบัญเนื้อหา</strong>
-                <span>บทเรียน B1-1</span>
+                <span>บทที่ 1 ใบประกอบฯ</span>
               </div>
             </div>
 
@@ -539,6 +670,8 @@ const WorldContextSufficiencyLesson: React.FC<WorldContextSufficiencyLessonProps
                     <span>{section.remember}</span>
                   </div>
                 </div>
+
+                <LessonVisual type={section.visual} />
 
                 {section.cards && (
                   <div className="b11-concept-grid">

@@ -242,46 +242,24 @@ const TeacherLicenseMockup: React.FC<TeacherLicenseMockupProps> = ({ theme = 'da
                   disabled={!isOpenable}
                   onClick={() => isOpenable && setActiveLessonId(lesson.id)}
                   aria-label={isOpenable ? `เปิดบทเรียน ${lesson.title}` : `${lesson.title} ยังไม่เปิดใช้งาน`}
-                  className={`teacher-license-lesson-card group relative min-h-[260px] overflow-hidden rounded-[26px] border text-left transition-[transform,opacity,border-color,background-color,box-shadow] duration-300 ease-out md:min-h-[300px] ${isOpenable ? 'teacher-license-lesson-card--open cursor-pointer hover:-translate-y-1' : 'teacher-license-lesson-card--locked cursor-default'} ${lessonCardClass}`}
+                  className={`topic-section-card teacher-license-lesson-card group relative min-h-[300px] overflow-hidden rounded-[30px] border ring-1 ring-amber-300/15 backdrop-blur-xl transition-[transform,opacity,filter,border-color,background-color,box-shadow] duration-300 ease-out hover:z-20 md:min-h-[350px] ${isOpenable ? 'cursor-pointer hover:-translate-y-1 hover:border-amber-300/55' : 'cursor-default'} ${lessonCardClass}`}
                   initial={{ opacity: 0, y: 18 }}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true, margin: '-80px' }}
                   transition={{ duration: 0.42, delay: Math.min(index * 0.035, 0.18) }}
                 >
-                  <div className={`teacher-license-lesson-accent absolute inset-x-0 top-0 h-2 bg-gradient-to-r ${lesson.accent}`} />
+                  <div className="topic-section-card-sheen pointer-events-none absolute inset-0 opacity-70" />
+                  <div className="topic-section-card-orb pointer-events-none absolute left-1/2 top-[32%] h-36 w-36 -translate-x-1/2 rounded-full opacity-70 blur-2xl transition duration-500 group-hover:scale-125 group-hover:opacity-100" />
 
                   <div className="teacher-license-lesson-shell relative flex min-h-[inherit] w-full flex-col p-6 md:p-7">
-                    <div className="flex items-center justify-between gap-4">
-                      <div className="teacher-license-lesson-index">
-                        Lesson {String(index + 1).padStart(2, '0')}
-                      </div>
-                      <div className={`teacher-license-lesson-status ${isOpenable ? 'is-ready' : 'is-soon'}`}>
-                        {isOpenable ? 'เปิดอ่าน' : 'Soon'}
-                      </div>
-                    </div>
-
-                    <div className="mt-8 flex flex-1 flex-col justify-between gap-8">
-                      <div>
-                        <div className="teacher-license-lesson-icon flex items-center justify-center transition-all duration-300">
+                    <div className="topic-section-card-main teacher-license-lesson-main flex flex-1 flex-col items-center justify-center gap-9 text-center transition-transform duration-500">
+                      <div className="teacher-license-lesson-icon flex items-center justify-center transition-all duration-300">
                         <Icon className="h-9 w-9 transition-all duration-300" />
-                        </div>
-
-                        <h3 className={`teacher-license-lesson-title mt-6 max-w-[24rem] text-2xl font-black leading-tight transition-all duration-300 md:text-3xl ${isDark ? 'text-white' : 'text-slate-950'}`}>
-                          {lesson.title}
-                        </h3>
-
-                        <p className={`mt-3 text-sm font-semibold leading-6 ${isDark ? 'text-white/62' : 'text-slate-600'}`}>
-                          {lesson.description}
-                        </p>
                       </div>
 
-                      <div className="teacher-license-lesson-footer">
-                        <span>สนามสอบใบประกอบฯ</span>
-                        <div>
-                          {isOpenable ? 'เริ่มบทเรียน' : 'รอเพิ่มเนื้อหา'}
-                          <Play className="h-4 w-4" />
-                        </div>
-                      </div>
+                      <h3 className={`teacher-license-lesson-title max-w-[24rem] text-center text-2xl font-black leading-tight transition-all duration-300 md:text-3xl ${isDark ? 'text-white' : 'text-slate-950'}`}>
+                        {lesson.title}
+                      </h3>
                     </div>
                   </div>
                 </motion.button>
