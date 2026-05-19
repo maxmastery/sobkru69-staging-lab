@@ -1,48 +1,313 @@
-import React from 'react';
-import { ArrowLeft, BadgeCheck, BookOpenCheck, ClipboardList, Sparkles } from 'lucide-react';
+import React, { useState } from 'react';
+import {
+  BadgeCheck,
+  BookOpenCheck,
+  Check,
+  ClipboardCheck,
+  GraduationCap,
+  Monitor,
+  PenLine,
+  Play,
+  ShieldCheck,
+  Target,
+} from 'lucide-react';
+import { motion } from 'motion/react';
+import type { FeatureTheme } from './FeatureThemeToggle';
+import type { SubTopic } from '../types';
+import WorldContextSufficiencyLesson from './WorldContextSufficiencyLesson';
 
 interface TeacherLicenseMockupProps {
   onBackToSelector: () => void;
+  theme?: FeatureTheme;
 }
 
-const modules = [
-  { title: 'มาตรฐานวิชาชีพครู', body: 'โครงสร้างความรู้และบทบาทตามข้อกำหนดวิชาชีพ', icon: BadgeCheck },
-  { title: 'จรรยาบรรณและกฎหมาย', body: 'กรณีศึกษา วินัย และหลักปฏิบัติที่ออกสอบบ่อย', icon: ClipboardList },
-  { title: 'ชุดฝึกข้อสอบ', body: 'Mockup สำหรับระบบโจทย์และแบบทดสอบที่จะตามมา', icon: BookOpenCheck },
+const HERO_IMAGE_URL = 'https://cribfrwvdpshvdpxgnuc.supabase.co/storage/v1/object/public/sobkru-images/krutoppic%202.png';
+
+const licenseLessons = [
+  {
+    id: 'world-context',
+    title: 'บริบทโลกและเศรษฐกิจพอเพียง',
+    description: 'การเปลี่ยนแปลงของโลก สังคม และแนวคิดปรัชญาเศรษฐกิจพอเพียงที่เชื่อมกับความเป็นครู',
+    icon: GraduationCap,
+    accent: 'from-amber-300 to-orange-400',
+  },
+  {
+    id: 'psychology',
+    title: 'จิตวิทยาสำหรับครู',
+    description: 'จิตวิทยาพัฒนาการ จิตวิทยาการศึกษา การแนะแนว และการดูแลผู้เรียนตามศักยภาพ',
+    icon: BadgeCheck,
+    accent: 'from-rose-300 to-pink-400',
+  },
+  {
+    id: 'curriculum-pedagogy',
+    title: 'หลักสูตรและศาสตร์การสอน',
+    description: 'การออกแบบหลักสูตร แผนการจัดการเรียนรู้ วิธีสอน และการจัดกิจกรรมในชั้นเรียน',
+    icon: BookOpenCheck,
+    accent: 'from-violet-300 to-indigo-400',
+  },
+  {
+    id: 'assessment-research',
+    title: 'วัดผล วิจัย และพัฒนาผู้เรียน',
+    description: 'การวัดประเมินผล การใช้ข้อมูล และการวิจัยเพื่อแก้ปัญหาและพัฒนาผู้เรียน',
+    icon: ClipboardCheck,
+    accent: 'from-sky-300 to-cyan-400',
+  },
+  {
+    id: 'quality-assurance',
+    title: 'ประกันคุณภาพการศึกษา',
+    description: 'การออกแบบและดำเนินงานประกันคุณภาพในสถานศึกษาให้สอดคล้องมาตรฐาน',
+    icon: ShieldCheck,
+    accent: 'from-emerald-300 to-teal-400',
+  },
+  {
+    id: 'digital-technology',
+    title: 'เทคโนโลยีดิจิทัล',
+    description: 'การใช้เทคโนโลยี สื่อ และนวัตกรรมดิจิทัลเพื่อสนับสนุนการจัดการเรียนรู้',
+    icon: Monitor,
+    accent: 'from-fuchsia-300 to-purple-400',
+  },
 ];
 
-const TeacherLicenseMockup: React.FC<TeacherLicenseMockupProps> = ({ onBackToSelector }) => (
-  <div className="min-h-screen bg-[#f7f4ee] text-slate-950">
-    <section className="relative overflow-hidden bg-slate-950 px-5 py-12 text-white md:px-8 md:py-16">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_12%_10%,rgba(251,191,36,.2),transparent_30%),radial-gradient(circle_at_85%_10%,rgba(45,212,191,.14),transparent_28%)]" />
-      <div className="relative mx-auto max-w-6xl">
-        <button onClick={onBackToSelector} className="mb-8 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-4 py-2 text-sm font-black text-white/80 transition hover:bg-white hover:text-slate-950">
-          <ArrowLeft className="h-4 w-4" />
-          เลือกหัวข้อสอบ
-        </button>
-        <p className="inline-flex items-center gap-2 rounded-full bg-amber-400 px-4 py-2 text-xs font-black uppercase tracking-[0.2em] text-slate-950">
-          <Sparkles className="h-4 w-4" />
-          Mockup
-        </p>
-        <h1 className="mt-5 max-w-4xl text-4xl font-black leading-tight md:text-6xl">บทเรียนสอบใบประกอบวิชาชีพครู</h1>
-        <p className="mt-5 max-w-2xl text-base font-semibold leading-8 text-white/65">
-          พื้นที่นี้เตรียมไว้สำหรับพัฒนาบทเรียนและแบบทดสอบใบประกอบวิชาชีพครูในรอบถัดไป ตอนนี้เปิดเป็น mockup เพื่อวางโครงประสบการณ์ก่อน
-        </p>
-      </div>
-    </section>
+const worldContextLicenseTopic: SubTopic = {
+  id: 'TL-1-world-context-sufficiency',
+  title: 'บริบทโลกและเศรษฐกิจพอเพียง',
+  description: 'การเปลี่ยนแปลงบริบทโลก สังคม และแนวคิดปรัชญาเศรษฐกิจพอเพียง สำหรับสนามสอบใบประกอบวิชาชีพครู',
+  promptContext: 'สนามสอบใบประกอบวิชาชีพครู บริบทโลก สังคม และเศรษฐกิจพอเพียง',
+  contentPath: '/content/teacher-license/world-context-sufficiency.md',
+  chapters: [],
+};
 
-    <main className="mx-auto max-w-6xl px-5 py-8 md:px-8">
-      <div className="grid gap-4 md:grid-cols-3">
-        {modules.map(item => (
-          <article key={item.title} className="rounded-[28px] bg-white p-6 ring-1 ring-slate-200">
-            <item.icon className="h-8 w-8 text-amber-500" />
-            <h2 className="mt-6 text-2xl font-black">{item.title}</h2>
-            <p className="mt-3 text-sm font-semibold leading-7 text-slate-600">{item.body}</p>
-          </article>
-        ))}
-      </div>
-    </main>
-  </div>
-);
+const readinessItems = [
+  { label: 'Lessons', value: '6', caption: 'บทเรียนหลัก' },
+  { label: 'Progress', value: '0%', caption: 'รอเริ่มบทเรียน' },
+  { label: 'Exam Mode', value: 'Soon', caption: 'สนามสอบถัดไป' },
+];
+
+const TeacherLicenseMockup: React.FC<TeacherLicenseMockupProps> = ({ theme = 'dark' }) => {
+  const [activeLessonId, setActiveLessonId] = useState<string | null>(null);
+  const isDark = theme === 'dark';
+  const pageClass = isDark
+    ? 'bg-slate-950 text-white'
+    : 'bg-white text-slate-950';
+  const mutedText = isDark ? 'text-white/64' : 'text-slate-600';
+  const heroStatusClass = isDark
+    ? 'border-white/10 bg-white/[.06] text-white'
+    : 'border-white/70 bg-white/60 text-slate-950 shadow-[0_24px_70px_rgba(15,23,42,.12)]';
+  const surfaceClass = isDark
+    ? 'border-white/10 bg-white/[.06] text-white'
+    : 'border-slate-200 bg-white text-slate-950 shadow-[0_18px_60px_rgba(15,23,42,.08)]';
+  const lessonCardClass = isDark
+    ? 'border-white/10 bg-white/[.07] text-white'
+    : 'border-slate-200 bg-white text-slate-950 shadow-xl shadow-slate-200/60';
+
+  if (activeLessonId === 'world-context') {
+    return (
+      <WorldContextSufficiencyLesson
+        topic={worldContextLicenseTopic}
+        onBack={() => setActiveLessonId(null)}
+        theme="light"
+        examLabel="สนามสอบใบประกอบวิชาชีพครู"
+        backLabel="กลับสู่สนามสอบใบประกอบฯ"
+      />
+    );
+  }
+
+  return (
+    <div className={`teacher-license-page teacher-license-page--${theme} min-h-screen transition-colors duration-500 ${pageClass}`}>
+      <section className="relative min-h-[calc(100svh-72px)] overflow-hidden px-4 py-7 md:px-8 md:py-10">
+        <img
+          src={HERO_IMAGE_URL}
+          alt=""
+          className="absolute inset-0 h-full w-full object-cover"
+        />
+        <div
+          className={`teacher-license-hero-overlay absolute inset-0 ${
+            isDark
+              ? 'bg-[linear-gradient(90deg,rgba(2,6,23,.96)_0%,rgba(2,6,23,.82)_42%,rgba(2,6,23,.42)_74%,rgba(2,6,23,.76)_100%)]'
+              : 'bg-[linear-gradient(90deg,rgba(255,255,255,.97)_0%,rgba(255,255,255,.88)_42%,rgba(255,255,255,.40)_72%,rgba(15,23,42,.12)_100%)]'
+          }`}
+        />
+
+        <div className="relative mx-auto grid min-h-[calc(100svh-128px)] max-w-7xl gap-8 lg:grid-cols-[1.05fr_.95fr] lg:items-center">
+          <motion.div
+            className="max-w-3xl text-center lg:text-left"
+            initial={{ opacity: 0, y: 24 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.55, ease: [0.2, 0.8, 0.2, 1] }}
+          >
+            <p
+              className={`mb-7 inline-flex items-center gap-2 rounded-full border px-4 py-2 text-xs font-black uppercase tracking-[0.2em] ${
+                isDark
+                  ? 'border-amber-200/25 bg-amber-300/10 text-amber-200'
+                  : 'border-slate-950 bg-transparent text-slate-950'
+              }`}
+            >
+              <Target className="h-4 w-4" />
+              Teacher License Arena
+            </p>
+            <h1 className="mt-5 text-4xl font-black tracking-tight md:text-6xl">
+              สนามสอบใบประกอบวิชาชีพครู
+            </h1>
+            <p className={`mt-5 max-w-2xl text-base font-semibold leading-8 ${mutedText} lg:mx-0 mx-auto`}>
+              หน้าหลักหลักสูตรใบประกอบฯ สำหรับวางระบบบทเรียนและสนามสอบจริง โครงสร้างแรกเปิดเป็น 6 เรื่องก่อน
+            </p>
+
+            <div className="mt-7 flex flex-col items-center gap-3 sm:flex-row lg:items-stretch">
+              <a
+                href="#license-lessons"
+                className="inline-flex min-h-12 w-[260px] max-w-full items-center justify-center gap-3 rounded-full bg-amber-400 px-6 py-3 font-black text-slate-950 shadow-[0_18px_50px_rgba(251,191,36,.24)] transition hover:-translate-y-0.5 hover:bg-amber-300 lg:w-auto"
+              >
+                <Play className="h-5 w-5 fill-current" />
+                ดูบทเรียน
+              </a>
+              <button
+                type="button"
+                className={`teacher-license-exam-button inline-flex min-h-12 w-[260px] max-w-full items-center justify-center gap-3 rounded-full border px-6 py-3 font-black transition lg:w-auto ${
+                  isDark
+                    ? 'border-white/20 bg-white/10 text-white hover:bg-white/20'
+                    : 'border-slate-950 bg-transparent text-slate-950 hover:bg-transparent hover:shadow-[0_10px_24px_rgba(15,23,42,.10)]'
+                }`}
+              >
+                สนามสอบเสมือนจริง
+                <PenLine className="h-5 w-5" />
+              </button>
+            </div>
+          </motion.div>
+
+          <motion.div
+            className={`teacher-license-status-card rounded-[28px] border p-5 backdrop-blur-xl ${heroStatusClass}`}
+            initial={{ opacity: 0, y: 28, scale: 0.97 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            transition={{ duration: 0.62, delay: 0.1, ease: [0.2, 0.8, 0.2, 1] }}
+          >
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <div className={`text-xs font-black uppercase tracking-[0.18em] ${isDark ? 'text-white/45' : 'text-slate-950/65'}`}>
+                  Course Status
+                </div>
+                <div className={`mt-3 whitespace-nowrap text-3xl font-black uppercase tracking-[0.035em] sm:text-4xl sm:tracking-[0.06em] md:text-5xl ${
+                  isDark
+                    ? 'bg-gradient-to-r from-white via-amber-200 to-yellow-600 bg-clip-text text-transparent drop-shadow-[0_2px_7px_rgba(251,191,36,.22)]'
+                    : 'text-slate-950'
+                }`}>
+                  Completed 0%
+                </div>
+              </div>
+              <div className={`teacher-license-status-icon flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl border ${isDark ? 'border-amber-200/20 bg-amber-300/10' : 'border-white/70 bg-white/65'}`}>
+                <Check className={`h-9 w-9 ${isDark ? 'text-amber-200' : 'text-slate-950'}`} strokeWidth={3.2} />
+              </div>
+            </div>
+
+            <div className={`mt-6 h-4 overflow-hidden rounded-full ring-1 ${isDark ? 'bg-slate-950/15 ring-white/10' : 'bg-slate-950/14 ring-slate-950/10'}`}>
+              <div className={`h-full w-0 rounded-full ${isDark ? 'bg-gradient-to-r from-amber-300 to-orange-400 shadow-[0_0_20px_rgba(250,204,21,.42)]' : 'bg-slate-950'}`} />
+            </div>
+            <p className={`mt-3 text-sm font-bold leading-6 ${isDark ? mutedText : 'text-slate-950/75'}`}>
+              ระบบใบประกอบฯ จะใช้โครงเดียวกับครูผู้ช่วย: บทเรียน ความคืบหน้า ข้อสอบ และสถิติเพื่อวัดความพร้อมจริง
+            </p>
+
+            <div className="mt-5 grid gap-2 sm:grid-cols-3">
+              {readinessItems.map(item => (
+                <div key={item.label} className={`rounded-2xl px-4 py-3 ${isDark ? 'bg-slate-950/35' : 'bg-white/42'}`}>
+                  <div className="text-lg font-black">{item.value}</div>
+                  <div className={`mt-1 text-[11px] font-black uppercase tracking-[0.14em] ${isDark ? 'text-white/42' : 'text-slate-950/60'}`}>{item.label}</div>
+                  <div className={`mt-1 text-xs font-bold ${isDark ? 'text-white/55' : 'text-slate-950/62'}`}>{item.caption}</div>
+                </div>
+              ))}
+            </div>
+          </motion.div>
+        </div>
+      </section>
+
+      <main id="license-lessons" className="mx-auto max-w-7xl px-4 py-8 md:px-8 md:py-10">
+        <section>
+          <div className="mb-6 flex flex-col gap-2 text-center md:flex-row md:items-end md:justify-between md:text-left">
+            <div>
+              <p className="text-sm font-black uppercase tracking-[0.18em] text-amber-400">License Curriculum</p>
+              <h2 className="mt-2 text-3xl font-black tracking-tight md:text-4xl">บทเรียน 6 เรื่อง</h2>
+            </div>
+            <p className={`mx-auto max-w-xl text-sm font-semibold leading-7 md:mx-0 md:text-right ${mutedText}`}>
+              วางหัวข้อหลักไว้ก่อนเพื่อเตรียมต่อบทเรียนจริง แบบทดสอบ และระบบเก็บความคืบหน้า
+            </p>
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {licenseLessons.map((lesson, index) => {
+              const Icon = lesson.icon;
+              const isOpenable = lesson.id === 'world-context';
+
+              return (
+                <motion.button
+                  key={lesson.title}
+                  type="button"
+                  disabled={!isOpenable}
+                  onClick={() => isOpenable && setActiveLessonId(lesson.id)}
+                  aria-label={isOpenable ? `เปิดบทเรียน ${lesson.title}` : `${lesson.title} ยังไม่เปิดใช้งาน`}
+                  className={`teacher-license-lesson-card group relative min-h-[260px] overflow-hidden rounded-[26px] border text-left transition-[transform,opacity,border-color,background-color,box-shadow] duration-300 ease-out md:min-h-[300px] ${isOpenable ? 'teacher-license-lesson-card--open cursor-pointer hover:-translate-y-1' : 'teacher-license-lesson-card--locked cursor-default'} ${lessonCardClass}`}
+                  initial={{ opacity: 0, y: 18 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true, margin: '-80px' }}
+                  transition={{ duration: 0.42, delay: Math.min(index * 0.035, 0.18) }}
+                >
+                  <div className={`teacher-license-lesson-accent absolute inset-x-0 top-0 h-2 bg-gradient-to-r ${lesson.accent}`} />
+
+                  <div className="teacher-license-lesson-shell relative flex min-h-[inherit] w-full flex-col p-6 md:p-7">
+                    <div className="flex items-center justify-between gap-4">
+                      <div className="teacher-license-lesson-index">
+                        Lesson {String(index + 1).padStart(2, '0')}
+                      </div>
+                      <div className={`teacher-license-lesson-status ${isOpenable ? 'is-ready' : 'is-soon'}`}>
+                        {isOpenable ? 'เปิดอ่าน' : 'Soon'}
+                      </div>
+                    </div>
+
+                    <div className="mt-8 flex flex-1 flex-col justify-between gap-8">
+                      <div>
+                        <div className="teacher-license-lesson-icon flex items-center justify-center transition-all duration-300">
+                        <Icon className="h-9 w-9 transition-all duration-300" />
+                        </div>
+
+                        <h3 className={`teacher-license-lesson-title mt-6 max-w-[24rem] text-2xl font-black leading-tight transition-all duration-300 md:text-3xl ${isDark ? 'text-white' : 'text-slate-950'}`}>
+                          {lesson.title}
+                        </h3>
+
+                        <p className={`mt-3 text-sm font-semibold leading-6 ${isDark ? 'text-white/62' : 'text-slate-600'}`}>
+                          {lesson.description}
+                        </p>
+                      </div>
+
+                      <div className="teacher-license-lesson-footer">
+                        <span>สนามสอบใบประกอบฯ</span>
+                        <div>
+                          {isOpenable ? 'เริ่มบทเรียน' : 'รอเพิ่มเนื้อหา'}
+                          <Play className="h-4 w-4" />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </motion.button>
+              );
+            })}
+          </div>
+        </section>
+
+        <section className={`mt-8 overflow-hidden rounded-3xl border p-6 md:p-8 ${surfaceClass}`}>
+          <div className="grid gap-5 md:grid-cols-[1fr_auto] md:items-center">
+            <div>
+              <p className="text-sm font-black uppercase tracking-[0.18em] text-amber-400">Next Build</p>
+              <h2 className="mt-2 text-3xl font-black">พร้อมต่อระบบบทเรียนจริงและข้อสอบใบประกอบฯ</h2>
+              <p className={`mt-3 max-w-2xl text-sm font-semibold leading-7 ${mutedText}`}>
+                หน้าแรกนี้วางโครงสนามสอบไว้แล้ว รอบถัดไปสามารถเติมเนื้อหา บทเรียนย่อย แบบทดสอบ และระบบสถิติได้ทันที
+              </p>
+            </div>
+            <div className={`inline-flex items-center justify-center gap-3 rounded-full px-5 py-3 text-sm font-black ${isDark ? 'bg-white/10 text-white' : 'bg-slate-950 text-white'}`}>
+              <BookOpenCheck className="h-5 w-5" />
+              6 Lessons Ready
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+  );
+};
 
 export default TeacherLicenseMockup;
