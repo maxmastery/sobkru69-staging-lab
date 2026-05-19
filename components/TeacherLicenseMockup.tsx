@@ -248,18 +248,40 @@ const TeacherLicenseMockup: React.FC<TeacherLicenseMockupProps> = ({ theme = 'da
                   viewport={{ once: true, margin: '-80px' }}
                   transition={{ duration: 0.42, delay: Math.min(index * 0.035, 0.18) }}
                 >
-                  <div className="topic-section-card-sheen pointer-events-none absolute inset-0 opacity-70" />
-                  <div className="topic-section-card-orb pointer-events-none absolute left-1/2 top-[32%] h-36 w-36 -translate-x-1/2 rounded-full opacity-70 blur-2xl transition duration-500 group-hover:scale-125 group-hover:opacity-100" />
+                  <div className={`topic-section-card-orb pointer-events-none absolute -right-20 -top-24 h-64 w-64 rounded-full bg-gradient-to-br ${lesson.accent} opacity-25 blur-2xl transition duration-500 group-hover:scale-125 group-hover:opacity-80`} />
+                  <div className="topic-section-card-sheen pointer-events-none absolute inset-0 bg-[linear-gradient(145deg,rgba(255,255,255,.12),transparent_42%,rgba(255,255,255,.06))] opacity-60" />
+                  <div className={`topic-section-card-fade pointer-events-none absolute inset-x-0 bottom-0 h-1/2 translate-y-8 bg-gradient-to-t ${isDark ? 'from-slate-950/75' : 'from-white/90'} to-transparent opacity-80 transition duration-500 group-hover:translate-y-0`} />
 
                   <div className="teacher-license-lesson-shell relative flex min-h-[inherit] w-full flex-col p-6 md:p-7">
-                    <div className="topic-section-card-main teacher-license-lesson-main flex flex-1 flex-col items-center justify-center gap-9 text-center transition-transform duration-500">
+                    <div className="topic-section-card-main teacher-license-lesson-main flex flex-1 items-center transition-transform duration-500">
                       <div className="teacher-license-lesson-icon flex items-center justify-center transition-all duration-300">
                         <Icon className="h-9 w-9 transition-all duration-300" />
                       </div>
 
-                      <h3 className={`teacher-license-lesson-title max-w-[24rem] text-center text-2xl font-black leading-tight transition-all duration-300 md:text-3xl ${isDark ? 'text-white' : 'text-slate-950'}`}>
+                      <h3 className={`teacher-license-lesson-title max-w-[24rem] text-2xl font-black leading-tight transition-all duration-300 md:text-3xl ${isDark ? 'text-white' : 'text-slate-950'}`}>
                         {lesson.title}
                       </h3>
+                    </div>
+
+                    <div className="topic-section-card-details teacher-license-lesson-details absolute inset-x-6 bottom-10 max-w-[340px] translate-y-6 opacity-0 transition-all duration-500 group-hover:translate-y-0 group-hover:opacity-100 md:bottom-12">
+                      <div className={`mb-2 text-xs font-black uppercase tracking-[0.18em] ${isDark ? 'text-amber-200/75' : 'text-amber-700'}`}>
+                        Lesson {String(index + 1).padStart(2, '0')}
+                      </div>
+                      <p className={`text-sm font-semibold leading-6 ${isDark ? 'text-white/62' : 'text-slate-600'}`}>
+                        {lesson.description}
+                      </p>
+                      <div className="mt-4 flex items-center justify-between text-xs font-black uppercase tracking-[0.12em] text-current/45">
+                        <span>Progress</span>
+                        <span className={isDark ? 'text-amber-200' : 'text-amber-700'}>
+                          {isOpenable ? 'เริ่มอ่าน' : 'Soon'}
+                        </span>
+                      </div>
+                      <div className={`topic-progress-track mt-2 h-3 overflow-hidden rounded-full ring-1 ${isDark ? 'bg-white/12 ring-white/10' : 'bg-slate-200 ring-slate-950/5'}`}>
+                        <div
+                          className={`topic-progress-fill h-full rounded-full bg-gradient-to-r ${lesson.accent} shadow-[0_0_22px_rgba(250,204,21,.32)] transition-all duration-700`}
+                          style={{ width: '0%' }}
+                        />
+                      </div>
                     </div>
                   </div>
                 </motion.button>
