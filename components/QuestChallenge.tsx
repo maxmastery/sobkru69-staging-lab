@@ -12,24 +12,38 @@ import {
 } from 'lucide-react';
 import type { User } from '../services/authService';
 import type { FeatureTheme } from './FeatureThemeToggle';
-import { getQuestProgress, QUEST_LEVELS, type QuestLevel } from '../lib/questSystem';
+import { StandardExam, type Question } from './StandardExam';
+import { getQuestThaiLevelQuestions, hasQuestThaiLevelExam, QUEST_THAI_LEVEL_DURATION_SECONDS } from '../data/questThaiLevels';
+import {
+  completeQuestLevel,
+  getQuestAccuracyStats,
+  getQuestProgress,
+  QUEST_LEVELS,
+  recordQuestLevelResult,
+  type QuestLevel,
+} from '../lib/questSystem';
 
 interface QuestChallengeProps {
   user: User;
   onBack: () => void;
   onOpenLessons: () => void;
   theme?: FeatureTheme;
+  onToggleTheme?: () => void;
 }
 
 const questionSlots = Array.from({ length: 30 }, (_, index) => index + 1);
 
-const QuestChallenge: React.FC<QuestChallengeProps> = ({ user, onBack, onOpenLessons, theme = 'dark' }) => {
-  const progress = useMemo(() => getQuestProgress(user.id), [user.id]);
+const QuestChallenge: React.FC<QuestChallengeProps> = ({ user, onBack, onOpenLessons, theme = 'dark', onToggleTheme = () => {} }) => {
+  const [progress, setProgress] = useState(() => getQuestProgress(user.id));
   const clearedLevels = useMemo(() => new Set(progress.clearedLevels), [progress.clearedLevels]);
+  const accuracyStats = useMemo(() => getQuestAccuracyStats(progress), [progress]);
   const [selectedLevel, setSelectedLevel] = useState<QuestLevel | null>(null);
+  const [activeExamLevel, setActiveExamLevel] = useState<QuestLevel | null>(null);
+  const [activeExamQuestions, setActiveExamQuestions] = useState<Question[]>([]);
   const clearedCount = clearedLevels.size;
   const clearedPercent = Math.round((clearedCount / QUEST_LEVELS.length) * 100);
   const backButtonLabel = selectedLevel ? 'กลับสู่ด่านทั้งหมด' : 'กลับหน้าหลัก';
+  const selectedLevelHasExam = selectedLevel ? hasQuestThaiLevelExam(selectedLevel.level) : false;
 
   const backFromDetail = () => setSelectedLevel(null);
   const handleBack = () => {
@@ -43,6 +57,62 @@ const QuestChallenge: React.FC<QuestChallengeProps> = ({ user, onBack, onOpenLes
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [selectedLevel]);
+
+  useEffect(() => {
+    setProgress(getQuestProgress(user.id));
+  }, [user.id]);
+
+  const startQuestExam = (level: QuestLevel) => {
+    if (!hasQuestThaiLevelExam(level.level)) {
+      onOpenLessons();
+      return;
+    }
+
+    setActiveExamQuestions(getQuestThaiLevelQuestions(level.level, level.questionCount));
+    setActiveExamLevel(level);
+  };
+
+  const closeQuestExam = () => {
+    setActiveExamLevel(null);
+    setActiveExamQuestions([]);
+  };
+
+  const handleQuestExamComplete = (data: { score: number; total: number; answeredCount: number; durationSeconds: number; isCompleted: boolean; examKey: string }) => {
+    if (!activeExamLevel || !data.isCompleted) {
+      return;
+    }
+
+    const result = {
+      correct: data.score,
+      total: data.total,
+      answeredCount: data.answeredCount,
+    };
+    const percentage = data.total > 0 ? (data.score / data.total) * 100 : 0;
+    const nextProgress = percentage >= activeExamLevel.passPercent
+      ? completeQuestLevel(user.id, activeExamLevel.level, activeExamLevel.exp, result)
+      : recordQuestLevelResult(user.id, activeExamLevel.level, result);
+
+    setProgress(nextProgress);
+  };
+
+  if (activeExamLevel && activeExamQuestions.length > 0) {
+    return (
+      <StandardExam
+        title={`พิชิต 100 ด่านอรหันต์: Level ${activeExamLevel.level} ${activeExamLevel.topicTitle}`}
+        durationSeconds={QUEST_THAI_LEVEL_DURATION_SECONDS}
+        questions={activeExamQuestions}
+        onBack={closeQuestExam}
+        examKey={`quest_level_${activeExamLevel.level}`}
+        onExamComplete={handleQuestExamComplete}
+        theme={theme}
+        onToggleTheme={onToggleTheme}
+        passPercent={activeExamLevel.passPercent}
+        revealAnswers="passedOnly"
+        resultBackLabel="กลับสู่หน้า Level"
+        stopWarningDescription="ระบบจะไม่นำครั้งนี้ไปคำนวณอัตราการตอบถูก และจะไม่แสดงเฉลยจนกว่าจะส่งข้อสอบจริง"
+      />
+    );
+  }
 
   return (
     <div className={`quest-challenge-page quest-challenge-page--${theme}`}>
@@ -98,8 +168,8 @@ const QuestChallenge: React.FC<QuestChallengeProps> = ({ user, onBack, onOpenLes
                 <div className="quest-stage-stat quest-stage-stat--green">
                   <ShieldCheck className="h-6 w-6" />
                   <div>
-                    <div className="text-2xl font-black">75%</div>
-                    <div className="text-xs font-black uppercase tracking-[0.2em] text-slate-400">Pass Rate</div>
+                    <div className="text-2xl font-black">{accuracyStats.percent}%</div>
+                    <div className="text-xs font-black uppercase tracking-[0.2em] text-slate-400">Accuracy Rate</div>
                   </div>
                 </div>
               </div>
@@ -168,7 +238,7 @@ const QuestChallenge: React.FC<QuestChallengeProps> = ({ user, onBack, onOpenLes
                       <div className="quest-stage-stat">
                         <Lock className="h-5 w-5 text-amber-200" />
                         <div>
-                          <div className="text-xl font-black">ไม่มีเฉลย</div>
+                          <div className="text-xl font-black">เฉลยหลังผ่าน</div>
                           <div className="text-[11px] font-black uppercase tracking-[0.16em] text-slate-400">Exam Mode</div>
                         </div>
                       </div>
@@ -177,12 +247,16 @@ const QuestChallenge: React.FC<QuestChallengeProps> = ({ user, onBack, onOpenLes
 
                   <aside className="quest-stage-prep-card">
                     <BookOpenCheck className="h-10 w-10 text-amber-200" />
-                    <h3 className="mt-5 text-2xl font-black">เตรียมข้อสอบ</h3>
+                    <h3 className="mt-5 text-2xl font-black">
+                      {selectedLevelHasExam ? 'แบบทดสอบจริงพร้อมแล้ว' : 'กำลังเตรียมข้อสอบ'}
+                    </h3>
                     <p className="mt-3 text-sm font-semibold leading-7 text-slate-300">
-                      หน้านี้เป็นโครงสำหรับ Level นี้ก่อน ระบบจะผูกข้อสอบจริง 30 ข้อในขั้นถัดไป
+                      {selectedLevelHasExam
+                        ? 'สุ่มข้อและสลับตัวเลือกทุกครั้ง มีเวลา 60 นาที ส่งแล้วจึงนับคะแนนเข้าสู่ Accuracy Rate ส่วนเฉลยจะเปิดเมื่อผ่าน 75%'
+                        : 'Level นี้ยังอยู่ในคิวเพิ่มข้อสอบจริง สามารถกลับไปทบทวนบทเรียนจาก Lesson Gallery ก่อนได้'}
                     </p>
-                    <button onClick={onOpenLessons} className="quest-level-test-button mt-6 inline-flex min-h-11 items-center justify-center rounded-full px-5 py-2 text-sm font-black transition hover:-translate-y-0.5">
-                      ทำแบบทดสอบ
+                    <button onClick={() => startQuestExam(selectedLevel)} className="quest-level-test-button mt-6 inline-flex min-h-11 items-center justify-center rounded-full px-5 py-2 text-sm font-black transition hover:-translate-y-0.5">
+                      {selectedLevelHasExam ? 'ทำแบบทดสอบจริง' : 'เปิด Lesson Gallery'}
                     </button>
                   </aside>
                 </div>
@@ -191,7 +265,7 @@ const QuestChallenge: React.FC<QuestChallengeProps> = ({ user, onBack, onOpenLes
                   <div className="mb-4 flex items-center justify-between gap-4">
                     <h3 className="text-lg font-black text-white">ชุดข้อสอบ 30 ข้อ</h3>
                     <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-black text-slate-300">
-                      Placeholder
+                      {selectedLevelHasExam ? 'Randomized Exam' : 'Placeholder'}
                     </span>
                   </div>
                   <div className="quest-question-grid">

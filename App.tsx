@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import PublicQuestLanding from './components/PublicQuestLanding';
-import ExamTrackSelection, { ExamTrack } from './components/ExamTrackSelection';
+import ExamTrackSelection, { EXAM_TRACKS, ExamTrack, ExamTrackLaunchOverlay } from './components/ExamTrackSelection';
 import QuestDashboard from './components/QuestDashboard';
 import QuestChallenge from './components/QuestChallenge';
 import TopicList from './components/TopicList';
@@ -17,6 +17,7 @@ import NewsPage from './components/NewsPage';
 import DiscussionBoard from './components/DiscussionBoard';
 import ShopPage from './components/ShopPage';
 import MockExamDemo from './components/MockExamDemo';
+import TeacherLicenseMockup from './components/TeacherLicenseMockup';
 import DailyEnglishPage from './components/DailyEnglishPage';
 import KnowledgeGraphView from './components/knowledge-graph/KnowledgeGraphView';
 import ContactSupport from './components/ContactSupport';
@@ -43,10 +44,33 @@ const APP_THEME_STORAGE_KEY = 'sobkru69_app_theme';
 const LESSON_THEME_STORAGE_KEY = 'sobkru69_lesson_theme';
 const FEATURE_THEME_STORAGE_KEY = 'sobkru69_feature_theme';
 
+const ExamTrackToggleButton: React.FC<{
+  selectedTrack: ExamTrack;
+  pendingTrack: ExamTrack | null;
+  onSelect: (track: ExamTrack) => void;
+}> = ({ selectedTrack, pendingTrack, onSelect }) => {
+  const activeTrack = pendingTrack || selectedTrack;
+  const nextTrack: ExamTrack = activeTrack === 'teacher-assistant' ? 'teacher-license' : 'teacher-assistant';
+
+  return (
+    <button
+      type="button"
+      className={`exam-track-toggle exam-track-toggle--${activeTrack}`}
+      onClick={() => onSelect(nextTrack)}
+      aria-label={`สลับสนามสอบเป็น ${nextTrack === 'teacher-assistant' ? 'ครูผู้ช่วย' : 'ใบประกอบ'}`}
+      aria-busy={pendingTrack ? 'true' : 'false'}
+    >
+      <span className="exam-track-toggle__thumb" aria-hidden="true" />
+      <span className={`exam-track-toggle__label ${activeTrack === 'teacher-assistant' ? 'is-active' : ''}`}>ครูผู้ช่วย</span>
+      <span className={`exam-track-toggle__label ${activeTrack === 'teacher-license' ? 'is-active' : ''}`}>ใบประกอบ</span>
+    </button>
+  );
+};
+
 const getStoredExamTrack = (userId: string): ExamTrack | null => {
   if (typeof window === 'undefined') return null;
   const value = window.localStorage.getItem(`${EXAM_TRACK_STORAGE_PREFIX}${userId}`);
-  return value === 'teacher-assistant' ? value : null;
+  return value === 'teacher-assistant' || value === 'teacher-license' ? value : null;
 };
 
 const saveStoredExamTrack = (userId: string, track: ExamTrack) => {
@@ -182,6 +206,7 @@ const App: React.FC = () => {
   const [authGateMessage, setAuthGateMessage] = useState('');
   const [authModalMode, setAuthModalMode] = useState<'login' | 'register'>('login');
   const [selectedExamTrack, setSelectedExamTrack] = useState<ExamTrack | null>(null);
+  const [launchExamTrack, setLaunchExamTrack] = useState<ExamTrack | null>(null);
 
   // New states for profile menu and views
   const [showProfileMenu, setShowProfileMenu] = useState(false);
@@ -198,6 +223,7 @@ const App: React.FC = () => {
   const [appTheme, setAppTheme] = useState<AppTheme>(getStoredAppTheme);
   const [lessonTheme, setLessonTheme] = useState<AppTheme>(getStoredLessonTheme);
   const menuRef = useRef<HTMLDivElement>(null);
+  const launchExamTrackTimerRef = useRef<number | null>(null);
 
   // Bell Notifications
   const [showBellPanel, setShowBellPanel] = useState(false);
@@ -392,11 +418,19 @@ const App: React.FC = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  useEffect(() => {
+    return () => {
+      if (launchExamTrackTimerRef.current !== null) {
+        window.clearTimeout(launchExamTrackTimerRef.current);
+      }
+    };
+  }, []);
+
 
   // Scroll to top when page changes
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'auto' });
-  }, [currentPage, currentPart, currentTopic, showLearningStats]);
+  }, [currentPage, currentPart, currentTopic, selectedExamTrack, showLearningStats]);
 
   useEffect(() => {
     const pageLabel = currentTopic?.id
@@ -605,11 +639,11 @@ const App: React.FC = () => {
   };
 
   const handleSelectExamTrack = (track: ExamTrack) => {
-    if (track === 'teacher-license') return;
     if (user) {
       saveStoredExamTrack(user.id, track);
     }
     setSelectedExamTrack(track);
+    setLaunchExamTrack(null);
     setCurrentPage('dashboard');
     setCurrentPart(null);
     setCurrentTopic(null);
@@ -619,7 +653,26 @@ const App: React.FC = () => {
     }
   };
 
+  const handleSwitchExamTrack = (track: ExamTrack) => {
+    if (track === selectedExamTrack || launchExamTrack) return;
+    if (launchExamTrackTimerRef.current !== null) {
+      window.clearTimeout(launchExamTrackTimerRef.current);
+    }
+
+    setLaunchExamTrack(track);
+    setShowProfileMenu(false);
+    launchExamTrackTimerRef.current = window.setTimeout(() => {
+      handleSelectExamTrack(track);
+      launchExamTrackTimerRef.current = null;
+    }, 1200);
+  };
+
   const handleOpenExamTrackSelection = () => {
+    if (launchExamTrackTimerRef.current !== null) {
+      window.clearTimeout(launchExamTrackTimerRef.current);
+      launchExamTrackTimerRef.current = null;
+    }
+    setLaunchExamTrack(null);
     setSelectedExamTrack(null);
     setCurrentPage('dashboard');
     setCurrentPart(null);
@@ -703,10 +756,15 @@ const App: React.FC = () => {
   };
 
   const handleLogout = async () => {
+    if (launchExamTrackTimerRef.current !== null) {
+      window.clearTimeout(launchExamTrackTimerRef.current);
+      launchExamTrackTimerRef.current = null;
+    }
     await authService.logout();
     setAuthBootstrapError('');
     setUser(null);
     setSelectedExamTrack(null);
+    setLaunchExamTrack(null);
     setUserUiState(EMPTY_UI_STATE);
     setCurrentPart(null);
     setCurrentTopic(null);
@@ -926,6 +984,7 @@ const App: React.FC = () => {
           user={user}
           onBack={handleBackToDashboard}
           theme={appTheme}
+          onToggleTheme={toggleAppTheme}
           onOpenLessons={() => {
             setCurrentPage('dashboard');
             setCurrentPart(EXAM_CURRICULUM[0]);
@@ -963,7 +1022,12 @@ const App: React.FC = () => {
     }
 
     if (!currentPart && selectedExamTrack === 'teacher-license') {
-      return <ExamTrackSelection userName={user.name} onSelect={handleSelectExamTrack} />;
+      return (
+        <TeacherLicenseMockup
+          onBackToSelector={handleOpenExamTrackSelection}
+          theme={appTheme}
+        />
+      );
     }
 
     if (!currentPart) {
@@ -1015,6 +1079,8 @@ const App: React.FC = () => {
     );
   };
 
+  const launchExamTrackMeta = EXAM_TRACKS.find(track => track.id === launchExamTrack) || null;
+
   return (
     <div className={`app-shell app-shell--${shellTheme} min-h-screen font-sans flex flex-col relative transition-colors duration-500 ${isDarkShell ? 'bg-[#070b16] text-slate-100' : 'bg-slate-50 text-slate-900'}`}>
       {/* Header with User Info */}
@@ -1023,10 +1089,19 @@ const App: React.FC = () => {
           ? 'border-slate-800/80 bg-slate-950/92 shadow-[0_14px_48px_rgba(0,0,0,.28)] backdrop-blur-xl'
           : 'border-slate-200 bg-white'
       }`}>
-        <div className="flex cursor-pointer items-center gap-1 shrink-0" onClick={() => { setShowLearningStats(false); handleBackToDashboard(); }}>
-          <span className={`text-lg font-black tracking-tight ${isDarkShell ? 'text-slate-100' : 'text-slate-900'}`}>
-            SobKru <span className="text-orange-500">69</span>
-          </span>
+        <div className="flex min-w-0 shrink-0 items-center gap-4">
+          <div className="flex cursor-pointer items-center gap-1 shrink-0" onClick={() => { setShowLearningStats(false); handleBackToDashboard(); }}>
+            <span className={`text-lg font-black tracking-tight ${isDarkShell ? 'text-slate-100' : 'text-slate-900'}`}>
+              SobKru <span className="text-orange-500">69</span>
+            </span>
+          </div>
+          {selectedExamTrack && (
+            <ExamTrackToggleButton
+              selectedTrack={selectedExamTrack}
+              pendingTrack={launchExamTrack}
+              onSelect={handleSwitchExamTrack}
+            />
+          )}
         </div>
 
         {/* Marquee Section */}
@@ -1216,6 +1291,8 @@ const App: React.FC = () => {
           onMarkAsRead={handleMarkNotifAsRead}
         />
       )}
+
+      <ExamTrackLaunchOverlay track={launchExamTrackMeta} userName={user.name} />
 
       {/* Logout Confirmation Modal */}
       {showLogoutConfirm && (

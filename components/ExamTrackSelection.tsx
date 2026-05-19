@@ -9,7 +9,7 @@ interface ExamTrackSelectionProps {
   onSelect: (track: ExamTrack) => void;
 }
 
-const tracks = [
+export const EXAM_TRACKS = [
   {
     id: 'teacher-assistant' as const,
     title: 'บรรจุครูผู้ช่วย',
@@ -23,18 +23,72 @@ const tracks = [
   {
     id: 'teacher-license' as const,
     title: 'ใบประกอบวิชาชีพครู',
-    subtitle: 'พื้นที่เตรียมสอบใบประกอบฯ',
-    body: 'โครงสร้างบทเรียนสำหรับสอบใบประกอบวิชาชีพครู เตรียมไว้สำหรับการพัฒนาชุดถัดไป',
+    subtitle: 'สนามสอบใหม่สำหรับใบประกอบฯ',
+    body: 'หน้าหลักหลักสูตรใบประกอบวิชาชีพครู พร้อมโครงบทเรียน 7 เรื่องสำหรับต่อระบบจริง',
     imageUrl: 'https://cribfrwvdpshvdpxgnuc.supabase.co/storage/v1/object/public/sobkru-images/krutoppic%202.png',
     icon: BadgeCheck,
-    cta: 'กำลังมาเร็ว ๆ นี้',
-    disabled: true,
+    cta: 'เลือกสายใบประกอบฯ',
+    disabled: false,
   },
 ];
 
+export type ExamTrackConfig = typeof EXAM_TRACKS[number];
+
+export const ExamTrackLaunchOverlay: React.FC<{ track: ExamTrackConfig | null; userName?: string }> = ({ track, userName }) => (
+  <AnimatePresence>
+    {track && (
+      <motion.div
+        className="fixed inset-0 z-[90] flex items-center justify-center overflow-hidden bg-slate-950 text-white"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.18 }}
+      >
+        <motion.img
+          src={track.imageUrl}
+          alt=""
+          className="absolute inset-0 h-full w-full object-cover"
+          initial={{ scale: 1.18, opacity: 0.35 }}
+          animate={{ scale: 1.02, opacity: 0.72 }}
+          transition={{ duration: 1.05, ease: [0.2, 0.8, 0.2, 1] }}
+        />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(250,204,21,.15),transparent_26%),linear-gradient(90deg,rgba(2,6,23,.96),rgba(2,6,23,.58),rgba(2,6,23,.96))]" />
+        <motion.div
+          className="absolute h-[34rem] w-[34rem] rounded-full border border-amber-200/20"
+          initial={{ scale: 0.15, opacity: 0 }}
+          animate={{ scale: 1.45, opacity: [0, 0.9, 0] }}
+          transition={{ duration: 1.05, ease: 'easeOut' }}
+        />
+        <motion.div
+          className="absolute h-[22rem] w-[22rem] rounded-full border border-white/15"
+          initial={{ scale: 0.2, opacity: 0 }}
+          animate={{ scale: 1.9, opacity: [0, 0.55, 0] }}
+          transition={{ duration: 1.05, delay: 0.12, ease: 'easeOut' }}
+        />
+        <motion.div
+          className="absolute inset-y-0 w-1/3 -skew-x-12 bg-gradient-to-r from-transparent via-amber-200/25 to-transparent blur-xl"
+          initial={{ x: '-65vw', opacity: 0 }}
+          animate={{ x: '65vw', opacity: [0, 1, 0] }}
+          transition={{ duration: 0.95, ease: [0.2, 0.8, 0.2, 1] }}
+        />
+        <motion.div
+          className="relative z-10 text-center"
+          initial={{ y: 28, scale: 0.94, opacity: 0 }}
+          animate={{ y: 0, scale: 1, opacity: 1 }}
+          transition={{ duration: 0.55, ease: [0.2, 0.8, 0.2, 1] }}
+        >
+          <p className="text-xs font-black uppercase tracking-[0.28em] text-amber-200/90">Launching Exam Track</p>
+          <h2 className="mt-4 text-5xl font-black tracking-tight md:text-7xl">{track.title}</h2>
+          <p className="mt-4 text-lg font-bold text-white/65">{userName ? `${userName} กำลังเข้าสู่สนามสอบ` : 'กำลังเข้าสู่สนามสอบ'}</p>
+        </motion.div>
+      </motion.div>
+    )}
+  </AnimatePresence>
+);
+
 const ExamTrackSelection: React.FC<ExamTrackSelectionProps> = ({ userName, onSelect }) => {
   const [launchTrackId, setLaunchTrackId] = useState<ExamTrack | null>(null);
-  const launchTrack = tracks.find(track => track.id === launchTrackId);
+  const launchTrack = EXAM_TRACKS.find(track => track.id === launchTrackId);
 
   useEffect(() => {
     if (!launchTrackId) return;
@@ -42,7 +96,7 @@ const ExamTrackSelection: React.FC<ExamTrackSelectionProps> = ({ userName, onSel
     return () => window.clearTimeout(timer);
   }, [launchTrackId, onSelect]);
 
-  const handleSelectTrack = (track: typeof tracks[number]) => {
+  const handleSelectTrack = (track: ExamTrackConfig) => {
     if (track.disabled || launchTrackId) return;
     setLaunchTrackId(track.id);
   };
@@ -62,7 +116,7 @@ const ExamTrackSelection: React.FC<ExamTrackSelectionProps> = ({ userName, onSel
         </div>
 
         <div className="grid gap-5 lg:grid-cols-2">
-          {tracks.map(track => {
+          {EXAM_TRACKS.map(track => {
             const content = (
               <>
                 <img src={track.imageUrl} alt={track.title} className={`absolute inset-0 h-full w-full object-cover transition duration-500 ${track.disabled ? 'grayscale opacity-60 saturate-75' : 'group-hover:scale-105'}`} />
@@ -107,55 +161,7 @@ const ExamTrackSelection: React.FC<ExamTrackSelectionProps> = ({ userName, onSel
         </div>
       </div>
 
-      <AnimatePresence>
-        {launchTrack && (
-          <motion.div
-            className="fixed inset-0 z-[90] flex items-center justify-center overflow-hidden bg-slate-950 text-white"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.18 }}
-          >
-            <motion.img
-              src={launchTrack.imageUrl}
-              alt=""
-              className="absolute inset-0 h-full w-full object-cover"
-              initial={{ scale: 1.18, opacity: 0.35 }}
-              animate={{ scale: 1.02, opacity: 0.72 }}
-              transition={{ duration: 1.05, ease: [0.2, 0.8, 0.2, 1] }}
-            />
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(250,204,21,.15),transparent_26%),linear-gradient(90deg,rgba(2,6,23,.96),rgba(2,6,23,.58),rgba(2,6,23,.96))]" />
-            <motion.div
-              className="absolute h-[34rem] w-[34rem] rounded-full border border-amber-200/20"
-              initial={{ scale: 0.15, opacity: 0 }}
-              animate={{ scale: 1.45, opacity: [0, 0.9, 0] }}
-              transition={{ duration: 1.05, ease: 'easeOut' }}
-            />
-            <motion.div
-              className="absolute h-[22rem] w-[22rem] rounded-full border border-white/15"
-              initial={{ scale: 0.2, opacity: 0 }}
-              animate={{ scale: 1.9, opacity: [0, 0.55, 0] }}
-              transition={{ duration: 1.05, delay: 0.12, ease: 'easeOut' }}
-            />
-            <motion.div
-              className="absolute inset-y-0 w-1/3 -skew-x-12 bg-gradient-to-r from-transparent via-amber-200/25 to-transparent blur-xl"
-              initial={{ x: '-65vw', opacity: 0 }}
-              animate={{ x: '65vw', opacity: [0, 1, 0] }}
-              transition={{ duration: 0.95, ease: [0.2, 0.8, 0.2, 1] }}
-            />
-            <motion.div
-              className="relative z-10 text-center"
-              initial={{ y: 28, scale: 0.94, opacity: 0 }}
-              animate={{ y: 0, scale: 1, opacity: 1 }}
-              transition={{ duration: 0.55, ease: [0.2, 0.8, 0.2, 1] }}
-            >
-              <p className="text-xs font-black uppercase tracking-[0.28em] text-amber-200/90">Launching Exam Track</p>
-              <h2 className="mt-4 text-5xl font-black tracking-tight md:text-7xl">{launchTrack.title}</h2>
-              <p className="mt-4 text-lg font-bold text-white/65">{userName ? `${userName} กำลังเข้าสู่สนามสอบ` : 'กำลังเข้าสู่สนามสอบ'}</p>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <ExamTrackLaunchOverlay track={launchTrack || null} userName={userName} />
     </div>
   );
 };

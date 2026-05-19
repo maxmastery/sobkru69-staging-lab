@@ -98,7 +98,7 @@ const TopicList: React.FC<TopicListProps> = ({ part, onBack, onSelectTopic, them
       <div className="relative mx-auto max-w-7xl px-5 pb-8 pt-3 md:px-8 md:pb-10 md:pt-4">
         <header className="mt-1 animate-[sobkruRise_.45s_ease-out_both] text-center md:mt-2">
           <div>
-            <p className="inline-flex rounded-full border border-amber-200/20 bg-amber-300/10 px-7 py-3 text-2xl font-black tracking-[0.08em] text-amber-200 shadow-[0_0_28px_rgba(250,204,21,.08)] md:text-3xl">
+            <p className="topic-part-pill inline-flex rounded-full border border-amber-200/20 bg-amber-300/10 px-7 py-3 text-2xl font-black tracking-[0.08em] text-amber-200 shadow-[0_0_28px_rgba(250,204,21,.08)] md:text-3xl">
               {part.title}
             </p>
             <h1 className="mx-auto mt-8 max-w-none text-4xl font-black leading-[1.05] tracking-tight md:whitespace-nowrap md:text-5xl xl:text-6xl" style={{ fontFamily: 'var(--sobkru-font-display)' }}>
@@ -129,7 +129,7 @@ const TopicList: React.FC<TopicListProps> = ({ part, onBack, onSelectTopic, them
                   layoutId={`section-card-${section.id}`}
                   type="button"
                   onClick={() => openSectionMap(section)}
-                  className={`topic-section-card group relative flex min-h-[340px] animate-[sobkruCardStack_.45s_ease-out_both] flex-col items-center justify-center overflow-hidden rounded-[30px] border border-white/10 bg-white/[.07] text-center shadow-2xl shadow-black/20 ring-1 ${accent.ring} backdrop-blur-xl transition-[opacity,filter,border-color,background-color,box-shadow] duration-300 ease-out hover:z-20 hover:border-amber-200/45 hover:bg-white/[.12] hover:shadow-[0_0_0_1px_rgba(254,240,138,.24),0_32px_90px_rgba(0,0,0,.42)] md:min-h-[380px] ${section.isSelfStudy ? 'cursor-default' : ''} ${isActiveSection ? 'opacity-0' : ''} ${isPushedAside ? `${pushDirection} scale-90 opacity-0 blur-sm` : ''}`}
+                  className={`topic-section-card topic-lesson-card group relative flex min-h-[340px] animate-[sobkruCardStack_.45s_ease-out_both] flex-col items-center justify-center overflow-hidden rounded-[30px] border border-white/10 bg-white/[.07] text-center shadow-2xl shadow-black/20 ring-1 ${accent.ring} backdrop-blur-xl transition-[opacity,filter,border-color,background-color,box-shadow] duration-300 ease-out hover:z-20 hover:border-amber-200/45 hover:bg-white/[.12] hover:shadow-[0_0_0_1px_rgba(254,240,138,.24),0_32px_90px_rgba(0,0,0,.42)] md:min-h-[380px] ${section.isSelfStudy ? 'cursor-default' : ''} ${isActiveSection ? 'opacity-0' : ''} ${isPushedAside ? `${pushDirection} scale-90 opacity-0 blur-sm` : ''}`}
                   style={{ animationDelay: `${sectionIndex * 70}ms` }}
                   transition={{ layout: { duration: 0.52, ease: [0.2, 0.8, 0.2, 1] } }}
                 >
@@ -139,7 +139,7 @@ const TopicList: React.FC<TopicListProps> = ({ part, onBack, onSelectTopic, them
 
                   <div className="relative flex w-full flex-1 flex-col items-center justify-center p-6 md:p-7">
                     <div className="topic-section-card-main absolute inset-0 flex flex-col items-center justify-center px-6 transition-transform duration-500 group-hover:-translate-y-16 md:px-8">
-                      <div className="flex items-center justify-center text-amber-100 transition-all duration-300 group-hover:text-amber-200">
+                      <div className="topic-section-card-icon flex items-center justify-center text-amber-100 transition-all duration-300 group-hover:text-amber-200">
                         <Icon className="h-12 w-12 transition-all duration-300 group-hover:h-8 group-hover:w-8" />
                       </div>
 

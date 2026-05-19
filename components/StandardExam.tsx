@@ -20,6 +20,10 @@ interface StandardExamProps {
   onExamComplete?: (data: { score: number; total: number; answeredCount: number; durationSeconds: number; isCompleted: boolean; examKey: string }) => void;
   theme?: FeatureTheme;
   onToggleTheme?: () => void;
+  passPercent?: number;
+  revealAnswers?: 'always' | 'passedOnly';
+  resultBackLabel?: string;
+  stopWarningDescription?: string;
 }
 
 const OPTION_LABELS = ['ก', 'ข', 'ค', 'ง'];
@@ -51,7 +55,20 @@ const renderTextWithMathSymbols = (text: string) => {
   return parts.length > 0 ? parts : normalizedText;
 };
 
-export const StandardExam: React.FC<StandardExamProps> = ({ title, durationSeconds, questions, onBack, examKey = '', onExamComplete, theme = 'light', onToggleTheme = () => {} }) => {
+export const StandardExam: React.FC<StandardExamProps> = ({
+  title,
+  durationSeconds,
+  questions,
+  onBack,
+  examKey = '',
+  onExamComplete,
+  theme = 'light',
+  onToggleTheme = () => {},
+  passPercent = 60,
+  revealAnswers = 'always',
+  resultBackLabel = 'กลับสู่หน้าหลัก',
+  stopWarningDescription = 'ระบบจะบันทึกผลการทำข้อสอบจนถึงตอนที่หยุด แต่จะไม่เห็นเฉลย',
+}) => {
   const [timeLeft, setTimeLeft] = useState(durationSeconds);
   const [isFinished, setIsFinished] = useState(false);
   
@@ -79,6 +96,18 @@ export const StandardExam: React.FC<StandardExamProps> = ({ title, durationSecon
     }, 1000);
 
     return () => clearInterval(timer);
+  }, [isFinished]);
+
+  useEffect(() => {
+    if (!isFinished || hasReportedRef.current || !onExamComplete) {
+      return;
+    }
+
+    hasReportedRef.current = true;
+    const score = calculateScore();
+    const elapsed = durationSeconds - timeLeft;
+    const answeredCount = Object.keys(answers).length;
+    onExamComplete({ score, total: questions.length, answeredCount, durationSeconds: elapsed, isCompleted: true, examKey });
   }, [isFinished]);
 
   const formatTime = (seconds: number) => {
@@ -132,16 +161,9 @@ export const StandardExam: React.FC<StandardExamProps> = ({ title, durationSecon
   if (isFinished) {
     const score = calculateScore();
     const percentage = (score / questions.length) * 100;
-    const isPassed = percentage >= 60;
+    const isPassed = percentage >= passPercent;
+    const canShowAnswerReview = revealAnswers === 'always' || isPassed;
     const unansweredCount = questions.length - Object.keys(answers).length;
-    const elapsed = durationSeconds - timeLeft;
-    const answeredCount = Object.keys(answers).length;
-
-    // Report completed exam
-    if (!hasReportedRef.current && onExamComplete) {
-      hasReportedRef.current = true;
-      onExamComplete({ score, total: questions.length, answeredCount, durationSeconds: elapsed, isCompleted: true, examKey });
-    }
 
     return (
       <div className={`${pageThemeClass} fixed inset-0 z-50 overflow-y-auto bg-slate-50 p-4 font-sans md:p-8`}>
@@ -172,109 +194,126 @@ export const StandardExam: React.FC<StandardExamProps> = ({ title, durationSecon
             </div>
 
             <div className={`text-lg font-bold mb-8 ${isPassed ? 'text-green-600' : 'text-red-600'}`}>
-              {isPassed ? 'ผ่านเกณฑ์ (60%)' : 'ยังไม่ผ่านเกณฑ์ ลองทบทวนจากเฉลยด้านล่างได้เลย'}
+              {isPassed
+                ? `ผ่านเกณฑ์ (${passPercent}%)`
+                : revealAnswers === 'passedOnly'
+                  ? `ยังไม่ผ่านเกณฑ์ ${passPercent}% เฉลยจะปลดล็อกเมื่อสอบผ่าน`
+                  : `ยังไม่ผ่านเกณฑ์ ${passPercent}% ลองทบทวนจากเฉลยด้านล่างได้เลย`}
             </div>
 
             <button 
               onClick={onBack}
               className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-8 rounded-xl transition-colors"
             >
-              กลับสู่หน้าหลัก
+              {resultBackLabel}
             </button>
           </div>
 
-          <div className="bg-white rounded-3xl border border-slate-100 p-4 md:p-8 mb-10">
-            <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-3 mb-6">
-              <div>
-                <div className="text-sm font-bold text-blue-600 uppercase tracking-wider mb-1">Answer Review</div>
-                <h3 className="text-2xl md:text-3xl font-black text-slate-900">เฉลยและคำอธิบายรายข้อ</h3>
+          {canShowAnswerReview ? (
+            <div className="bg-white rounded-3xl border border-slate-100 p-4 md:p-8 mb-10">
+              <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-3 mb-6">
+                <div>
+                  <div className="text-sm font-bold text-blue-600 uppercase tracking-wider mb-1">Answer Review</div>
+                  <h3 className="text-2xl md:text-3xl font-black text-slate-900">เฉลยและคำอธิบายรายข้อ</h3>
+                </div>
+                <div className="text-sm text-slate-500">ตรวจสีเขียวคือถูก สีแดงคือผิด สีเหลืองคือยังไม่ได้ตอบ</div>
               </div>
-              <div className="text-sm text-slate-500">ตรวจสีเขียวคือถูก สีแดงคือผิด สีเหลืองคือยังไม่ได้ตอบ</div>
-            </div>
 
-            <div className="space-y-4">
-              {questions.map((q, index) => {
-                const selectedAnswer = answers[index];
-                const isAnswered = selectedAnswer !== undefined;
-                const isCorrect = selectedAnswer === q.correctAnswer;
+              <div className="space-y-4">
+                {questions.map((q, index) => {
+                  const selectedAnswer = answers[index];
+                  const isAnswered = selectedAnswer !== undefined;
+                  const isCorrect = selectedAnswer === q.correctAnswer;
 
-                return (
-                  <div
-                    key={q.id}
-                    className={`rounded-2xl border-2 p-5 md:p-6 text-left ${
-                      isCorrect
-                        ? 'border-green-200 bg-green-50/40'
-                        : isAnswered
-                          ? 'border-red-200 bg-red-50/40'
-                          : 'border-amber-200 bg-amber-50/40'
-                    }`}
-                  >
-                    <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 mb-4">
-                      <div className="flex items-center gap-3">
-                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-black ${
-                          isCorrect
-                            ? 'bg-green-600 text-white'
-                            : isAnswered
-                              ? 'bg-red-600 text-white'
-                              : 'bg-amber-500 text-white'
-                        }`}>
-                          {index + 1}
-                        </div>
-                        <div>
-                          <div className="text-sm font-bold text-slate-500">เรื่องที่ออก: {q.subject}</div>
-                          <div className={`text-sm font-bold ${
-                            isCorrect ? 'text-green-700' : isAnswered ? 'text-red-700' : 'text-amber-700'
+                  return (
+                    <div
+                      key={q.id}
+                      className={`rounded-2xl border-2 p-5 md:p-6 text-left ${
+                        isCorrect
+                          ? 'border-green-200 bg-green-50/40'
+                          : isAnswered
+                            ? 'border-red-200 bg-red-50/40'
+                            : 'border-amber-200 bg-amber-50/40'
+                      }`}
+                    >
+                      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 mb-4">
+                        <div className="flex items-center gap-3">
+                          <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-black ${
+                            isCorrect
+                              ? 'bg-green-600 text-white'
+                              : isAnswered
+                                ? 'bg-red-600 text-white'
+                                : 'bg-amber-500 text-white'
                           }`}>
-                            {isCorrect ? 'ตอบถูก' : isAnswered ? 'ตอบผิด' : 'ยังไม่ได้ตอบ'}
+                            {index + 1}
+                          </div>
+                          <div>
+                            <div className="text-sm font-bold text-slate-500">เรื่องที่ออก: {q.subject}</div>
+                            <div className={`text-sm font-bold ${
+                              isCorrect ? 'text-green-700' : isAnswered ? 'text-red-700' : 'text-amber-700'
+                            }`}>
+                              {isCorrect ? 'ตอบถูก' : isAnswered ? 'ตอบผิด' : 'ยังไม่ได้ตอบ'}
+                            </div>
                           </div>
                         </div>
+                        <div className="text-sm font-bold text-slate-600">
+                          เฉลย: {OPTION_LABELS[q.correctAnswer]}. {renderTextWithMathSymbols(q.options[q.correctAnswer])}
+                        </div>
                       </div>
-                      <div className="text-sm font-bold text-slate-600">
-                        เฉลย: {OPTION_LABELS[q.correctAnswer]}. {renderTextWithMathSymbols(q.options[q.correctAnswer])}
+
+                      <div className="text-lg md:text-xl font-bold text-slate-900 leading-relaxed whitespace-pre-line mb-4">
+                        {renderTextWithMathSymbols(q.question)}
                       </div>
-                    </div>
 
-                    <div className="text-lg md:text-xl font-bold text-slate-900 leading-relaxed whitespace-pre-line mb-4">
-                      {renderTextWithMathSymbols(q.question)}
-                    </div>
+                      <div className="grid gap-2 mb-4">
+                        {q.options.map((option, optIdx) => {
+                          const isChosen = selectedAnswer === optIdx;
+                          const isAnswer = q.correctAnswer === optIdx;
 
-                    <div className="grid gap-2 mb-4">
-                      {q.options.map((option, optIdx) => {
-                        const isChosen = selectedAnswer === optIdx;
-                        const isAnswer = q.correctAnswer === optIdx;
-
-                        return (
-                          <div
-                            key={optIdx}
-                            className={`rounded-xl border px-4 py-3 flex gap-3 ${
-                              isAnswer
-                                ? 'border-green-300 bg-green-100 text-green-950'
-                                : isChosen
-                                  ? 'border-red-300 bg-red-100 text-red-950'
-                                  : 'border-slate-200 bg-white text-slate-700'
-                            }`}
-                          >
-                            <span className="font-black shrink-0">{OPTION_LABELS[optIdx]}.</span>
-                            <span className="whitespace-pre-line">{renderTextWithMathSymbols(option)}</span>
-                            {isAnswer && <span className="ml-auto text-sm font-bold text-green-700">คำตอบ</span>}
-                            {isChosen && !isAnswer && <span className="ml-auto text-sm font-bold text-red-700">ที่เลือก</span>}
-                          </div>
-                        );
-                      })}
-                    </div>
-
-                    {q.explanation && (
-                      <div className="rounded-xl bg-white border border-slate-200 p-4">
-                        <div className="text-sm font-black text-blue-700 mb-1">คำอธิบาย</div>
-                        <div className="text-xs font-bold text-slate-500 mb-2">เรื่องที่ออก: {q.subject}</div>
-                        <p className="text-slate-700 leading-relaxed whitespace-pre-line">{renderTextWithMathSymbols(q.explanation)}</p>
+                          return (
+                            <div
+                              key={optIdx}
+                              className={`rounded-xl border px-4 py-3 flex gap-3 ${
+                                isAnswer
+                                  ? 'border-green-300 bg-green-100 text-green-950'
+                                  : isChosen
+                                    ? 'border-red-300 bg-red-100 text-red-950'
+                                    : 'border-slate-200 bg-white text-slate-700'
+                              }`}
+                            >
+                              <span className="font-black shrink-0">{OPTION_LABELS[optIdx]}.</span>
+                              <span className="whitespace-pre-line">{renderTextWithMathSymbols(option)}</span>
+                              {isAnswer && <span className="ml-auto text-sm font-bold text-green-700">คำตอบ</span>}
+                              {isChosen && !isAnswer && <span className="ml-auto text-sm font-bold text-red-700">ที่เลือก</span>}
+                            </div>
+                          );
+                        })}
                       </div>
-                    )}
-                  </div>
-                );
-              })}
+
+                      {q.explanation && (
+                        <div className="rounded-xl bg-white border border-slate-200 p-4">
+                          <div className="text-sm font-black text-blue-700 mb-1">คำอธิบาย</div>
+                          <div className="text-xs font-bold text-slate-500 mb-2">เรื่องที่ออก: {q.subject}</div>
+                          <p className="text-slate-700 leading-relaxed whitespace-pre-line">{renderTextWithMathSymbols(q.explanation)}</p>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
             </div>
-          </div>
+          ) : (
+            <div className="bg-white rounded-3xl border border-slate-100 p-6 md:p-10 mb-10 text-center">
+              <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-amber-100 text-amber-700">
+                <AlertCircle className="h-8 w-8" />
+              </div>
+              <div className="text-sm font-bold text-amber-700 uppercase tracking-wider mb-2">Answer Review Locked</div>
+              <h3 className="text-2xl md:text-3xl font-black text-slate-900">เฉลยจะเปิดเมื่อผ่านเกณฑ์ {passPercent}%</h3>
+              <p className="mx-auto mt-3 max-w-xl text-sm font-semibold leading-7 text-slate-500">
+                ระบบบันทึกคะแนนครั้งนี้เพื่อคำนวณอัตราการตอบถูกแล้ว แต่จะยังไม่แสดงเฉลยและคำอธิบายจนกว่าจะสอบผ่าน
+              </p>
+            </div>
+          )}
         </div>
       </div>
     );
@@ -359,7 +398,7 @@ export const StandardExam: React.FC<StandardExamProps> = ({ title, durationSecon
             <h3 className="text-xl font-bold text-center text-slate-800 mb-2">ยืนยันหยุดทำการทดสอบ</h3>
             <p className="text-center text-slate-600 mb-6">
               คุณแน่ใจหรือไม่ว่าต้องการหยุดทำข้อสอบ? <br/>
-              <span className="text-sm text-slate-500">ระบบจะบันทึกผลการทำข้อสอบจนถึงตอนที่หยุด แต่จะไม่เห็นเฉลย</span>
+              <span className="text-sm text-slate-500">{stopWarningDescription}</span>
             </p>
             <div className="flex gap-3">
               <button 

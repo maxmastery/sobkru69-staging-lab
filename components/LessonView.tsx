@@ -44,6 +44,13 @@ const lessonMenuToneClasses = [
 ];
 const getLessonToneClass = (index: number) => lessonMenuToneClasses[index % lessonMenuToneClasses.length];
 
+const getLessonGalleryBackLabel = (topicId: string) => {
+  if (topicId.startsWith('A')) return 'กลับสู่หน้า Lesson Gallery ภาค ก';
+  if (topicId.startsWith('B')) return 'กลับสู่หน้า Lesson Gallery ภาค ข';
+  if (topicId.startsWith('C')) return 'กลับสู่หน้า Lesson Gallery ภาค ค';
+  return 'กลับสู่หน้า Lesson Gallery';
+};
+
 const LessonView: React.FC<LessonViewProps> = ({ topic, onBack, theme = 'light' }) => {
   const contentRef = useRef<HTMLDivElement>(null);
   const [content, setContent] = useState<string>('');
@@ -700,9 +707,9 @@ const LessonView: React.FC<LessonViewProps> = ({ topic, onBack, theme = 'light' 
       <div className="relative flex w-full max-w-[1600px]">
       <aside className={`fixed md:sticky z-40 w-80 bg-white/92 border-r border-slate-200/80 h-[calc(100vh-73px)] transform transition-transform duration-300 ease-in-out flex flex-col top-[73px] shadow-2xl shadow-slate-900/10 backdrop-blur-xl ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}>
         <div className="flex items-center justify-between border-b border-slate-100 p-4">
-            <button onClick={onBack} className="flex items-center rounded-full px-3 py-2 text-sm font-bold text-slate-500 transition hover:bg-slate-100 hover:text-slate-900">
-                <ChevronLeft className="w-4 h-4 mr-1" />
-                กลับสู่หน้าหลัก
+            <button onClick={onBack} className="flex max-w-full items-center gap-1.5 rounded-full px-3 py-2 text-left text-sm font-bold text-slate-500 transition hover:bg-slate-100 hover:text-slate-900">
+                <ChevronLeft className="h-4 w-4 shrink-0" />
+                <span className="leading-tight">{getLessonGalleryBackLabel(topic.id)}</span>
             </button>
             <button onClick={() => setIsSidebarOpen(false)} className="md:hidden text-slate-400"><ChevronLeft className="w-6 h-6" /></button>
         </div>
